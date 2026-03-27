@@ -52,6 +52,23 @@ vibe-code-challenge/        <- parent repo (logs, docs, config)
 
 All Go code lives under `app/`. The parent directory holds session logs, CLAUDE.md, and README only.
 
+## Testing Convention
+
+Every exported function must have at least one test. Test files live alongside the code they test (foo.go -> foo_test.go).
+
+**Naming pattern:** `Test<Operation>_<Condition>_<ExpectedOutcome>`
+
+- Single obvious case: `TestAdd`
+- Specific scenario: `TestMove_OutOfBounds_ReturnsError`
+- Table-driven: top-level function is `TestMove`, each row passed to `t.Run("condition returns outcome", ...)`
+
+**Rules:**
+- Prefer table-driven tests for 3+ input variations
+- Use `github.com/stretchr/testify/assert` for assertions
+- Each test is fully self-contained — no shared state between tests
+- Test public behaviour only — do not reach into unexported internals
+- Benchmarks named `Benchmark<Operation>` when performance matters
+
 ## No Non-ASCII Characters
 
 Never use non-ASCII characters anywhere in this repo — no emoji, no Unicode symbols, no curly quotes. This applies to:

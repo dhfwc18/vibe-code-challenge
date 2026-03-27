@@ -5,7 +5,7 @@ Engine: Ebitengine v2. All values calibrated to HM Treasury Green Book / DESNZ d
 
 ---
 
-## A. Weekly Turn Sequence (14 Phases)
+## A. Weekly Turn Sequence (17 Phases)
 
 Each game week executes in a fixed pipeline.
 
@@ -27,29 +27,55 @@ Each game week executes in a fixed pipeline.
 6.  Regional World Tick -- 12 regions update SkillsNetwork, InstallerCapacity, SupplyChain
     based on active policies and organic growth. Climate damage events may degrade regional
     capacity (e.g. flooding reduces retrofit installer capacity in affected region).
-7.  Policy Resolution -- active policies resolve weekly carbon impact (multiplied by
-    regional capacity and tech maturity), budget draws, popularity modifiers, and
-    LowCarbonReputation modifiers. Policies with empty budgets stall.
-8.  Carbon Budget Accounting -- accumulate net weekly emissions into current-year total
-    and cumulative stock. At year-end: check annual budget limit (overshoot hits
-    GovernmentPopularity), update ClimateState from new stock level.
-9.  Economy and Tax Revenue Tick -- update hidden Economy from: climate damage this week,
+7.  Tile Local Tick -- each tile (~60-80 total across 12 regions) updates local state:
+    a. TrueRetrofitRate = ObservedRetrofitRate * (InstallerQuality / 100).
+    b. FuelPoverty updated: rises when gas price policy delta hits low-insulation,
+       low-income tiles; falls when insulation improves or heating switches away from gas.
+         FuelPoverty += (gasPriceDelta * (1 - InsulationLevel/100)) / LocalIncome * weight
+         FuelPoverty -= (insulationGain * HeatingCapacityFactor) * weight
+    c. LocalPoliticalOpinion shifts from FuelPoverty delta and any climate event impact.
+    d. InstallerQuality drifts upward slowly only while an installation standards policy
+       is active. New work uses improved quality; prior retrofits are not retroactively
+       upgraded -- the gap in existing stock persists until replaced.
+8.  Climate Event Impact on Tiles -- resolve per-tile impact of any event from Phase 3:
+    Cold snap: tiles where TrueRetrofitRate < threshold suffer heating failures.
+      FuelPoverty spikes by (threshold - TrueRetrofitRate) * severityMultiplier.
+      Event log shows "X% of retrofitted homes reported heating failures" -- the first
+      visible signal of the quality gap without a formal audit.
+    Flooding: local FuelPoverty spikes if heating systems physically damaged.
+    Heatwave: tiles with low InsulationLevel suffer cooling cost spikes; if heating
+      capacity is gas-based, summer energy demand inverts and costs rise.
+    Gas price shock: tiles with high FossilDependency and low InsulationLevel suffer
+      the largest FuelPoverty spike; tiles already on heat pumps are shielded.
+9.  Policy Resolution -- active policies resolve weekly carbon impact using TrueRetrofitRate
+    (not ObservedRetrofitRate), regional capacity, and tech maturity. The player may
+    observe less carbon reduction than expected if installer quality is poor but receives
+    no explicit explanation until a quality audit consultancy report is delivered.
+10. Carbon Budget Accounting -- accumulate net weekly emissions (using TrueRetrofitRate-
+    adjusted policy impacts) into current-year total and cumulative stock. At year-end:
+    check annual budget limit, update ClimateState from new stock level.
+11. Economy and Tax Revenue Tick -- update hidden Economy from: climate damage, tile-level
+    FuelPoverty aggregate (high national FuelPoverty drags consumer spending -> Economy),
     oil/gas shock severity, active industrial policy bonuses, FossilDependency drag.
-    At quarter-end: compute Tax Revenue from Economy, then run Budget Allocation formula
-    (Economy * BaseRate * DeptPopularityWeights * LowCarbonReputationModifier).
-10. Polling Check -- Bernoulli draw each week (avg interval 8-12 weeks). Generates noisy
-    results for GovernmentPopularity (sigma=3) and per-minister (sigma=5). Also generates
-    a LowCarbonReputation poll (sigma=4, interval 10-16 weeks).
-11. Player Action Phase (interactive) -- player spends AP pool (default 5/week).
-    If a ShockResponse was queued in Phase 3, player is offered 2-3 response cards
-    before their normal AP spend. Each response card has: popularity gain potential,
-    LowCarbonReputation gain potential, backfire risk, and AP cost.
-12. Minister Health Check -- WeeksUnderPressure thresholds and IdeologyConflictScore.
-13. Minister Transitions -- process queued appointments, sackings, resignations,
+    At quarter-end: compute Tax Revenue from Economy, run Budget Allocation formula.
+12. Polling Check -- Bernoulli draw each week. Generates noisy results for
+    GovernmentPopularity (sigma=3), per-minister (sigma=5), LowCarbonReputation (sigma=4,
+    interval 10-16w). FuelPoverty does not have its own poll -- it surfaces only via
+    consultancy or through event log signals (heating failures, hardship stories).
+13. Player Action Phase (interactive) -- player spends AP pool (default 5/week).
+    ShockResponse cards offered first if queued in Phase 3. Player may also commission
+    tile-level audits (quality audit, fuel poverty study) as consultancy sub-types.
+14. Minister Health Check -- WeeksUnderPressure thresholds and IdeologyConflictScore.
+    Note: ministers in regions with high FuelPoverty accumulate additional popularity
+    pressure from local political opinion, independent of national polling.
+15. Minister Transitions -- process queued appointments, sackings, resignations,
     election-outs.
-14. Consequence Resolution -- resolve player action outcomes. Budget allocation lobbying
-    results take effect at next quarter-end, not immediately.
-15. Consultancy Delivery Check -- decrement timers; generate and deliver reports.
+16. Consequence Resolution -- resolve player action outcomes. Installation standards
+    policies that were approved begin propagating InstallerQuality improvement from
+    this week forward (not retroactively).
+17. Consultancy Delivery Check -- decrement timers; generate and deliver reports.
+    Quality audit reports reveal TrueRetrofitRate vs ObservedRetrofitRate gap for
+    specified tiles. Fuel poverty studies reveal FuelPoverty per tile in scope.
 16. End of Week Render -- update UI, flush event log.
 
 ---
@@ -136,6 +162,14 @@ Scheduled UK elections (approximate, from 2010 game start):
 | WeeksUnderPressure (minister)    | 0+             | No                                             |
 | PlayerReputation                 | 0-100          | Yes (5 grade labels)                           |
 | CarbonOvershootAccumulator       | 0+             | No (specific consultancy only)                 |
+| InsulationLevel (per tile)       | 0-100          | No (consultancy reveals only)                  |
+| HeatingCapacity (per tile)       | 0-100          | No (consultancy reveals only)                  |
+| InstallerQuality (per tile)      | 0-100          | No (quality audit consultancy only)            |
+| ObservedRetrofitRate (per tile)  | 0-100%         | Yes (reported by contractors in event log)     |
+| TrueRetrofitRate (per tile)      | 0-100%         | No (derived; quality audit reveals gap)        |
+| FuelPoverty (per tile)           | 0-100%         | No (fuel poverty study consultancy only)       |
+| LocalIncome (per tile)           | 0-100          | No (static seed; socioeconomic study reveals)  |
+| LocalPoliticalOpinion (per tile) | 0-100          | No (feeds regional polling signal with noise)  |
 
 RelationshipScore labels: Hostile / Cool / Neutral / Warm / Ally.
 PlayerReputation labels: Generalist / Executive Officer / Higher Executive / Grade 7 / Grade 6 / Deputy Director / Director / Director General / Permanent Secretary.
@@ -173,9 +207,13 @@ internal/
   technology/   TechTracker, LogisticCurve evaluation, AccelerationBonus accumulation.
                 Outputs TechMaturity per technology each tick. Pure functions.
 
-  region/       12-region model. SkillsNetwork/InstallerCapacity/SupplyChain per region.
-                CapacityMultiplier output consumed by policy resolution. Climate event
-                regional capacity damage applied here. Region map geometry data for rendering.
+  region/       12-region model and 60-80 tile sub-model. Region owns SkillsNetwork,
+                InstallerCapacity, SupplyChain. Tile owns InsulationLevel, HeatingCapacity,
+                InstallerQuality, ObservedRetrofitRate, TrueRetrofitRate, FuelPoverty,
+                LocalIncome, LocalPoliticalOpinion. Computes CapacityMultiplier for policy
+                resolution and TileImpact for climate events. All tile state is hidden by
+                default; revealedAttributes map tracks what consultancy has uncovered.
+                Region map geometry and tile boundary data for rendering.
 
   economy/      EconomyState (hidden), TaxRevenue (visible), FossilDependency (derived).
                 Budget allocation formula: baseFraction * ministerPopWeight * LCRModifier
@@ -296,8 +334,39 @@ Region {
   skillsNetwork: map[SectorSkill -> float64]
   installerCapacity: map[SectorSkill -> float64]
   supplyChain: float64
+  tiles: []TileID
   revealedByPlayer: map[string -> bool]
 }
+
+Tile {
+  id: TileID
+  name: string                            // local authority name
+  regionID: RegionID
+  localIncome: float64                    // 0-100, seeded at game start, slow organic drift
+  // Hidden local state:
+  insulationLevel: float64               // 0-100; improved by retrofit policies
+  heatingCapacity: float64               // 0-100; improved by heat pump / boiler upgrade policies
+  installerQuality: float64              // 0-100; improved by installation standards policy (slow)
+  fuelPoverty: float64                   // 0-100%; rises with gas price + poor insulation
+  localPoliticalOpinion: float64         // 0-100; feeds regional political signal (noisy)
+  // Observed (visible via event log, not precise):
+  observedRetrofitRate: float64          // reported by contractors; may exceed TrueRetrofitRate
+  // Derived (never directly shown to player):
+  trueRetrofitRate: float64              // = observedRetrofitRate * (installerQuality / 100)
+  // Fog-of-war tracking:
+  revealedAttributes: map[string -> bool] // which fields have been revealed by consultancy
+}
+
+// Quality gap mechanic:
+// trueRetrofitRate < observedRetrofitRate when installerQuality < 100.
+// The gap is invisible until one of:
+//   a) A quality audit consultancy report is delivered (reveals exact gap for target tiles).
+//   b) A cold snap / climate event exposes heating failures in those tiles (indirect signal).
+//   c) A carbon budget shortfall audit identifies underperforming retrofit zones (indirect).
+//
+// Installation standards policy closes the gap for NEW work only.
+// The legacy gap in existing retrofits persists until those properties are re-done.
+// This creates a long-tail quality problem that rewards early standards enforcement.
 
 SectorSkill enum: Retrofit | EVCharging | WindInstallation | HeatPump |
                   HydrogenInfrastructure | SolarInstallation | CCSInstallation
@@ -469,6 +538,21 @@ no invalid minister states, carbon accumulation bounded.
 8. UI library: adopt ebitenui or build a bespoke minimal widget system?
 
 9. Save file migration: refuse to load older saves, or write version migration functions?
+
+15. Tile count and granularity: ~60-80 tiles (local authority level) or coarser (~30 tiles,
+    roughly county-level)? Finer gives richer spatial variation but higher tuning cost.
+
+16. Legacy retrofit gap repair: should a player be able to commission a re-inspection and
+    remediation programme that retroactively improves TrueRetrofitRate in existing stock
+    (expensive, slow), or is the quality gap permanent for work done before standards?
+
+17. FuelPoverty political visibility: should high FuelPoverty in a tile eventually surface
+    in national press (event log entry) even without a consultancy -- modelling how fuel
+    poverty becomes a visible political crisis when severe enough?
+
+18. Observed vs true retrofit gap at launch: should the game start in 2010 with some
+    pre-existing quality gap in early retrofits (realistic -- pre-PAS 2030 era had
+    significant quality problems), or start from a clean slate?
 
 10. Minister distinctiveness: procedurally generated observable personality signals
     (catchphrases, known public positions) to help players infer hidden attributes?

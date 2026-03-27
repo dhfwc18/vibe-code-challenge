@@ -79,3 +79,32 @@ Never use non-ASCII characters anywhere in this repo — no emoji, no Unicode sy
 - Any file Claude writes or edits
 
 If any non-ASCII characters are found in existing files, remove them immediately.
+
+## Project Context
+
+**Game:** Net Zero - a government simulation game
+**Setting:** A UK-like country, present day politics and policy environment
+**Player role:** Civil servant pushing for net zero initiative
+**Genre:** Map-based strategy with resource management as the central mechanic
+**Timeline:** In-game clock runs from 2010 to 2050; player must reach net zero before the deadline
+**Platform:** Desktop (Windows primary), rendered via Ebiten (Go 2D game library)
+
+**Core design pillars:**
+- Resource management: budget, political capital, public opinion, carbon output
+- Map interaction: regions of the country with different energy profiles, industries, and electorates
+- Policy decisions: draft, lobby, and pass legislation with trade-offs
+- Time pressure: each in-game year advances the clock; events occur that the player must react to
+
+**Package structure target:**
+```
+app/
+    cmd/app/        <- entry point
+    internal/
+        game/       <- game loop, state machine
+        world/      <- map, regions, tiles
+        policy/     <- policy drafting and effects
+        economy/    <- budget, resources, carbon model
+        ui/         <- rendering, HUD, menus
+        clock/      <- in-game time progression
+        event/      <- random and scripted events
+```

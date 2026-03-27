@@ -87,7 +87,17 @@ If any non-ASCII characters are found in existing files, remove them immediately
 **Player role:** Civil servant pushing for net zero initiative
 **Genre:** Map-based strategy with resource management as the central mechanic
 **Timeline:** In-game clock runs from 2010 to 2050; player must reach net zero before the deadline
-**Platform:** Desktop (Windows primary), rendered via Ebiten (Go 2D game library)
+**Platform:** Desktop (Windows primary), rendered via Ebitengine v2 (Apache 2.0)
+
+**Engine stack (all permissive licences, no copyleft):**
+| Role | Library | Licence |
+|---|---|---|
+| Rendering + game loop | github.com/hajimehoshi/ebiten/v2 | Apache 2.0 |
+| HUD / UI widgets | github.com/ebitenui/ebitenui | MIT |
+| Tile map loading | github.com/lafriks/go-tiled | MIT |
+| Camera pan/zoom | github.com/mazznoer/kamera | MIT |
+| Entity management | github.com/yohamta/donburi | MIT |
+| Assertions in tests | github.com/stretchr/testify | MIT |
 
 **Core design pillars:**
 - Resource management: budget, political capital, public opinion, carbon output

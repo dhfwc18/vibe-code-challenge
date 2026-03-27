@@ -99,6 +99,10 @@ If any non-ASCII characters are found in existing files, remove them immediately
 | Entity management | github.com/yohamta/donburi | MIT |
 | Assertions in tests | github.com/stretchr/testify | MIT |
 
+**Numerical basis:** All carbon values, costs, and targets are sourced from the UK Green Book
+and DESNZ supplementary guidance. Full reference data in docs/green_book_reference.md.
+Key anchors: 2010 start = 590 MtCO2e/yr; SPC central 2030 = GBP 280/tCO2e; 2050 target = 0 net.
+
 **Core design pillars:**
 - Resource management: budget, political capital, public opinion, carbon output
 - Map interaction: regions of the country with different energy profiles, industries, and electorates

@@ -14,7 +14,9 @@ Each game week executes in a fixed pipeline.
     scheduled election.
 2.  Climate and Fossil Dependency Update -- recompute ClimateState from cumulative
     emissions stock. Recompute FossilDependency from active energy policy mix. Both
-    feed into event severity multipliers used in Phase 3.
+    feed into event severity multipliers used in Phase 3. Advance EnergyMarket ring
+    buffers (GasHistory, ElecHistory, OilHistory) by one week so the 52-week chart
+    reflects current prices.
 3.  Global Events Roll -- draw from weighted event deck. Event probability and severity
     are multiplied by ClimateState (for weather events) and FossilDependency (for oil/gas
     shocks). Economy is updated by shock severity. At most 2 events per week; most weeks
@@ -27,6 +29,8 @@ Each game week executes in a fixed pipeline.
 6.  Regional World Tick -- 12 regions update SkillsNetwork, InstallerCapacity, SupplyChain
     based on active policies and organic growth. Climate damage events may degrade regional
     capacity (e.g. flooding reduces retrofit installer capacity in affected region).
+    Each active LCT company ticks its AccumulatedQuality proportional to WorkRate and
+    average InstallerCapacity.
 7.  Tile Local Tick -- each tile (~60-80 total across 12 regions) updates local state:
     a. TrueRetrofitRate = ObservedRetrofitRate * (InstallerQuality / 100).
     b. FuelPoverty recomputed from EnergyMarket prices, tile HeatingType, InsulationLevel,
@@ -62,21 +66,33 @@ Each game week executes in a fixed pipeline.
     FuelPoverty aggregate (high national FuelPoverty drags consumer spending -> Economy),
     oil/gas shock severity, active industrial policy bonuses, FossilDependency drag.
     At quarter-end: compute Tax Revenue from Economy, run Budget Allocation formula.
-12. Polling Check -- Bernoulli draw each week. Generates noisy results for
-    GovernmentPopularity (sigma=3), per-minister (sigma=5), LowCarbonReputation (sigma=4,
-    interval 10-16w). FuelPoverty does not have its own poll -- it surfaces only via
-    consultancy or through event log signals (heating failures, hardship stories).
-13. Player Action Phase (interactive) -- player spends AP pool (default 5/week).
-    ShockResponse cards offered first if queued in Phase 3. Player may also commission
-    tile-level audits (quality audit, fuel poverty study) as consultancy sub-types.
-14. Minister Health Check -- WeeksUnderPressure thresholds and IdeologyConflictScore.
-    Note: ministers in regions with high FuelPoverty accumulate additional popularity
-    pressure from local political opinion, independent of national polling.
-15. Minister Transitions -- process queued appointments, sackings, resignations,
-    election-outs.
-16. Consequence Resolution -- resolve player action outcomes. Installation standards
-    policies that were approved begin propagating InstallerQuality improvement from
-    this week forward (not retroactively).
+12. Polling Check -- Bernoulli draw each week (p=0.25). When a poll fires: generate
+    noisy party vote shares per region and nationally; add government approval rating
+    (GovernmentPopularity + sigma=3 noise) to PollSnapshot.GovernmentApprovalRating;
+    generate per-minister popularity readings (MinisterPopularity + sigma=5 noise) into
+    WorldState.MinisterLastPollResults; run SwingFromLast against the previous snapshot.
+    LowCarbonReputation polled on a separate randomised 10-16 week interval (sigma=4).
+    FuelPoverty has no poll -- it surfaces only via consultancy or event log signals.
+13. Policy Approval Evaluation -- evaluate outstanding approval steps for all
+    UNDER_REVIEW policy cards. Cards whose steps all clear transition to ACTIVE.
+    Note: runs before Phase 14 so policies submitted this tick are not evaluated
+    until the following week (prevents same-tick submission-and-rejection).
+14. Player Action Phase (interactive) -- player spends AP pool (default 5/week).
+    Available actions: SubmitPolicy (with tech-unlock gate check), CommissionReport,
+    LobbyMinister, HireStaff, FireStaff, ShockResponse. ShockResponse cards resolve
+    using BackfireProbability derived from current LCR and player Reputation.
+15. Minister Health Check -- update minister Popularity via LCR chain and MinisterStats
+    each week (happens in Phase 11); check per-minister popularity against sacking
+    threshold; trigger ACTIVE->UNDER_PRESSURE or recovery UNDER_PRESSURE->ACTIVE.
+    Passive relationship decay applied every week. WeeksUnderPressure and
+    IdeologyConflictScore also ticked here.
+16. Minister Transitions -- process UNDER_PRESSURE sacking (3 consecutive weeks),
+    APPOINTED->ACTIVE grace period, election-triggered APPOINTED/OPPOSITION_SHADOW
+    assignments. When a minister is sacked, their cabinet role is vacated via
+    government.RemoveMinister.
+17. Consequence Resolution -- post-action effects: installation standards policies
+    begin propagating InstallerQuality improvement from this week forward (deferred
+    to simulation tuning pass).
 17. Consultancy Delivery Check -- decrement timers; generate and deliver reports.
     Quality audit reports reveal TrueRetrofitRate vs ObservedRetrofitRate gap for
     specified tiles. Fuel poverty studies reveal FuelPoverty per tile in scope.
@@ -114,11 +130,20 @@ Transitions:
   BACKBENCH         -> DEPARTED            : Announces retirement or deselected
   OPPOSITION_SHADOW -> APPOINTED           : Party wins next election
 
-Sacking threshold: default 25, reduced by up to 10 if GovernmentPopularity > 60.
+Sacking threshold: default 25, reduced to 20 if GovernmentPopularity > 60 (PM shielded).
 Cabinet ministers: threshold 20. Junior ministers: threshold 30.
 Resignation trigger: (IdeologyDistance * PolicySignificance) > 80.
 PolicySignificance: MINOR=10, MODERATE=30, MAJOR=70.
 Resignation GovernmentPopularity penalty: -4 to -12 (larger than sacking: -2 to -8).
+
+Implementation notes:
+- MinisterPopularity is stored per-minister as Stakeholder.Popularity (float64, 0-100,
+  starts at 50). It is distinct from WorldState.GovernmentPopularity.
+- Weekly update: reputation.ChainToMinisterPopularity(lcrDelta) + government.ComputeMinisterStats
+  popularity modifier applied each Phase 11 for cabinet ministers only.
+- Player-visible polls stored in WorldState.MinisterLastPollResults map[stakeholderID]float64.
+- APPOINTED->ACTIVE grace period (4 weeks per design) is currently immediate in
+  Phase 16; the counter will be wired when the 4-week immunity window is implemented.
 
 ### Government State Machine
 

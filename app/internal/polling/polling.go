@@ -19,9 +19,10 @@ type RegionPoll struct {
 
 // PollSnapshot is the full national and regional polling picture at one game week.
 type PollSnapshot struct {
-	Week          int
-	RegionPolls   map[string]RegionPoll     // keyed by RegionID
-	NationalPolls map[config.Party]float64  // always contains all four parties; sums to ~100
+	Week                  int
+	RegionPolls           map[string]RegionPoll    // keyed by RegionID
+	NationalPolls         map[config.Party]float64 // always contains all four parties; sums to ~100
+	GovernmentApprovalRating float64               // 0-100 noisy sample of GovernmentPopularity (sigma=3)
 }
 
 // allParties lists the four parties in a fixed order used for deterministic iteration.

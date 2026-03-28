@@ -53,6 +53,10 @@ type Stakeholder struct {
 	InfluenceScore    float64 // 0-100; computed from party polling and role weight
 	IsUnlocked        bool
 
+	// Minister popularity (distinct from GovernmentPopularity)
+	Popularity        float64 // 0-100 hidden true value; polled with sigma=5
+	WeeksUnderPressure int    // increments while State==UNDER_PRESSURE; resets on recovery
+
 	// Signal queue (appended externally by simulation layer)
 	PendingSignals []string
 
@@ -138,6 +142,7 @@ func SeedStakeholders(defs []config.StakeholderSeed) []Stakeholder {
 			EntryTiming:         d.EntryTiming,
 			SpecialMechanic:     d.SpecialMechanic,
 			RelationshipScore:   startingRelationship,
+			Popularity:          50.0,
 			IsUnlocked:          d.EntryTiming == config.TimingStart,
 			State:               MinisterStateActive,
 			PendingSignals:      []string{},

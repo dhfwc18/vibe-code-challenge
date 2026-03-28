@@ -80,6 +80,18 @@ func TestSeedStakeholders_StateIsActive(t *testing.T) {
 	assert.Equal(t, MinisterStateActive, out[0].State)
 }
 
+func TestSeedStakeholders_PopularityStartsAt50(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.Equal(t, 50.0, out[0].Popularity)
+}
+
+func TestSeedStakeholders_WeeksUnderPressureStartsAtZero(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.Equal(t, 0, out[0].WeeksUnderPressure)
+}
+
 func TestSeedStakeholders_IdentityFieldsCopied(t *testing.T) {
 	d := makeSeed("my_id", config.TimingStart, 0)
 	d.IdeologyScore = 42.0

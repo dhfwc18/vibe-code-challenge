@@ -450,17 +450,26 @@ Organisation (static definition in config) {
 //   deliveryWeeks = sample(triangular distribution, min=baseMin, mode=baseMode, max=baseMax*1.5)
 //   A commission scoped to multiple regions or insight types uses baseMax*2.
 //
-// Organisation roster (14 orgs):
+// Organisation roster (15 orgs):
 //
 // Consultancies:
-//   Meridian Strategy          -- generalist, high cost, fast-medium (2-5w), wide quality range,
-//                                  medium pop risk, client confirmation bias
+//   Tacute Energy Solutions    -- energy sector specialist, very high cost, medium (3-5w),
+//                                  quality 70-95 (high floor and ceiling -- best in band),
+//                                  popularityRisk 0.2 (lowest in consultancy band),
+//                                  clientBiasWeight 0.25 (lower bias -- reputation depends on
+//                                  being right, not just agreeable), failureProbability 0.04,
+//                                  specialism: Power, Industry, EnergyMarket insights
+//   Meridian Strategy          -- generalist, high cost, fast-medium (2-5w), quality 30-85,
+//                                  popularityRisk 0.4, clientBiasWeight 0.4, failProb 0.09
 //   ClearPath Advisory         -- infrastructure specialist, high cost, medium (3-6w),
-//                                  medium pop risk, client confirmation bias
-//   Vertex Policy Group        -- boutique, medium cost, fast (1-4w), narrower scope,
-//                                  medium pop risk, client confirmation bias, higher fail rate
+//                                  quality 40-85, popularityRisk 0.4, clientBiasWeight 0.4,
+//                                  failProb 0.08
+//   Vertex Policy Group        -- boutique, medium cost, fast (1-4w), quality 25-80,
+//                                  popularityRisk 0.4, clientBiasWeight 0.45, failProb 0.14
+//                                  (fastest but least reliable)
 //   Axiom Infrastructure       -- engineering-focused, high cost, medium-slow (4-7w),
-//                                  medium pop risk, client confirmation bias, high asset quality
+//                                  quality 50-90, popularityRisk 0.35, clientBiasWeight 0.35,
+//                                  failProb 0.06, specialism: Buildings, region capacity assets
 //
 // Think Tanks:
 //   The Albion Institute       -- right-leaning (bias +0.6), free market, popular with Right/FarRight

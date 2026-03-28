@@ -1127,24 +1127,26 @@ When in opposition, they are shadows whose relationships still matter.
     Framework", "reputation for asking where the money is coming from and why"
 
   [MID]   Tariq Rashid
-    Third-generation Taitan, South Azarian heritage. Former career diplomat who
-    returned to domestic politics through the party's community organising wing.
-    Coalition-minded, procedurally careful, effective in multilateral forums.
-    Comfortable in international rooms that do not always look like him.
+    Third-generation Taitan. Former career diplomat who specialised in multilateral
+    environment and trade agreements before returning to domestic politics through the
+    party's community organising wing. Coalition-minded, procedurally careful, earns
+    trust by doing the preparation work others skip.
     ideologyScore: -22, netZeroSympathy: 48, riskTolerance: 48, populismScore: 33
-    International crisis weight: cautious multilateralist; mild positive modifier
-    on green diplomacy; credibility bonus on Commonwealth and South Azarian tracks
+    International crisis weight: cautious multilateralist; coalition-builder; mild
+    positive modifier on green diplomacy outcomes from career expertise in that area
 
   [LATE]  Marcus Osei
-    Third-generation Taitan, Ghanian-West Afrian heritage. Grew up in a port city,
-    first in his family to attend university. Strong climate justice framing --
-    explicitly links energy poverty, colonial resource extraction, and net zero as
-    one interconnected problem. Popular with younger voters and the party's activist
-    base. Can generate significant LCR upside; also capable of generating press
-    controversy if climate justice rhetoric runs ahead of government messaging.
+    Third-generation Taitan. Grew up in a port city, first in his family to attend
+    university. Came up through community organising and trade union work before
+    winning his seat. Holds a structural view of the energy transition -- links fuel
+    poverty, industrial policy, and international climate finance as parts of the
+    same problem -- which resonates strongly with the party's activist base and
+    younger voters. Can generate significant LCR upside; also capable of generating
+    press friction if his political framing runs ahead of the government's preferred
+    messaging.
     ideologyScore: -40, netZeroSympathy: 85, riskTolerance: 55, populismScore: 60
-    Signals: "founding member of the Climate Justice Caucus", "fluent in three
-    languages", "genuinely exciting to listen to, which makes the party nervous"
+    Signals: "founding member of the Climate Justice Caucus", "came up through
+    community organising", "genuinely exciting to listen to, which makes the party nervous"
 
   ============================================================
   --- Right (Taitan Conservative equivalent) ---
@@ -1196,11 +1198,8 @@ When in opposition, they are shadows whose relationships still matter.
     spikes, Economy drops sharply, TaxRevenue -15%. Resigns 2 turns after crisis onset.
 
   [MID]   Foreign Secretary: Noris Jackson
-    Mixed heritage -- Taitan mother, father from the Caribbean Islands bloc. Grew up
-    between two worlds and learned early that being the person everyone is comfortable
-    talking to is a genuine skill. Laddish, loud, socially well-connected. Turns up
-    at the right events, knows everyone at the bar, and somehow gets things done
-    between the drinking.
+    Laddish, loud, socially well-connected. Turns up at the right events, knows
+    everyone at the bar, and somehow gets things done between the drinking.
     Enters pool at weeks 60-80 of first Right government (or shadow cabinet if in
     opposition from same threshold).
     ideologyScore: +40, netZeroSympathy: 45, riskTolerance: 65, populismScore: 60

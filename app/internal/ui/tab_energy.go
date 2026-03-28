@@ -26,8 +26,8 @@ func drawTabEnergy(screen *ebiten.Image, world simulation.WorldState, face font.
 	drawLabel(screen, x, y, fmt.Sprintf("Oil:          GBP %.2f / MWh", world.EnergyMarket.OilPrice), ColourTextPrimary, face)
 	y += 24
 
-	// Renewable grid share.
-	renewShare := world.EnergyMarket.RenewableGridShare
+	// Renewable grid share (value is 0-1; multiply by 100 for display).
+	renewShare := world.EnergyMarket.RenewableGridShare * 100
 	drawLabel(screen, x, y, fmt.Sprintf("Renewable grid share: %.1f%%", renewShare), ColourTextPrimary, face)
 	y += 6
 	drawBar(screen, x, y, 300, 12, renewShare, 100, ColourAccent, ColourButtonNormal)
@@ -59,9 +59,11 @@ func drawTabEnergy(screen *ebiten.Image, world simulation.WorldState, face font.
 		if !ok {
 			maturity = 0
 		}
-		label := fmt.Sprintf("%-20s %.1f%%", string(tech), maturity)
+		// maturity is 0-1; multiply by 100 for display.
+		maturityPct := maturity * 100
+		label := fmt.Sprintf("%-20s %.1f%%", string(tech), maturityPct)
 		drawLabel(screen, x, y, label, ColourTextPrimary, face)
-		drawBar(screen, x+230, y-11, 150, 10, maturity, 100, ColourAccent, ColourButtonNormal)
+		drawBar(screen, x+230, y-11, 150, 10, maturityPct, 100, ColourAccent, ColourButtonNormal)
 		y += 16
 		if y > cy+ch-10 {
 			break

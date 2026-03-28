@@ -30,6 +30,7 @@ func drawTabPolicy(
 	pendingActions *[]simulation.Action,
 	face font.Face,
 	cx, cy, cw, ch int,
+	effectiveAP int,
 ) {
 	drawPanel(screen, cx, cy, cw, ch)
 
@@ -52,10 +53,18 @@ func drawTabPolicy(
 			if rowY+policyCardH > cy+ch {
 				break
 			}
-			drawPolicyCard(screen, pc, world, pendingActions, face, colX+4, rowY)
+			drawPolicyCard(screen, pc, world, pendingActions, face, colX+4, rowY, effectiveAP)
 			rowY += policyCardH
 		}
 	}
+}
+
+// truncatePol truncates s to 24 chars for display in a policy card.
+func truncatePol(s string) string {
+	if len(s) > 24 {
+		return s[:21] + "..."
+	}
+	return s
 }
 
 // drawPolicyCard draws one policy card at x, y.
@@ -66,6 +75,7 @@ func drawPolicyCard(
 	pendingActions *[]simulation.Action,
 	face font.Face,
 	x, y int,
+	effectiveAP int,
 ) {
 	solidRect(screen, x, y, policyColW-8, policyCardH-2, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
 
@@ -73,28 +83,26 @@ func drawPolicyCard(
 		return
 	}
 
-	// Name on line y+14.
-	drawLabel(screen, x+4, y+14, pc.Def.Name, ColourTextPrimary, face)
+	// Row 1 (y+14): card name, truncated to 24 chars.
+	drawLabel(screen, x+4, y+14, truncatePol(pc.Def.Name), ColourTextPrimary, face)
 
-	// Sector badge at y+20.
-	drawBadge(screen, x+4, y+20, string(pc.Def.Sector), sectorColour(pc.Def.Sector), face)
+	// Row 2 (y+28): sector badge at x+4; significance badge at x+120.
+	drawBadge(screen, x+4, y+28, string(pc.Def.Sector), sectorColour(pc.Def.Sector), face)
+	drawBadge(screen, x+120, y+28, string(pc.Def.Significance), significanceColour(pc.Def.Significance), face)
 
-	// Significance badge at y+20.
-	drawBadge(screen, x+90, y+20, string(pc.Def.Significance), significanceColour(pc.Def.Significance), face)
+	// Row 3 (y+46): AP cost label at x+4; submit button at x+140, y+38.
+	drawLabel(screen, x+4, y+46, fmt.Sprintf("AP: %d", pc.Def.APCost), ColourTextMuted, face)
 
-	// AP cost at y+38.
-	drawLabel(screen, x+4, y+38, fmt.Sprintf("AP: %d", pc.Def.APCost), ColourTextMuted, face)
-
-	// Submit button at y+50 (DRAFT only).
+	// Submit button at y+38 height 16 (DRAFT only).
 	if pc.State == policy.PolicyStateDraft {
-		canSubmit := world.Player.APRemaining >= pc.Def.APCost
-		btnCol := buttonColour(x+90, y+50, 50, 16, canSubmit)
+		canSubmit := effectiveAP >= pc.Def.APCost
+		btnCol := buttonColour(x+140, y+38, 50, 16, canSubmit)
 		lblCol := ColourTextPrimary
 		if !canSubmit {
 			lblCol = ColourTextMuted
 		}
-		solidRect(screen, x+90, y+50, 50, 16, btnCol)
-		drawLabel(screen, x+94, y+62, "Submit", lblCol, face)
+		solidRect(screen, x+140, y+38, 50, 16, btnCol)
+		drawLabel(screen, x+144, y+50, "Submit", lblCol, face)
 		_ = pendingActions // click detection in Update
 	}
 }

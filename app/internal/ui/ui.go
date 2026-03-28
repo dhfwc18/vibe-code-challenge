@@ -39,6 +39,13 @@ type UI struct {
 
 	// advanceWeekRequested is set when the player clicks "Advance Week".
 	advanceWeekRequested bool
+
+	// pendingAPSpend tracks AP committed to queued actions this week.
+	pendingAPSpend int
+	// feedbackMsg is a short message shown in the HUD notification strip.
+	feedbackMsg string
+	// feedbackFrames is the number of frames remaining to show feedbackMsg.
+	feedbackFrames int
 }
 
 // New creates and returns a fully initialised UI.
@@ -59,9 +66,20 @@ func New(world *simulation.WorldState, cfg *config.Config) *UI {
 func (u *UI) AdvanceWeekRequested() bool {
 	if u.advanceWeekRequested {
 		u.advanceWeekRequested = false
+		u.pendingAPSpend = 0
+		u.feedbackMsg = ""
 		return true
 	}
 	return false
+}
+
+// effectiveAP returns the player's remaining AP minus any AP committed to queued actions.
+func (u *UI) effectiveAP(world *simulation.WorldState) int {
+	eff := world.Player.APRemaining - u.pendingAPSpend
+	if eff < 0 {
+		eff = 0
+	}
+	return eff
 }
 
 // NotifyEvent passes the most recent event name to the HUD notification strip.
@@ -72,6 +90,10 @@ func (u *UI) NotifyEvent(name string) {
 // Update processes input for this frame and returns any actions queued.
 // The returned slice is valid only until the next call to Update.
 func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
+	if u.feedbackFrames > 0 {
+		u.feedbackFrames--
+	}
+
 	u.pendingActions = u.pendingActions[:0]
 
 	// Handle Ticky modal first - it blocks all other input.
@@ -244,11 +266,15 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 			btnX := colX + 4 + 145
 			btnY := rowY + 54
 			if inRect(mx, my, btnX, btnY, 50, 18) {
-				if isInCabinet(s, *world) && world.Player.APRemaining >= 3 {
+				if isInCabinet(s, *world) && u.effectiveAP(world) >= 3 {
 					u.pendingActions = append(u.pendingActions, simulation.Action{
 						Type:   player.ActionTypeLobbyMinister,
 						Target: s.ID,
 					})
+					u.pendingAPSpend += 3
+				} else {
+					u.feedbackMsg = "Not enough AP or not in cabinet"
+					u.feedbackFrames = 150
 				}
 				return
 			}
@@ -269,14 +295,18 @@ func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 				continue
 			}
 			if state == "DRAFT" {
-				btnX := colX + 4 + 90
-				btnY := rowY + 50
+				btnX := colX + 8 + 4 + 140
+				btnY := rowY + 38
 				if inRect(mx, my, btnX, btnY, 50, 16) {
-					if pc.Def != nil && world.Player.APRemaining >= pc.Def.APCost {
+					if pc.Def != nil && u.effectiveAP(world) >= pc.Def.APCost {
 						u.pendingActions = append(u.pendingActions, simulation.Action{
 							Type:   player.ActionTypeSubmitPolicy,
 							Target: pc.Def.ID,
 						})
+						u.pendingAPSpend += pc.Def.APCost
+					} else {
+						u.feedbackMsg = "Not enough AP"
+						u.feedbackFrames = 150
 					}
 					return
 				}
@@ -318,7 +348,7 @@ func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my int) {
 // Draw renders the entire UI onto screen.
 func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	// HUD top bar.
-	u.hud.Draw(screen, world, u.face)
+	u.hud.Draw(screen, world, u.face, u.effectiveAP(&world), u.feedbackMsg)
 
 	// Tab sidebar.
 	u.tabs.Draw(screen, u.face)
@@ -331,6 +361,8 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	cw := sw - contentX
 	ch := sh - hudHeight
 
+	effAP := u.effectiveAP(&world)
+
 	// Dispatch to active tab renderer.
 	switch u.tabs.ActiveTab() {
 	case 0:
@@ -338,9 +370,9 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	case 1:
 		drawTabMap(screen, world, &u.mapState, u.face, cx, cy, cw, ch)
 	case 2:
-		drawTabPolitics(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch)
+		drawTabPolitics(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch, effAP)
 	case 3:
-		drawTabPolicy(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch)
+		drawTabPolicy(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch, effAP)
 	case 4:
 		drawTabEnergy(screen, world, u.face, cx, cy, cw, ch)
 	case 5:

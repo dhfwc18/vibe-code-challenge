@@ -13,6 +13,22 @@ import (
 const politicsColW = 272
 const ministerCardH = 88
 
+// roleAbbrev returns a short display string for a minister role.
+func roleAbbrev(r config.Role) string {
+	switch r {
+	case config.RoleLeader:
+		return "Leader"
+	case config.RoleChancellor:
+		return "Chanc."
+	case config.RoleForeignSecretary:
+		return "F.Sec."
+	case config.RoleEnergy:
+		return "Energy"
+	default:
+		return string(r)
+	}
+}
+
 // drawTabPolitics renders the politics tab.
 func drawTabPolitics(
 	screen *ebiten.Image,
@@ -20,6 +36,7 @@ func drawTabPolitics(
 	pendingActions *[]simulation.Action,
 	face font.Face,
 	cx, cy, cw, ch int,
+	effectiveAP int,
 ) {
 	drawPanel(screen, cx, cy, cw, ch)
 
@@ -57,7 +74,7 @@ func drawTabPolitics(
 			if rowY+ministerCardH > cy+ch {
 				break
 			}
-			drawMinisterRow(screen, s, world, pendingActions, face, colX+4, rowY)
+			drawMinisterRow(screen, s, world, pendingActions, face, colX+4, rowY, effectiveAP)
 			rowY += ministerCardH
 		}
 	}
@@ -71,6 +88,7 @@ func drawMinisterRow(
 	pendingActions *[]simulation.Action,
 	face font.Face,
 	x, y int,
+	effectiveAP int,
 ) {
 	// Background card.
 	solidRect(screen, x-2, y, politicsColW-6, ministerCardH-2, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
@@ -78,12 +96,12 @@ func drawMinisterRow(
 	// Name on line y+14.
 	drawLabel(screen, x, y+14, s.Name, ColourTextPrimary, face)
 
-	// Role badge at y+20.
-	drawBadge(screen, x, y+20, string(s.Role), ColourOrgThinkTank, face)
+	// Role badge at y+20 (abbreviated to avoid overlap).
+	drawBadge(screen, x, y+20, roleAbbrev(s.Role), ColourOrgThinkTank, face)
 
-	// State badge at y+20 offset right.
+	// State badge at y+20 offset right (x+70 safe gap after 54px role badge).
 	stateCol := ministerStateColour(s.State)
-	drawBadge(screen, x+110, y+20, string(s.State), stateCol, face)
+	drawBadge(screen, x+70, y+20, string(s.State), stateCol, face)
 
 	// Popularity bar at y+38.
 	drawLabel(screen, x, y+38, "Pop", ColourTextMuted, face)
@@ -95,7 +113,7 @@ func drawMinisterRow(
 
 	// Lobby button at y+62.
 	inCabinet := isInCabinet(s, world)
-	canLobby := inCabinet && world.Player.APRemaining >= 3
+	canLobby := inCabinet && effectiveAP >= 3
 	btnCol := buttonColour(x+145, y+54, 50, 18, canLobby)
 	lblCol := ColourTextPrimary
 	if !canLobby {

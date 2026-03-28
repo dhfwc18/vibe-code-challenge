@@ -43,7 +43,7 @@ func (h *HUD) setLastEvent(name string) {
 }
 
 // Draw renders the HUD top bar onto screen.
-func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.Face) {
+func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.Face, effectiveAP int, feedbackMsg string) {
 	w := screen.Bounds().Dx()
 
 	// Background bar.
@@ -62,8 +62,8 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	timeStr := fmt.Sprintf("Year %d  Wk %d  Q%d", world.Year, world.Week, world.Quarter)
 	drawLabel(screen, 8, 30, timeStr, ColourTextPrimary, face)
 
-	// Centre-left: AP remaining.
-	apStr := fmt.Sprintf("AP: %d", world.Player.APRemaining)
+	// Centre-left: AP remaining (effective, accounting for queued spend).
+	apStr := fmt.Sprintf("AP: %d", effectiveAP)
 	drawLabel(screen, 260, 30, apStr, ColourAccent, face)
 
 	// Centre: LCR value.
@@ -75,8 +75,10 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	climateLabel := climateLevelName(world.ClimateState.Level)
 	drawBadge(screen, 460, 12, climateLabel, climateCol, face)
 
-	// Event notification strip.
-	if h.lastEventName != "" {
+	// Event notification strip: feedback message takes priority over event name.
+	if feedbackMsg != "" {
+		drawLabel(screen, 600, 30, feedbackMsg, colour(0xE7, 0x4C, 0x3C), face)
+	} else if h.lastEventName != "" {
 		evStr := "Event: " + h.lastEventName
 		drawLabel(screen, 600, 30, evStr, ColourClimateMedium, face)
 	}

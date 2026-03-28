@@ -24,6 +24,19 @@ import (
 	"twenty-fifty/internal/technology"
 )
 
+// lobbyAPCost is the action point cost for the LobbyMinister action.
+const lobbyAPCost = 3
+
+// ministerSackingThreshold is the Popularity level below which a cabinet
+// minister enters UNDER_PRESSURE. Reduced when GovernmentPopularity is high.
+const ministerSackingThreshold = 25.0
+
+// ministerSackingThresholdHighPop is used when GovernmentPopularity > 60.
+const ministerSackingThresholdHighPop = 20.0
+
+// ministerSackingWeeks is consecutive weeks UNDER_PRESSURE before SACKED.
+const ministerSackingWeeks = 3
+
 // ---------------------------------------------------------------------------
 // Calibration constants
 // ---------------------------------------------------------------------------
@@ -115,10 +128,15 @@ type WorldState struct {
 	// Player
 	Player player.CivilServant
 
+	// Player-visible poll snapshots
+	GovernmentLastPollResult float64            // most recent noisy govt approval sample (sigma=3)
+	MinisterLastPollResults  map[string]float64 // keyed by stakeholder ID; sigma=5
+
 	// Weekly transient accumulators -- reset at the top of each AdvanceWeek call.
-	WeeklyNetCarbonMt       float64 // net carbon emitted this week (base minus reductions)
-	WeeklyPolicyReductionMt float64 // total carbon removed by active policies
-	WeeklyEventLCRDelta     float64 // LCR delta from fired events
+	WeeklyNetCarbonMt        float64 // net carbon emitted this week (base minus reductions)
+	WeeklyPolicyReductionMt  float64 // total carbon removed by active policies
+	WeeklyEventLCRDelta      float64 // LCR delta from fired events
+	WeeklyPolicyBudgetCostGBP float64 // total budget draw from active policies this week
 }
 
 // ---------------------------------------------------------------------------
@@ -159,14 +177,16 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 	rng := rand.New(rand.NewSource(int64(masterSeed.DeriveSubSeed("simulation"))))
 
 	w := WorldState{
-		Week:                 0,
-		Year:                 2010,
-		Quarter:              1,
-		Cfg:                  cfg,
-		RNG:                  rng,
-		GovernmentPopularity: initialGovtPopularity,
-		FossilDependency:     initialFossilDependency,
-		WeeksUntilLCRPoll:    10 + rng.Intn(7),
+		Week:                    0,
+		Year:                    2010,
+		Quarter:                 1,
+		Cfg:                     cfg,
+		RNG:                     rng,
+		GovernmentPopularity:    initialGovtPopularity,
+		GovernmentLastPollResult: initialGovtPopularity,
+		FossilDependency:        initialFossilDependency,
+		WeeksUntilLCRPoll:       10 + rng.Intn(7),
+		MinisterLastPollResults: make(map[string]float64),
 	}
 
 	// Government: Common Wealth rules from 2010; first election ~2015.
@@ -248,6 +268,7 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 	w.WeeklyNetCarbonMt = baseWeeklyMt
 	w.WeeklyPolicyReductionMt = 0
 	w.WeeklyEventLCRDelta = 0
+	w.WeeklyPolicyBudgetCostGBP = 0
 
 	// Phase 1: Clock Advance.
 	w = phaseClockAdvance(w)
@@ -361,6 +382,33 @@ func phaseClockAdvance(w WorldState) WorldState {
 	w.Year = 2010 + w.Week/52
 	// Quarter: 1-4 within each 52-week year.
 	w.Quarter = 1 + (w.Week%52)/13
+
+	// Election check: trigger when the scheduled week arrives.
+	if government.IsElectionDue(w.Government, w.Week) {
+		// Winner is the leading party in the most recent poll; default to current ruler.
+		winner := w.Government.RulingParty
+		if len(w.PollHistory) > 0 {
+			winner = polling.LeadingParty(w.PollHistory[len(w.PollHistory)-1])
+		}
+		// Clear cabinet; set new ruling party; schedule next election 5 years out.
+		w.Government = government.TriggerElection(w.Government, winner, w.Week+260)
+
+		// Rebuild cabinet from winning party's unlocked non-terminal ministers.
+		// All other unlocked ministers move to OPPOSITION_SHADOW.
+		for i := range w.Stakeholders {
+			s := w.Stakeholders[i]
+			if !s.IsUnlocked || isTerminalState(s.State) {
+				continue
+			}
+			if s.Party == winner {
+				w.Government = government.AssignMinister(w.Government, s.Role, s.ID)
+				w.Stakeholders[i].State = stakeholder.MinisterStateAppointed
+				w.Stakeholders[i].WeeksUnderPressure = 0
+			} else {
+				w.Stakeholders[i].State = stakeholder.MinisterStateOppositionShadow
+			}
+		}
+	}
 	return w
 }
 
@@ -383,6 +431,11 @@ func phaseClimateAndFossilUpdate(w WorldState) WorldState {
 		weeksInYear = 52
 	}
 	w.Carbon.Trajectory = carbon.ProjectTrajectory(w.Carbon, weeksInYear)
+
+	// Advance energy market ring buffers with this week's post-shock prices.
+	// Policy-driven grid share changes will be plumbed in a simulation tuning pass;
+	// zero gridShareDelta keeps prices stable apart from event shocks.
+	w.EnergyMarket = energy.TickPrices(w.EnergyMarket, 0, 0, 0, 0)
 	return w
 }
 
@@ -434,6 +487,9 @@ func phaseGlobalEventRoll(w WorldState) (WorldState, []event.EventEntry) {
 		}
 	}
 
+	// Apply company work rate and quality deltas from events.
+	w = applyCompanyDeltas(w, resolved.CompanyDeltas)
+
 	// Queue shock response opportunity if the event offers one.
 	if def.OffersShockResponse {
 		w.PendingShockResponses = append(w.PendingShockResponses, event.PendingShockResponse{
@@ -457,7 +513,7 @@ func phaseScandalAndPressureRoll(w WorldState) WorldState {
 		if !s.IsUnlocked || isTerminalState(s.State) {
 			continue
 		}
-		if event.RollScandal(s, 0, w.RNG) {
+		if event.RollScandal(s, s.WeeksUnderPressure, w.RNG) {
 			w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity-2.0, 0, 100)
 		}
 	}
@@ -492,6 +548,21 @@ func phaseRegionalWorldTick(w WorldState) WorldState {
 	// Organic skills growth: slow baseline learning over time.
 	for i := range w.Regions {
 		w.Regions[i].SkillsNetwork = mathutil.Clamp(w.Regions[i].SkillsNetwork+0.01, 0, 100)
+	}
+
+	// Industry company tick: accumulate quality for each active company.
+	// Average installer capacity across all regions is used as the national proxy.
+	avgCap := avgInstallerCapacity(w.Regions)
+	defs := companyDefMap(w.Cfg)
+	for defID, cs := range w.Industry.Companies {
+		if !cs.IsActive {
+			continue
+		}
+		def, ok := defs[defID]
+		if !ok {
+			continue
+		}
+		w.Industry = industry.TickCompany(w.Industry, defID, def, avgCap)
 	}
 	return w
 }
@@ -560,6 +631,7 @@ func phasePolicyResolution(w WorldState) WorldState {
 		techFrac := techFractionForPolicy(card.Def, w.Tech)
 		delta := policy.ResolveWeeklyEffect(card, repRegion, techFrac, avgRetrofit)
 		w.WeeklyPolicyReductionMt += delta.DeltaMt
+		w.WeeklyPolicyBudgetCostGBP += delta.BudgetCostPerWeek
 	}
 
 	// Net carbon: base emissions minus policy reductions. Clamped to prevent
@@ -600,8 +672,28 @@ func phaseEconomyTick(w WorldState) WorldState {
 		w.FossilDependency/500.0,      // fossil drag: ~0-0.2 range
 	)
 
-	// LCR tick: carbon reduction this week and direct event LCR delta.
+	// LCR tick: capture delta for downstream popularity chains.
+	prevLCR := w.LCR.Value
 	w.LCR = reputation.TickReputation(w.LCR, w.WeeklyPolicyReductionMt, w.WeeklyEventLCRDelta)
+	lcrDelta := w.LCR.Value - prevLCR
+
+	// Government popularity chain from LCR movement.
+	w.GovernmentPopularity = mathutil.Clamp(
+		w.GovernmentPopularity+reputation.ChainToGovtPopularity(lcrDelta), 0, 100)
+
+	// Per-minister popularity from LCR chain and minister stats (cabinet ministers only).
+	for i := range w.Stakeholders {
+		s := w.Stakeholders[i]
+		if !s.IsUnlocked || isTerminalState(s.State) {
+			continue
+		}
+		if !isInCabinet(w.Government, s.ID) {
+			continue
+		}
+		stats := government.ComputeMinisterStats(s, lcrDelta)
+		minPopDelta := reputation.ChainToMinisterPopularity(lcrDelta) + stats.PopularityModifier
+		w.Stakeholders[i].Popularity = mathutil.Clamp(s.Popularity+minPopDelta, 0, 100)
+	}
 
 	// Quarter-end: clear lobby effects, recompute tax revenue and budget allocation.
 	if w.Week%13 == 0 {
@@ -623,9 +715,35 @@ func phaseEconomyTick(w WorldState) WorldState {
 // ---------------------------------------------------------------------------
 
 func phasePollingCheck(w WorldState) WorldState {
-	// Government and regional poll: Bernoulli draw each week.
+	// Party vote share, government approval, and minister polls: one Bernoulli draw.
 	if w.RNG.Float64() < pollWeeklyProb {
 		snap := polling.TakePollSnapshot(w.Week, w.Tiles, w.Regions, w.RNG)
+
+		// Government approval rating (sigma=3 noise on true hidden value).
+		snap.GovernmentApprovalRating = mathutil.Clamp(
+			w.GovernmentPopularity+w.RNG.NormFloat64()*3.0, 0, 100)
+		w.GovernmentLastPollResult = snap.GovernmentApprovalRating
+
+		// Per-minister popularity polls (sigma=5 noise on true hidden value).
+		for _, s := range w.Stakeholders {
+			if !s.IsUnlocked || isTerminalState(s.State) {
+				continue
+			}
+			w.MinisterLastPollResults[s.ID] = mathutil.Clamp(
+				s.Popularity+w.RNG.NormFloat64()*5.0, 0, 100)
+		}
+
+		// Swing computation against previous snapshot.
+		if len(w.PollHistory) > 0 {
+			swings := polling.SwingFromLast(snap, w.PollHistory[len(w.PollHistory)-1])
+			for rid, swing := range swings {
+				if rp, ok := snap.RegionPolls[rid]; ok {
+					rp.Swing = swing
+					snap.RegionPolls[rid] = rp
+				}
+			}
+		}
+
 		w.PollHistory = append(w.PollHistory, snap)
 	}
 
@@ -652,10 +770,15 @@ func phasePlayerActions(w WorldState, actions []Action) WorldState {
 
 func applyAction(w WorldState, a Action) WorldState {
 	switch a.Type {
+
 	case player.ActionTypeSubmitPolicy:
 		for i, card := range w.PolicyCards {
 			if card.Def.ID != a.Target || card.State != policy.PolicyStateDraft {
 				continue
+			}
+			// Tech unlock gate: cannot submit if gate not yet met.
+			if !policy.IsUnlocked(card, w.Tech.Maturities) {
+				break
 			}
 			cs, ok := player.SpendAP(w.Player, card.Def.APCost)
 			if !ok {
@@ -669,11 +792,102 @@ func applyAction(w WorldState, a Action) WorldState {
 			break
 		}
 
+	case player.ActionTypeCommissionReport:
+		// a.Target = orgID; a.Detail = insight type string (config.InsightType).
+		w = applyCommissionReport(w, a)
+
+	case player.ActionTypeLobbyMinister:
+		// a.Target = stakeholder ID; costs lobbyAPCost AP.
+		for i, s := range w.Stakeholders {
+			if s.ID != a.Target || !s.IsUnlocked || isTerminalState(s.State) {
+				continue
+			}
+			cs, ok := player.SpendAP(w.Player, lobbyAPCost)
+			if !ok {
+				break
+			}
+			w.Player = cs
+			w.Stakeholders[i] = stakeholder.TickRelationship(s, 5.0, 0)
+			w.Player = player.RecordAction(w.Player, player.ActionRecord{
+				ActionType: a.Type, Week: w.Week, APCost: lobbyAPCost,
+			})
+			break
+		}
+
+	case player.ActionTypeShockResponse:
+		// a.Target = EventDefID; a.Detail = ShockResponseOption string.
+		w = applyShockResponse(w, a)
+
 	case player.ActionTypeHireStaff:
 		w.Player = player.HireStaff(w.Player, staffFromAction(a, w.Week))
 
 	case player.ActionTypeFireStaff:
 		w.Player = player.FireStaff(w.Player, a.Target)
+	}
+	return w
+}
+
+// applyCommissionReport handles ActionTypeCommissionReport.
+func applyCommissionReport(w WorldState, a Action) WorldState {
+	// Find org def.
+	var orgDef config.OrgDefinition
+	found := false
+	for _, d := range w.Cfg.Organisations {
+		if d.ID == a.Target {
+			orgDef = d
+			found = true
+			break
+		}
+	}
+	if !found {
+		return w
+	}
+
+	// Find org state; check availability.
+	for _, os := range w.OrgStates {
+		if os.OrgID != a.Target {
+			continue
+		}
+		if os.CoolingOffUntil > w.Week {
+			return w // still cooling off after a failed commission
+		}
+		// Check Murican org availability (tickyPresent/tickyPressureAccepted wired in tuning pass).
+		if !evidence.MuracanOrgAvailable(orgDef, os, false, false) {
+			return w
+		}
+		comm := evidence.CreateCommission(
+			orgDef,
+			config.InsightType(a.Detail),
+			a.Detail,     // scope
+			a.Detail,     // topicKey (same as scope for now)
+			w.Week,
+			w.RNG,
+		)
+		w.Commissions = append(w.Commissions, comm)
+		return w
+	}
+	return w
+}
+
+// applyShockResponse handles ActionTypeShockResponse.
+func applyShockResponse(w WorldState, a Action) WorldState {
+	for j, psr := range w.PendingShockResponses {
+		if psr.EventDefID != a.Target {
+			continue
+		}
+		option := climate.ShockResponseOption(a.Detail)
+		backfireProb := climate.BackfireProbability(w.LCR.Value, w.Player.Reputation)
+		card := climate.ShockResponseCard{
+			ID:                  psr.EventDefID + "_response",
+			EventDefID:          psr.EventDefID,
+			BackfireProbability: backfireProb,
+		}
+		outcome := climate.ShockResponseOutcome(card, option, w.RNG)
+		w.LCR.Value = mathutil.Clamp(w.LCR.Value+outcome.LCRDelta, 0, 100)
+		w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity+outcome.PopularityDelta, 0, 100)
+		// Remove handled shock response.
+		w.PendingShockResponses = append(w.PendingShockResponses[:j], w.PendingShockResponses[j+1:]...)
+		return w
 	}
 	return w
 }
@@ -684,7 +898,15 @@ func applyAction(w WorldState, a Action) WorldState {
 
 func phaseMinisterHealthCheck(w WorldState) WorldState {
 	partyShares := nationalPartyShares(w)
-	for i, s := range w.Stakeholders {
+
+	// Sacking threshold shifts down when GovernmentPopularity is high (PM shielded).
+	sackingThreshold := ministerSackingThreshold
+	if w.GovernmentPopularity > 60.0 {
+		sackingThreshold = ministerSackingThresholdHighPop
+	}
+
+	for i := range w.Stakeholders {
+		s := w.Stakeholders[i]
 		if !s.IsUnlocked {
 			continue
 		}
@@ -693,6 +915,29 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 		// Update influence from current polling data.
 		w.Stakeholders[i] = stakeholder.ComputeInfluence(
 			w.Stakeholders[i], partyShares, stakeholder.DefaultRoleWeights)
+		// Passive relationship decay every week (no player action, no event).
+		w.Stakeholders[i] = stakeholder.TickRelationship(w.Stakeholders[i], 0, 0)
+
+		// Popularity-based state transitions for cabinet ministers only.
+		updated := w.Stakeholders[i]
+		if isTerminalState(updated.State) || updated.State == stakeholder.MinisterStateAppointed {
+			continue
+		}
+		if !isInCabinet(w.Government, updated.ID) {
+			continue
+		}
+		switch updated.State {
+		case stakeholder.MinisterStateActive:
+			if updated.Popularity < sackingThreshold {
+				w.Stakeholders[i].State = stakeholder.MinisterStateUnderPressure
+			}
+		case stakeholder.MinisterStateUnderPressure:
+			if updated.Popularity >= sackingThreshold {
+				// Recovery: popularity has recovered above threshold.
+				w.Stakeholders[i].State = stakeholder.MinisterStateActive
+				w.Stakeholders[i].WeeksUnderPressure = 0
+			}
+		}
 	}
 	return w
 }
@@ -702,16 +947,31 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 // ---------------------------------------------------------------------------
 
 func phaseMinisterTransitions(w WorldState) WorldState {
-	for i, s := range w.Stakeholders {
+	for i := range w.Stakeholders {
+		s := w.Stakeholders[i]
 		if !s.IsUnlocked {
 			continue
 		}
-		// APPOINTED -> ACTIVE: initial grace period elapses.
-		// Full grace-period logic (4 weeks) is deferred to simulation tuning;
-		// for now the transition is immediate so the integration test sees
-		// valid states from week 1 onward.
-		if s.State == stakeholder.MinisterStateAppointed {
+		switch s.State {
+		case stakeholder.MinisterStateAppointed:
+			// APPOINTED -> ACTIVE: 4-week grace period deferred to simulation tuning;
+			// immediate transition ensures valid states from week 1 onward.
 			w.Stakeholders[i].State = stakeholder.MinisterStateActive
+
+		case stakeholder.MinisterStateUnderPressure:
+			// Increment consecutive pressure weeks; sack after threshold.
+			w.Stakeholders[i].WeeksUnderPressure++
+			if w.Stakeholders[i].WeeksUnderPressure >= ministerSackingWeeks {
+				w.Stakeholders[i].State = stakeholder.MinisterStateSacked
+				w.Stakeholders[i].WeeksUnderPressure = 0
+				// Vacate cabinet role.
+				for role, sid := range w.Government.CabinetByRole {
+					if sid == s.ID {
+						w.Government = government.RemoveMinister(w.Government, role)
+						break
+					}
+				}
+			}
 		}
 	}
 	return w
@@ -722,11 +982,17 @@ func phaseMinisterTransitions(w WorldState) WorldState {
 // ---------------------------------------------------------------------------
 
 func phaseConsequenceResolution(w WorldState) WorldState {
-	// Evaluate one approval step per UNDER_REVIEW policy each week.
+	// Evaluate approval steps for UNDER_REVIEW policies.
+	// Runs before player actions so submissions this tick are not evaluated until next tick.
 	active := unlockedStakeholders(w.Stakeholders)
 	for i, card := range w.PolicyCards {
-		if card.State == policy.PolicyStateUnderReview {
-			w.PolicyCards[i] = policy.EvaluateApproval(card, active)
+		if card.State != policy.PolicyStateUnderReview {
+			continue
+		}
+		w.PolicyCards[i] = policy.EvaluateApproval(card, active)
+		// If all approval steps cleared, activate immediately.
+		if w.PolicyCards[i].State == policy.PolicyStateApproved {
+			w.PolicyCards[i] = policy.ActivatePolicy(w.PolicyCards[i])
 		}
 	}
 	return w
@@ -903,6 +1169,50 @@ func staffFromAction(a Action, week int) player.StaffMember {
 		APBonus:   apBonus,
 		WeekHired: week,
 	}
+}
+
+// isInCabinet returns true if the given stakeholder ID occupies any cabinet role.
+func isInCabinet(g government.GovernmentState, stakeholderID string) bool {
+	for _, sid := range g.CabinetByRole {
+		if sid == stakeholderID {
+			return true
+		}
+	}
+	return false
+}
+
+// avgInstallerCapacity returns the mean InstallerCapacity across all regions.
+// Returns 0 if no regions exist.
+func avgInstallerCapacity(regions []region.Region) float64 {
+	if len(regions) == 0 {
+		return 0
+	}
+	sum := 0.0
+	for _, r := range regions {
+		sum += r.InstallerCapacity
+	}
+	return sum / float64(len(regions))
+}
+
+// applyCompanyDeltas applies event-driven work rate and quality deltas to companies.
+// Creates a new Companies map so the original IndustryState is not aliased.
+func applyCompanyDeltas(w WorldState, deltas map[string]event.CompanyDelta) WorldState {
+	if len(deltas) == 0 {
+		return w
+	}
+	newCompanies := make(map[string]industry.CompanyState, len(w.Industry.Companies))
+	for k, v := range w.Industry.Companies {
+		newCompanies[k] = v
+	}
+	for defID, d := range deltas {
+		if cs, ok := newCompanies[defID]; ok {
+			cs.WorkRate = mathutil.Clamp(cs.WorkRate+d.WorkRateDelta, 0, 100)
+			cs.AccumulatedQuality = mathutil.Clamp(cs.AccumulatedQuality+d.QualityDelta, 0, 1e6)
+			newCompanies[defID] = cs
+		}
+	}
+	w.Industry.Companies = newCompanies
+	return w
 }
 
 // isValidMinisterState returns true for all recognised MinisterState values.

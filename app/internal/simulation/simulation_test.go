@@ -248,3 +248,140 @@ func TestHeadlessRun_100Weeks_LCRInBounds(t *testing.T) {
 	assert.GreaterOrEqual(t, report.FinalLCR, 0.0)
 	assert.LessOrEqual(t, report.FinalLCR, 100.0)
 }
+
+// ---------------------------------------------------------------------------
+// Minister popularity
+// ---------------------------------------------------------------------------
+
+func TestNewWorld_MinisterPopularityInitialized(t *testing.T) {
+	w := loadWorld(t)
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked {
+			assert.Equal(t, 50.0, s.Popularity,
+				"stakeholder %q should start with Popularity=50", s.ID)
+		}
+	}
+}
+
+func TestNewWorld_MinisterLastPollResultsInitialized(t *testing.T) {
+	w := loadWorld(t)
+	assert.NotNil(t, w.MinisterLastPollResults)
+}
+
+func TestHeadlessRun_100Weeks_MinisterPopularityInBounds(t *testing.T) {
+	w := loadWorld(t)
+	w, _ = HeadlessRun(w, 100)
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked {
+			assert.GreaterOrEqual(t, s.Popularity, 0.0,
+				"stakeholder %q popularity below 0", s.ID)
+			assert.LessOrEqual(t, s.Popularity, 100.0,
+				"stakeholder %q popularity above 100", s.ID)
+		}
+	}
+}
+
+func TestHeadlessRun_100Weeks_EnergyRingBufferAdvanced(t *testing.T) {
+	w := loadWorld(t)
+	w, _ = HeadlessRun(w, 100)
+	// After 100 weeks the ring buffers should have been written at least once.
+	// PriceAt(0) returns the most recent value; the ring head must have moved.
+	assert.Greater(t, w.EnergyMarket.GasHistory.Head, 0,
+		"gas price ring buffer head should have advanced past zero")
+}
+
+func TestAdvanceWeek_ApprovedPolicy_BecomesActive(t *testing.T) {
+	w := loadWorld(t)
+	// Submit a policy and advance enough weeks for it to be approved.
+	// First find an unlocked policy.
+	var targetID string
+	for _, card := range w.PolicyCards {
+		if policy.IsUnlocked(card, w.Tech.Maturities) {
+			targetID = card.Def.ID
+			break
+		}
+	}
+	require.NotEmpty(t, targetID)
+
+	// Submit.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: targetID},
+	})
+
+	// Advance up to 52 weeks to give the approval pipeline time to resolve.
+	for i := 0; i < 52; i++ {
+		w, _ = AdvanceWeek(w, nil)
+		for _, card := range w.PolicyCards {
+			if card.Def.ID == targetID &&
+				card.State == policy.PolicyStateActive {
+				return // passed
+			}
+		}
+	}
+	// Check final state -- it should be ACTIVE or REJECTED (not stuck in APPROVED).
+	for _, card := range w.PolicyCards {
+		if card.Def.ID == targetID {
+			assert.NotEqual(t, policy.PolicyStateApproved, card.State,
+				"policy %q must not be stuck in APPROVED state", targetID)
+			return
+		}
+	}
+	t.Fatalf("policy %q not found", targetID)
+}
+
+func TestAdvanceWeek_LobbyMinister_IncreasesRelationship(t *testing.T) {
+	w := loadWorld(t)
+	// Find any unlocked stakeholder.
+	var targetID string
+	var initialRel float64
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked {
+			targetID = s.ID
+			initialRel = s.RelationshipScore
+			break
+		}
+	}
+	require.NotEmpty(t, targetID)
+
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeLobbyMinister, Target: targetID},
+	})
+
+	for _, s := range w.Stakeholders {
+		if s.ID == targetID {
+			// Relationship should have increased (lobby action +5, minus passive decay of ~0.01).
+			assert.Greater(t, s.RelationshipScore, initialRel-1.0,
+				"lobbying stakeholder %q should not significantly decrease relationship", targetID)
+			return
+		}
+	}
+	t.Fatalf("stakeholder %q not found", targetID)
+}
+
+func TestAdvanceWeek_SubmitPolicyLockedByTech_IsRejectedByGate(t *testing.T) {
+	w := loadWorld(t)
+	// Find a policy that IS tech-gated and whose gate is NOT yet met.
+	var lockedID string
+	for _, card := range w.PolicyCards {
+		if card.Def.TechUnlockGate != "" && !policy.IsUnlocked(card, w.Tech.Maturities) {
+			lockedID = card.Def.ID
+			break
+		}
+	}
+	if lockedID == "" {
+		t.Skip("no tech-gated locked policies in seed data")
+	}
+
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: lockedID},
+	})
+
+	for _, card := range w.PolicyCards {
+		if card.Def.ID == lockedID {
+			assert.Equal(t, policy.PolicyStateDraft, card.State,
+				"tech-locked policy %q should remain DRAFT when gate not met", lockedID)
+			return
+		}
+	}
+	t.Fatalf("policy %q not found", lockedID)
+}

@@ -355,22 +355,30 @@ internal/
 ## E. Key Data Structures
 
 WorldState {
-  date: { year, week }
-  government: GovernmentState
-  ministers: map[Department -> Minister]
-  ministerPool: map[Party -> map[Department -> []MinisterDef]]
-  departmentBudgets: map[Department -> BudgetAccount]
-  policies: []PolicyInstance { card, state, weeksActive, budgetDrawn }
-  pendingCommissions: []Commission
+  date: { year, week, quarter }
+  government: GovernmentState           // ruling party, cabinet map (role->stakeholderID), election week
+  stakeholders: []Stakeholder           // all political figures (governing + opposition + pool)
+  policyCards: []PolicyCard             // all cards with live state (DRAFT/UNDER_REVIEW/ACTIVE/etc.)
+  commissions: []Commission             // active evidence commissions in flight
+  orgStates: []OrgState                 // per-org dynamic state (relationship, cooling-off, etc.)
   deliveredReports: []InsightReport
-  regions: [12]Region
-  technologies: [8]TechTracker
+  regions: []Region                     // 12 regions with installer capacity and skills network
+  tiles: []Tile                         // 30 tiles with local political opinion, fuel poverty, etc.
+  tech: TechState                       // 8 technology curves with current maturity values
   carbon: CarbonBudgetState
-  player: CivilServant
-  pollHistory: []PollResult
-  eventLog: []WeeklyEventLog
-  governmentPopularity: float64
-  lastPollResult: PollResult
+  energyMarket: EnergyMarket
+  climateState: ClimateState
+  economy: EconomyState
+  lcr: LCRState                         // Low Carbon Reputation true value + poll history
+  industry: IndustryState               // company roster with live states
+  player: PlayerState                   // AP pool, staff, action history
+  pollSnapshots: []PollSnapshot
+  eventLog: []EventEntry
+  pendingShockResponses: []PendingShockResponse
+  governmentPopularity: float64         // hidden true value; polled with sigma=3
+  governmentLastPollResult: float64     // most recent noisy sample
+  ministerLastPollResults: map[StakeholderID -> float64]  // per-minister noisy popularity
+  techDeliveryLog: []string             // milestone messages when a company delivers a tech boost
   rng: SeededRNG
 }
 
@@ -622,7 +630,7 @@ Tile {
 
 Party enum: FarLeft | Left | Right | FarRight
 
-PartyRole enum: Leader | Chancellor | DefenceSecy | EnergySecy
+PartyRole enum: Leader | Chancellor | ForeignSecretary | EnergySecy
 
 Stakeholder {
   id: UUID

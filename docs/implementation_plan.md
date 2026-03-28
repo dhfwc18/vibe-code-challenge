@@ -506,7 +506,7 @@ Key types:
   TurnEngine   -- owns WorldState, exposes AdvanceWeek() and PlayerAction()
   EventBus     -- lightweight pub/sub for cross-package event delivery
 
-17-phase pipeline (must execute in this exact order):
+18-phase pipeline (must execute in this exact order):
   Phase  1: ClockAdvance
   Phase  2: ClimateAndFossilUpdate
   Phase  3: GlobalEventRoll
@@ -680,7 +680,7 @@ Go structs, to allow future content editing without recompilation.
 
 ## Known Risks
 
-1. Simulation correctness: 17-phase pipeline has many interdependencies.
+1. Simulation correctness: 18-phase pipeline has many interdependencies.
    The headless integration test is the main guard. Run it frequently.
 
 2. Config data volume: 40-60 policy cards, 40-60 events, 30+ stakeholder

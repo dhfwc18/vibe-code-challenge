@@ -34,17 +34,20 @@ func NewLCR() LowCarbonReputation {
 
 // TickReputation updates LCR for one week. Returns a new value; input not mutated.
 //
-//   - weeklyPolicyCarbonDelta: MtCO2e reduction from active policies (positive = good)
-//   - eventImpact: direct LCR delta from events (positive or negative)
+//   - weeklyPolicyCarbonDelta: MtCO2e reduction from active policies this week
+//     (positive = carbon reduced = good). Drives the carbon-based credibility gain.
+//   - directLCRDelta: any direct LCR change not mediated by carbon; covers both
+//     event effects (config.EventEffect.LCRDelta) and policy LCR bonuses
+//     (config.PolicyCardDef.LCRDeltaPerWeek). May be positive or negative.
 //
-// When policy gain is negligible, LCR drifts slowly back toward 50.
-func TickReputation(lcr LowCarbonReputation, weeklyPolicyCarbonDelta, eventImpact float64) LowCarbonReputation {
+// When the carbon-based policy gain is negligible, LCR drifts slowly back toward 50.
+func TickReputation(lcr LowCarbonReputation, weeklyPolicyCarbonDelta, directLCRDelta float64) LowCarbonReputation {
 	policyGain := weeklyPolicyCarbonDelta * 5.5
 	decay := 0.0
 	if policyGain < minPolicyGain {
 		decay = (lcr.Value - naturalDecayTarget) * naturalDecayRate
 	}
-	lcr.Value = mathutil.Clamp(lcr.Value+policyGain+eventImpact-decay, 0, 100)
+	lcr.Value = mathutil.Clamp(lcr.Value+policyGain+directLCRDelta-decay, 0, 100)
 	return lcr
 }
 

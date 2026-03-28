@@ -29,10 +29,14 @@ Each game week executes in a fixed pipeline.
     capacity (e.g. flooding reduces retrofit installer capacity in affected region).
 7.  Tile Local Tick -- each tile (~60-80 total across 12 regions) updates local state:
     a. TrueRetrofitRate = ObservedRetrofitRate * (InstallerQuality / 100).
-    b. FuelPoverty updated: rises when gas price policy delta hits low-insulation,
-       low-income tiles; falls when insulation improves or heating switches away from gas.
-         FuelPoverty += (gasPriceDelta * (1 - InsulationLevel/100)) / LocalIncome * weight
-         FuelPoverty -= (insulationGain * HeatingCapacityFactor) * weight
+    b. FuelPoverty recomputed from EnergyMarket prices, tile HeatingType, InsulationLevel,
+       HeatingCapacity, and LocalIncome using the full formula in the data structures
+       section. FuelPoverty is not a delta -- it is recomputed from scratch each week
+       so it responds immediately to price changes. This means a gas price spike produces
+       an immediate FuelPoverty jump in gas-heated low-insulation tiles. A tile that has
+       already switched to heat pumps is shielded from gas price spikes but exposed to
+       electricity price spikes instead. A well-insulated heat-pump tile on a high-
+       renewable grid is the most resilient combination.
     c. LocalPoliticalOpinion shifts from FuelPoverty delta and any climate event impact.
     d. InstallerQuality drifts upward slowly only while an installation standards policy
        is active. New work uses improved quality; prior retrofits are not retroactively
@@ -162,8 +166,13 @@ Scheduled UK elections (approximate, from 2010 game start):
 | WeeksUnderPressure (minister)    | 0+             | No                                             |
 | PlayerReputation                 | 0-100          | Yes (5 grade labels)                           |
 | CarbonOvershootAccumulator       | 0+             | No (specific consultancy only)                 |
+| GasPrice                         | GBP/MWh        | Yes (exact, updated weekly)                    |
+| ElectricityPrice                 | GBP/MWh        | Yes (exact, updated weekly)                    |
+| OilPrice                         | GBP/barrel     | Yes (exact, updated weekly)                    |
+| RenewableGridShare               | 0-100%         | Yes (published statistic, updated quarterly)   |
 | InsulationLevel (per tile)       | 0-100          | No (consultancy reveals only)                  |
 | HeatingCapacity (per tile)       | 0-100          | No (consultancy reveals only)                  |
+| HeatingType (per tile)           | enum           | No (energy survey consultancy reveals)         |
 | InstallerQuality (per tile)      | 0-100          | No (quality audit consultancy only)            |
 | ObservedRetrofitRate (per tile)  | 0-100%         | Yes (reported by contractors in event log)     |
 | TrueRetrofitRate (per tile)      | 0-100%         | No (derived; quality audit reveals gap)        |
@@ -197,6 +206,12 @@ internal/
   carbon/       CarbonBudgetState, annual limit table (CCC targets), weekly accumulation,
                 overshoot accounting, cumulative stock tracking, trajectory projection.
                 Outputs cumulativeStock used by climate package. Pure functions.
+
+  energy/       EnergyMarket struct. GasPrice, ElectricityPrice, OilPrice, RenewableGridShare.
+                Weekly price update functions applying global market deltas, carbon levy,
+                renewable subsidy, and grid coupling model. Price history ring buffers for
+                chart display. Historical price anchors seeded from real DESNZ/Ofgem data.
+                Exports current prices to tile FuelPoverty computation each week.
 
   climate/      ClimateState derivation from cumulative stock. ClimateEvent and
                 EnergyShockEvent structs. Event probability/severity computation using
@@ -345,16 +360,70 @@ Tile {
   localIncome: float64                    // 0-100, seeded at game start, slow organic drift
   // Hidden local state:
   insulationLevel: float64               // 0-100; improved by retrofit policies
-  heatingCapacity: float64               // 0-100; improved by heat pump / boiler upgrade policies
-  installerQuality: float64              // 0-100; improved by installation standards policy (slow)
-  fuelPoverty: float64                   // 0-100%; rises with gas price + poor insulation
+  heatingCapacity: float64               // 0-100; capacity and quality of heating systems
+  heatingType: HeatingType               // Gas | Oil | Electric | HeatPump | Mixed
+  installerQuality: float64              // 0-100; improved only by standards policy (slow)
+  fuelPoverty: float64                   // 0-100%; see formula below
   localPoliticalOpinion: float64         // 0-100; feeds regional political signal (noisy)
   // Observed (visible via event log, not precise):
-  observedRetrofitRate: float64          // reported by contractors; may exceed TrueRetrofitRate
+  observedRetrofitRate: float64          // reported by contractors
   // Derived (never directly shown to player):
   trueRetrofitRate: float64              // = observedRetrofitRate * (installerQuality / 100)
   // Fog-of-war tracking:
-  revealedAttributes: map[string -> bool] // which fields have been revealed by consultancy
+  revealedAttributes: map[string -> bool]
+}
+
+HeatingType enum: Gas | Oil | Electric | HeatPump | Mixed
+// Transitions: Gas -> HeatPump or Gas -> Electric driven by active heat pump / boiler policies.
+// Rate of transition is limited by InstallerCapacity for HeatPump sector in the tile's region.
+// Mixed = tile partially transitioned; proportion tracked as heatingTypeGasFraction float64.
+
+// FuelPoverty formula per tile (computed each week in Phase 7):
+//
+//   heatingCostPerUnit:
+//     Gas:      GasPrice
+//     Oil:      OilPrice * conversionFactor
+//     Electric: ElectricityPrice
+//     HeatPump: ElectricityPrice / COP  (COP = 2.5 base, +0.5 per 25 TechMaturity[HeatPumps])
+//     Mixed:    weighted average of Gas and HeatPump costs by heatingTypeGasFraction
+//
+//   insulationFactor = 1.0 - (insulationLevel / 100.0)  // 0 = perfect insulation, 1 = none
+//   heatingDemand = baseHeatingDemand * insulationFactor * seasonalMultiplier
+//   totalFuelCost = heatingCostPerUnit * heatingDemand
+//   FuelPoverty = clamp((totalFuelCost / LocalIncome) * povertyScalingWeight, 0, 100)
+//
+// seasonalMultiplier: driven by ClimateState and week-of-year. Cold snap event = spike.
+// povertyScalingWeight: tuning constant calibrated so that 2022 energy crisis produces
+//   ~40% of low-income gas-heated tiles in fuel poverty (matching real UK DESNZ data).
+//
+// Key interaction: switching Gas -> HeatPump reduces heatingCostPerUnit IF
+//   ElectricityPrice / COP < GasPrice. In early years (pre-2025 grid decarbonisation),
+//   the grid premium on electricity often negates or reverses the COP benefit.
+//   As RenewableGridShare rises, ElectricityPrice decouples from GasPrice and the
+//   heat pump advantage becomes significant. This creates the just-transition timing risk.
+
+EnergyMarket {
+  gasPrice: float64                      // GBP/MWh, visible
+  electricityPrice: float64             // GBP/MWh, visible
+  oilPrice: float64                     // GBP/barrel, visible
+  renewableGridShare: float64           // 0-100%, visible quarterly
+  // Price drivers (applied weekly):
+  //   gasPrice += globalGasMarketDelta + carbonLevyDelta - storageBufferEffect
+  //   electricityPrice = gasPrice * gridGasCouplingFactor * (1 - renewableGridShare/100)
+  //                    + renewableFloorPrice * (renewableGridShare/100)
+  //                    + gridNetworkCharges + policyLevy
+  //   gridGasCouplingFactor declines as renewableGridShare rises (marginal cost decoupling)
+  // Historical anchors (GBP 2023 real prices):
+  //   2010: gas ~GBP 25/MWh, electricity ~GBP 55/MWh
+  //   2022 peak: gas ~GBP 200/MWh, electricity ~GBP 300/MWh
+  //   2030 (high renewable scenario): gas ~GBP 40/MWh, electricity ~GBP 45/MWh
+  //   2030 (low renewable scenario): gas ~GBP 70/MWh, electricity ~GBP 90/MWh
+  gasPriceHistory: []float64            // weekly ring buffer for chart display
+  electricityPriceHistory: []float64
+  // Policy levers that affect price (applied via delta each week):
+  carbonLevyOnGas: float64             // player-controlled, raises gasPrice
+  renewableSubsidy: float64            // player-controlled, lowers electricityPrice over time
+  gasStorageCapacity: float64          // player-controlled, buffers shock severity
 }
 
 // Quality gap mechanic:
@@ -495,18 +564,20 @@ ShockResponseCard {
 
 Layer 0 (no game dependencies):    config, save
 Layer 1 (pure domain models):      carbon, technology, region
-Layer 2 (derived world models):    climate, economy, reputation
+Layer 2 (derived world models):    energy, climate, economy, reputation
 Layer 3 (agent models):            minister, government, polling
 Layer 4 (player-facing mechanics): policy, consultancy, event, player
 Layer 5 (orchestration):           simulation
 Layer 6 (presentation):            ui
 Layer 7 (entry point):             game
 
-Key dependencies added by new systems:
-  climate   <- carbon (cumulativeStock), event (shock queue)
-  economy   <- climate (damage), policy (fossil dependency, industrial bonus)
+Key dependencies:
+  energy     <- config (historical anchors), event (shock deltas)
+  climate    <- carbon (cumulativeStock), event (shock queue)
+  economy    <- climate (damage), energy (prices affect consumer spending), policy (bonuses)
+  region     <- energy (prices for tile FuelPoverty), climate (event damage)
   reputation <- government (popularity chain), minister (chain), economy (budget modifier)
-  simulation <- all of the above, in 16-phase pipeline (was 14)
+  simulation <- all of the above, in 17-phase pipeline
 
 Build each layer with unit tests before moving to the next.
 Headless simulation test: advance 100 weeks, verify no negative budgets,
@@ -553,6 +624,15 @@ no invalid minister states, carbon accumulation bounded.
 18. Observed vs true retrofit gap at launch: should the game start in 2010 with some
     pre-existing quality gap in early retrofits (realistic -- pre-PAS 2030 era had
     significant quality problems), or start from a clean slate?
+
+19. Energy price display: should GasPrice and ElectricityPrice be shown as a live ticker
+    on the HUD at all times, or displayed only on an energy dashboard screen the player
+    navigates to? The former makes price shocks more visceral; the latter reduces HUD clutter.
+
+20. Price unit convention: show prices in GBP/MWh (as DESNZ publishes, more educational)
+    or GBP per household per year (more immediately legible as a welfare indicator)?
+    Could show both: wholesale GBP/MWh on the energy dashboard, annual household cost
+    as part of the fuel poverty view.
 
 10. Minister distinctiveness: procedurally generated observable personality signals
     (catchphrases, known public positions) to help players infer hidden attributes?

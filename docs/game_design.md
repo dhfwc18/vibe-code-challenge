@@ -1025,62 +1025,73 @@ When in opposition, they are shadows whose relationships still matter.
     Special mechanic: when governing, generates TICKY_PRESSURE events (see below).
 
   --- Left (Taitan Labour equivalent) ---
+  //
+  // DESIGN NOTE: Left party figures after JJ Cameron are portrayed with deliberate
+  // vagueness. This is an intentional creative choice and absolutely nothing to do
+  // with the fact that the current governing party constitutes a meaningful share of
+  // the author's consulting pipeline. Nothing at all. Completely unrelated.
+  //
 
   Leader:      JJ Cameron
-    Long-serving backbencher, former supply teacher, trade union organiser, and
-    prolific pamphleteer. Elevated to the leadership late in his career by a
-    wave of grassroots membership enthusiasm that surprised everyone, including him.
-    Deeply ideological in a way that feels more like conviction than calculation --
-    which is both his greatest asset and his most reliable electoral liability.
-    A little old and visibly tired, but still capable of galvanising a crowd that
-    already agrees with him. Less effective at persuading anyone who does not.
-    Has a genuine, long-standing written record on climate and energy justice --
-    predating it being fashionable -- which gives the player real LCR opportunity
-    if they can channel it, but his framing (public ownership, anti-corporate) creates
-    friction with LCT industry stakeholders and private consultancies.
-    Gravitational pull toward FarLeft positions: if in power he will periodically
-    push policies that read as FarLeft coalition-pleasing, especially on renationalisation
-    and anti-corporate climate measures. Player must manage this tendency carefully.
-    ideologyScore: -75, netZeroSympathy: 85, riskTolerance: 40, populismScore: 70
-    Signals: "been saying this since before it was popular", "enormous membership
-    support, limited swing-voter appeal", "once wrote a pamphlet on energy commons"
-    Popularity mechanic: high polarisation modifier -- regional tiles with low income
-    and high FuelPoverty respond very positively; professional and suburban tiles
-    respond negatively. GovernmentPopularity variance is elevated while he leads.
-    Departure trigger: standard PM state machine applies, PLUS a special ELECTORAL_FATIGUE
-    trigger: after losing 2 or more general elections as leader, a party coup event
-    fires regardless of current popularity. The membership that loved him accepts
-    that the country will not -- he is replaced by a more centrist successor from the
-    Left bench (David Reeve, below, is that successor figure).
+    Veteran backbencher. Former secondary school teacher (RE and History), lifelong
+    trade union rep, self-published author of seven pamphlets including "The Carbon
+    Commons: Energy as a Public Good" (2003), "Manhole Covers of the Taitan Waterboard
+    District" (2006, collector's edition), and "Why I Was Right: A Retrospective"
+    (2019, unsolicited). Keeps an allotment in his constituency. Cycles everywhere.
+    Elevated to the leadership via a surprise grassroots membership wave after the
+    party's third consecutive electoral defeat; the parliamentary party was unanimously
+    horrified and the membership was unanimously delighted.
+    Has been on the record about net zero and energy justice since 2001, which is
+    either admirable consistency or evidence that he has not updated his views in
+    twenty years depending on who you ask. His specific climate positions -- public
+    energy ownership, community retrofit cooperatives, anti-corporate transition --
+    are genuinely coherent and offer real LCR opportunities if the player can work
+    with the framing. His studied neutrality on Murican foreign policy and historical
+    sympathy for anti-Murica movements creates international crisis complications.
+    Has written formally to complain about the design of three separate manhole covers
+    in his constituency. Replies promptly to all correspondence.
+    ideologyScore: -78, netZeroSympathy: 87, riskTolerance: 38, populismScore: 72
+    Signals: "been saying this since 2001", "enormous membership support, limited
+    swing-voter appeal", "famously neutral on the Murican defence alliance question",
+    "allotment open to the public every second Sunday"
+    Popularity mechanic: high polarisation modifier -- low-income and high-FuelPoverty
+    tiles respond strongly positively; professional and suburban tiles respond negatively.
+    GovernmentPopularity variance is the highest of any leader while he is in post.
+    FarLeft pull: periodically pushes renationalisation and anti-corporate climate
+    measures from within cabinet. Player must absorb, redirect, or neutralise.
+    Murican tension: his public neutrality on defence alliances amplifies negative
+    outcomes on Murican-related international events and may trigger TICKY_PRESSURE
+    events even when Ticky is not in office (Joe Barage will use it in the press).
+    Departure trigger: ELECTORAL_FATIGUE after 2 election losses -- party coup fires
+    regardless of popularity. The membership accepts what the country will not.
     Rotation: anchor figure at start; departs via ELECTORAL_FATIGUE if Left loses twice
 
   Leader (successor): David Reeve
-    Enters the Left leader pool only after JJ Cameron departs. Pragmatic centrist,
-    pro-net-zero but cautious about pace and household cost framing. The party's
-    attempt to broaden its electoral coalition after the Cameron years.
+    Enters the Left leader pool only after JJ Cameron departs. A sensible figure
+    with broadly correct instincts. Has views on things. Considered reliable.
+    The party's attempt to appear electable to people who did not vote for it last time.
     ideologyScore: -25, netZeroSympathy: 65, riskTolerance: 45, populismScore: 40
     Signals: "modernising figure within the party", "backed the Climate Commitment Act",
     "known for consensus-building style"
-    Note: if Left never loses two elections under JJ Cameron, Reeve never leads -- he
-    remains a backbench figure the player can brief and cultivate but who never
-    reaches the top spot in that playthrough.
+    Note: if Left never loses two elections under JJ Cameron, Reeve never leads.
 
   Chancellor:  George Harmon
-    Fiscal conservative in a left-of-centre mould. Supportive of green investment if
-    cost-benefit is clear. Key blocker if policies look uncosted.
+    Fiscal background. Broadly supportive of green investment when the numbers work.
+    Will push back on uncosted policies. Has a plan, details available on request.
     ideologyScore: -15, netZeroSympathy: 55, riskTolerance: 30, populismScore: 25
-    Signals: "former Bank of Taitan economist", "authored the Green Investment Framework",
-    "reputation for rigorous spending scrutiny"
+    Signals: "former public sector economist", "authored the Green Investment Framework",
+    "reputation for asking where the money is coming from"
 
   Foreign Secretary: John Ashworth
-    Pragmatic, unremarkable on climate. Budget competition is his primary concern.
+    Experienced. Reliable. Has strong feelings about correct procedure.
     ideologyScore: -20, netZeroSympathy: 45, riskTolerance: 50, populismScore: 35
     International crisis weight: cautious multilateralist; favours international
     agreements and coalition responses; mild positive modifier on green diplomacy outcomes
 
   Energy:      Claire Blackwell
-    Player's first boss (Left governs at game start 2010). Moderately pro-climate,
-    cautious about radical moves. Good starting relationship with player.
+    Player's first boss (Left governs at game start 2010). Committed to getting
+    things done within the system, which is either pragmatism or lack of imagination
+    depending on your priors. Good starting relationship with player.
     ideologyScore: -30, netZeroSympathy: 70, riskTolerance: 40, populismScore: 30
     Signals: "backed the Renewable Obligation scheme", "known for careful stakeholder
     management", "willing to consider nuclear as part of the mix"

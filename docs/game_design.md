@@ -363,28 +363,104 @@ OrgType enum: Consultancy | ThinkTank | Academic
 Organisation (static definition in config) {
   id, name
   orgType: OrgType
-  // Type-specific defaults:
-  //   Consultancy: costRange high, deliveryWeeks 2-4, qualityRange wide (30-90), bias ~0
-  //   ThinkTank:   costRange medium, deliveryWeeks 3-6, qualityRange medium (40-75), bias -1 to +1
-  //   Academic:    costRange low, deliveryWeeks 6-12, qualityRange high (60-95), bias ~0
+
+  // Cost and delivery:
   baseCost: float64
-  deliveryWeeksRange: { min: int, max: int }
+  deliveryDistribution: TriangularDist { min: int, mode: int, max: int }  // weeks
+  // Consultancy: min=2, mode=3, max=9  (fast-medium, right-skewed tail)
+  // ThinkTank:   min=3, mode=5, max=10
+  // Academic:    min=6, mode=9, max=16
+
+  // Quality:
   qualityRange: { min: float64, max: float64 }
-  biasDirection: float64             // -1 to +1; think tanks non-zero
-  popularityRisk: float64            // if report is controversial
-  specialisms: []InsightType        // what this org is good at; outside specialism = quality -20
-  // Relationship (dynamic, tracked per playthrough):
-  //   relationshipScore: float64   // improves with repeat commissions + acting on findings
-  //   qualityBonus: float64        // = max(0, relationshipScore * 0.002) -- modest improvement
+  // Consultancy: 30-90  (variable -- some are excellent, some are dreadful)
+  // ThinkTank:   40-75  (ideological framing limits ceiling)
+  // Academic:    60-95  (peer-review process raises floor)
+
+  // Bias:
+  biasType: BiasType                // ClientConfirmation | Ideological | None
+  biasDirection: float64            // used only when biasType=Ideological (-1 to +1)
+  clientBiasWeight: float64         // used only when biasType=ClientConfirmation (0-1)
+  // Consultancy: biasType=ClientConfirmation, clientBiasWeight=0.4
+  // ThinkTank:   biasType=Ideological, biasDirection per org
+  // Academic:    biasType=None (small random noise only)
+
+  // Popularity risk:
+  popularityRisk: float64
+  // Consultancy: 0.4  (medium -- "wasting public money on consultants" narrative)
+  // ThinkTank:   0.1-0.8  (depends on how controversial the org is)
+  // Academic:    0.05  (low -- hard to criticise peer-reviewed research)
+
+  // Failure:
+  baseFailureProbability: float64
+  // Consultancy: 0.08-0.12  (higher for boutique orgs)
+  // ThinkTank:   0.04
+  // Academic:    0.03  (rare but delivery slips are common -- handled via wide distribution)
+
+  // Specialisms:
+  specialisms: []InsightType        // outside specialism = quality -20
+
+  // Relationship (dynamic, per playthrough -- not stored in static config):
+  //   relationshipScore: float64
+  //   qualityBonus = max(0, (relationshipScore - 30) * 0.002)  // kicks in above 30
+  //   clientBiasWeight reduction = max(0, (relationshipScore - 70) * 0.005)  // long-term trust
+  //   state: AVAILABLE | COOLING_OFF | STRUGGLING | DEPARTED
 }
 
+// Consultancy bias model (distinct from think tank ideological bias):
+//
+//   Consultancies apply CLIENT CONFIRMATION BIAS, not ideological bias.
+//   biasDirection is not a fixed value -- it is computed at report generation time:
+//
+//     clientBias = dot product of (player's recent major decisions) and (report topic)
+//     reportedValue = rawValue + (rawValue - neutralValue) * clientBias * clientBiasWeight
+//
+//   Effect: if the player has been aggressively pushing retrofit policy, a consultancy
+//   commissioned to assess retrofit readiness will report a more optimistic picture than
+//   the true value. The more the player has invested in a direction, the more a
+//   consultancy will validate that direction.
+//
+//   This is invisible to the player. There is no "bias indicator" for consultancies.
+//   The only ways to detect it:
+//     a) Cross-reference with an academic or think tank report on the same topic.
+//     b) A climate/policy event exposes the gap between reported and true state.
+//     c) Building a very high relationship score (>= 70) partially suppresses client bias
+//        -- a long-term trusted adviser gives more honest assessments.
+//
+//   Popularity risk for consultancies is MEDIUM (not low). Commissioning expensive
+//   private consultancies is politically visible and can draw criticism from opposition
+//   ("wasting public money on consultants"). Risk scales with contract value.
+//
+// Delivery failure mechanic:
+//   Each consultancy commission has a failureProbability (default 8%, higher for
+//   complex scope or low relationship). If it fires:
+//     - Full budget refunded.
+//     - RelationshipScore with that org -15.
+//     - Organisation enters COOLING_OFF state for 8 weeks (cannot be recommissioned).
+//     - Player receives a failure notice in the Evidence inbox.
+//   Player can also manually FIRE an organisation mid-commission:
+//     - 50% budget refunded (kill fee).
+//     - RelationshipScore -10.
+//     - No COOLING_OFF penalty.
+//   Organisations with repeated failures (2+) move to STRUGGLING state and eventually
+//   exit the roster (merged or dissolved), similar to the industry company mechanic.
+//
+// Delivery time is variable: base range is fast-to-medium (2-6 weeks), but each
+// commission draws from a distribution so actual delivery varies:
+//   deliveryWeeks = sample(triangular distribution, min=baseMin, mode=baseMode, max=baseMax*1.5)
+//   A commission scoped to multiple regions or insight types uses baseMax*2.
+//
 // Organisation roster (14 orgs):
 //
 // Consultancies:
-//   Meridian Strategy          -- generalist, high cost, fast, wide quality range
-//   ClearPath Advisory         -- infrastructure specialist, high cost, medium speed
-//   Vertex Policy Group        -- boutique, medium cost, very fast, narrower scope
-//   Axiom Infrastructure       -- engineering-focused, high cost, slow, high quality on assets
+//   Meridian Strategy          -- generalist, high cost, fast-medium (2-5w), wide quality range,
+//                                  medium pop risk, client confirmation bias
+//   ClearPath Advisory         -- infrastructure specialist, high cost, medium (3-6w),
+//                                  medium pop risk, client confirmation bias
+//   Vertex Policy Group        -- boutique, medium cost, fast (1-4w), narrower scope,
+//                                  medium pop risk, client confirmation bias, higher fail rate
+//   Axiom Infrastructure       -- engineering-focused, high cost, medium-slow (4-7w),
+//                                  medium pop risk, client confirmation bias, high asset quality
 //
 // Think Tanks:
 //   The Albion Institute       -- right-leaning (bias +0.6), free market, popular with Right/FarRight

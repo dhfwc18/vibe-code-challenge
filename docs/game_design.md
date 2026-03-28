@@ -268,9 +268,14 @@ internal/
                 APPROVED|REJECTED->ACTIVE|ARCHIVED), weekly effect resolution.
                 Depends on technology (unlock), region (capacity multiplier), carbon (accounting).
 
-  consultancy/  ConsultancyCard deck, Commission management, delivery timer, InsightReport
-                generation. Quality rolled at commission time (hidden until delivery).
-                BiasModel for ideologically-motivated think tanks.
+  evidence/     Replaces "consultancy" package. Manages all three advisory organisation types:
+                Consultancy, ThinkTank, Academic. Each type has distinct cost, delivery speed,
+                quality distribution, and bias model. OrganisationRoster (14 named orgs).
+                Commission management and delivery timer. InsightReport generation with
+                quality-adjusted and bias-distorted output. Cross-reference display (player
+                can view multiple reports on same topic side by side). Relationship score
+                per organisation (repeat commissions and acting on findings builds trust,
+                which slightly improves future quality). Shown in "Evidence" tab in UI.
 
   event/        GlobalEvent deck (weighted draw), ScandalEvaluator (per minister weekly roll),
                 PressureGroup persistent actors, EventLog (player-visible weekly feed).
@@ -283,7 +288,16 @@ internal/
 
   ui/           All Ebitengine scenes and input handling. Reads WorldState, never writes.
                 Expresses player intent as Action structs passed to simulation.
-                Scenes: WeeklyTurn, Minister, RegionMap, Policy, Consultancy, EventLog.
+                Tab structure:
+                  Overview    -- weekly summary, event log, AP spend, clock
+                  Map         -- regional choropleth, tile drill-down, fog-of-war overlay
+                  Politics    -- all 16 stakeholders by party/role, PM status, relationship scores
+                  Policy      -- policy card browser, approval pipeline, active policies
+                  Energy      -- energy price dashboard, renewable grid share, price history charts
+                  Industry    -- LCT company roster, company state, active contracts, intervention actions
+                  Evidence    -- advisory organisation roster, active commissions, report inbox,
+                                 cross-reference view (group reports by topicKey)
+                  Budget      -- department budgets, tax revenue, lobbying effect tracker
 
   game/         Ebitengine bootstrap. Wires simulation and ui. Trivial once above exist.
 
@@ -344,16 +358,74 @@ PolicyCard (static, from config) {
   significance: MINOR | MODERATE | MAJOR
 }
 
-ConsultancyCard (static, from config) {
+OrgType enum: Consultancy | ThinkTank | Academic
+
+Organisation (static definition in config) {
   id, name
-  organisationType: PRIVATE_CONSULTANCY | THINK_TANK | ACADEMIC | REGULATOR
-  cost: float64
-  deliveryWeeksRange: { min, max }
+  orgType: OrgType
+  // Type-specific defaults:
+  //   Consultancy: costRange high, deliveryWeeks 2-4, qualityRange wide (30-90), bias ~0
+  //   ThinkTank:   costRange medium, deliveryWeeks 3-6, qualityRange medium (40-75), bias -1 to +1
+  //   Academic:    costRange low, deliveryWeeks 6-12, qualityRange high (60-95), bias ~0
+  baseCost: float64
+  deliveryWeeksRange: { min: int, max: int }
+  qualityRange: { min: float64, max: float64 }
+  biasDirection: float64             // -1 to +1; think tanks non-zero
+  popularityRisk: float64            // if report is controversial
+  specialisms: []InsightType        // what this org is good at; outside specialism = quality -20
+  // Relationship (dynamic, tracked per playthrough):
+  //   relationshipScore: float64   // improves with repeat commissions + acting on findings
+  //   qualityBonus: float64        // = max(0, relationshipScore * 0.002) -- modest improvement
+}
+
+// Organisation roster (14 orgs):
+//
+// Consultancies:
+//   Meridian Strategy          -- generalist, high cost, fast, wide quality range
+//   ClearPath Advisory         -- infrastructure specialist, high cost, medium speed
+//   Vertex Policy Group        -- boutique, medium cost, very fast, narrower scope
+//   Axiom Infrastructure       -- engineering-focused, high cost, slow, high quality on assets
+//
+// Think Tanks:
+//   The Albion Institute       -- right-leaning (bias +0.6), free market, popular with Right/FarRight
+//   Common Wealth Foundation   -- left-leaning (bias -0.6), public ownership advocate
+//   Progress Policy Centre     -- centre-left (bias -0.2), credible, moderate LCR risk
+//   Green Futures Forum        -- pro-environment (bias -0.3), boosts LCR on publication
+//   Energy Realists Network    -- fossil-fuel sympathetic (bias +0.7), high LCR risk
+//   Heritage UK                -- centre-right (bias +0.5), FarRight adjacent
+//
+// Academic:
+//   Northern Climate Research Centre   -- climate science specialism, slow, high quality
+//   Institute for Energy Transition    -- energy policy specialism, slow, high quality
+//   Centre for Housing and Retrofit    -- buildings/fuel poverty specialism
+//   Transport Futures Lab              -- transport sector specialism
+
+Commission {
+  id: UUID
+  organisationID: string
   insightType: InsightType
   insightScope: InsightScope
-  biasDirection: float64   // -1 to +1; think tanks have non-zero values
-  popularityRisk: float64
-  // quality rolled at commission time, not stored here
+  commissionedOnWeek: GameDate
+  deliveryWeek: GameDate
+  qualityRoll: float64               // hidden until delivery; org quality range + relationship bonus
+  budgetCharged: float64
+  status: CommissionStatus           // PENDING | DELIVERED | CANCELLED
+}
+
+InsightReport {
+  id: UUID
+  commissionID: UUID
+  organisationID: string
+  deliveredOnWeek: GameDate
+  insightType: InsightType
+  rawValue: float64                  // true value of whatever was measured
+  reportedValue: float64             // rawValue distorted by quality and bias
+  qualityRevealed: float64           // revealed on delivery
+  narrativeText: string
+  isControversial: bool
+  // Cross-reference support:
+  topicKey: string                   // canonical key for grouping reports on same topic
+                                     // player can filter Evidence tab by topicKey to compare
 }
 
 Region {
@@ -625,7 +697,7 @@ Layer 0 (no game dependencies):    config, save
 Layer 1 (pure domain models):      carbon, technology, region
 Layer 2 (derived world models):    energy, climate, economy, reputation
 Layer 3 (agent models):            stakeholder, government, polling, industry
-Layer 4 (player-facing mechanics): policy, consultancy, event, player
+Layer 4 (player-facing mechanics): policy, evidence, event, player
 Layer 5 (orchestration):           simulation
 Layer 6 (presentation):            ui
 Layer 7 (entry point):             game

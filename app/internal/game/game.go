@@ -62,6 +62,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 // Layout returns the logical screen dimensions used by Ebitengine.
-func (g *Game) Layout(_, _ int) (int, int) {
-	return ScreenWidth, ScreenHeight
+// Returning the outside (window) dimensions gives native-resolution rendering
+// so the game fills the window without letterboxing.
+func (g *Game) Layout(outsideW, outsideH int) (int, int) {
+	return outsideW, outsideH
 }

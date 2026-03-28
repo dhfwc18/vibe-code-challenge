@@ -84,7 +84,7 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	}
 
 	// "Advance Week" button (drawn directly; click handled in Update).
-	btnX := logicalW - 160
+	btnX := w - 160
 	btnY := 6
 	btnW, btnH := 148, 28
 	bg := buttonColour(btnX, btnY, btnW, btnH, true)

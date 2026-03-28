@@ -35,8 +35,8 @@ func drawModalShock(
 	// Full-screen dark overlay.
 	solidRect(screen, 0, 0, sw, sh, ColourOverlay)
 
-	// Modal box.
-	mw, mh := 440, 180
+	// Modal box (wide enough for 3 buttons).
+	mw, mh := 460, 180
 	mx := (sw - mw) / 2
 	my := (sh - mh) / 2
 	drawPanel(screen, mx, my, mw, mh)
@@ -53,6 +53,10 @@ func drawModalShock(
 	// Decline button.
 	solidRect(screen, mx+160, my+80, 120, 28, ColourButtonNormal)
 	drawLabel(screen, mx+170, my+98, "Decline", ColourClimateCritical, face)
+
+	// Mitigate button.
+	solidRect(screen, mx+300, my+80, 120, 28, ColourButtonNormal)
+	drawLabel(screen, mx+306, my+98, "Mitigate", ColourClimateMedium, face)
 
 	// Click detection handled in Update.
 	_ = pendingActions

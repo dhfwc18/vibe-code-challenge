@@ -46,6 +46,10 @@ type UI struct {
 	feedbackMsg string
 	// feedbackFrames is the number of frames remaining to show feedbackMsg.
 	feedbackFrames int
+
+	// shockHandledCount tracks how many shock responses the player has queued
+	// this week. The shock modal hides once this reaches len(PendingShockResponses).
+	shockHandledCount int
 }
 
 // New creates and returns a fully initialised UI.
@@ -68,6 +72,7 @@ func (u *UI) AdvanceWeekRequested() bool {
 		u.advanceWeekRequested = false
 		u.pendingAPSpend = 0
 		u.feedbackMsg = ""
+		u.shockHandledCount = 0
 		return true
 	}
 	return false
@@ -96,27 +101,31 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 
 	u.pendingActions = u.pendingActions[:0]
 
+	// Current logical screen dimensions (equals window size because Layout passes
+	// through the outside dimensions for native-resolution rendering).
+	sw, sh := ebiten.WindowSize()
+
 	// Handle Ticky modal first - it blocks all other input.
 	if world.PendingTickyPressure {
-		u.handleTickyInput(world)
+		u.handleTickyInput(world, sw, sh)
 		return u.pendingActions
 	}
 
-	// Handle shock modal.
-	if len(world.PendingShockResponses) > 0 {
-		u.handleShockInput(world)
+	// Handle shock modal until all pending shocks have been responded to.
+	if len(world.PendingShockResponses) > u.shockHandledCount {
+		u.handleShockInput(world, sw, sh)
 		return u.pendingActions
 	}
 
 	// Handle evidence modal.
 	if u.evidenceState.showModal {
-		u.handleEvidenceModalInput(world)
+		u.handleEvidenceModalInput(world, sw, sh)
 		return u.pendingActions
 	}
 
 	// Advance Week button click detection.
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		u.handleHUDClick(world)
+		u.handleHUDClick(world, sw)
 	}
 
 	// Tab bar.
@@ -133,9 +142,9 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 }
 
 // handleHUDClick detects clicks on the HUD Advance Week button.
-func (u *UI) handleHUDClick(world *simulation.WorldState) {
+func (u *UI) handleHUDClick(world *simulation.WorldState, sw int) {
 	mx, my := ebiten.CursorPosition()
-	btnX := logicalW - 160
+	btnX := sw - 160
 	btnY := 6
 	if mx >= btnX && mx <= btnX+148 && my >= btnY && my <= btnY+28 {
 		u.advanceWeekRequested = true
@@ -144,11 +153,11 @@ func (u *UI) handleHUDClick(world *simulation.WorldState) {
 }
 
 // handleTickyInput detects which Ticky response button was clicked.
-func (u *UI) handleTickyInput(world *simulation.WorldState) {
+func (u *UI) handleTickyInput(world *simulation.WorldState, sw, sh int) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
-	b := computeTickyBounds(logicalW, logicalH)
+	b := computeTickyBounds(sw, sh)
 	mx, my := ebiten.CursorPosition()
 
 	// Accept button: x+20, y+90, w=130, h=28
@@ -180,18 +189,18 @@ func (u *UI) handleTickyInput(world *simulation.WorldState) {
 }
 
 // handleShockInput detects shock response button clicks.
-func (u *UI) handleShockInput(world *simulation.WorldState) {
+func (u *UI) handleShockInput(world *simulation.WorldState, sw, sh int) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
-	if len(world.PendingShockResponses) == 0 {
+	if len(world.PendingShockResponses) <= u.shockHandledCount {
 		return
 	}
-	mw, mh := 440, 180
-	bx := (logicalW - mw) / 2
-	by := (logicalH - mh) / 2
+	mw, mh := 460, 180
+	bx := (sw - mw) / 2
+	by := (sh - mh) / 2
 	mx, my := ebiten.CursorPosition()
-	shock := world.PendingShockResponses[0]
+	shock := world.PendingShockResponses[u.shockHandledCount]
 
 	if inRect(mx, my, bx+20, by+80, 120, 28) {
 		u.pendingActions = append(u.pendingActions, simulation.Action{
@@ -199,23 +208,32 @@ func (u *UI) handleShockInput(world *simulation.WorldState) {
 			Target: shock.EventDefID,
 			Detail: "ACCEPT",
 		})
+		u.shockHandledCount++
 	} else if inRect(mx, my, bx+160, by+80, 120, 28) {
 		u.pendingActions = append(u.pendingActions, simulation.Action{
 			Type:   player.ActionTypeShockResponse,
 			Target: shock.EventDefID,
 			Detail: "DECLINE",
 		})
+		u.shockHandledCount++
+	} else if inRect(mx, my, bx+300, by+80, 120, 28) {
+		u.pendingActions = append(u.pendingActions, simulation.Action{
+			Type:   player.ActionTypeShockResponse,
+			Target: shock.EventDefID,
+			Detail: "MITIGATE",
+		})
+		u.shockHandledCount++
 	}
 }
 
 // handleEvidenceModalInput detects confirm/cancel clicks on the commission modal.
-func (u *UI) handleEvidenceModalInput(world *simulation.WorldState) {
+func (u *UI) handleEvidenceModalInput(world *simulation.WorldState, sw, sh int) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
 	mw, mh := 400, 200
-	mx2 := (logicalW - mw) / 2
-	my2 := (logicalH - mh) / 2
+	mx2 := (sw - mw) / 2
+	my2 := (sh - mh) / 2
 	x, y := ebiten.CursorPosition()
 
 	// Confirm button: mx+50, my+90, w=100, h=24
@@ -241,8 +259,24 @@ func (u *UI) handleTabContentClick(world *simulation.WorldState) {
 		u.handlePoliticsClick(world, mx, my)
 	case 3: // Policy
 		u.handlePolicyClick(world, mx, my)
+	case 5: // Industry
+		u.handleIndustryClick(mx, my)
 	case 6: // Evidence
 		u.handleEvidenceClick(world, mx, my)
+	}
+}
+
+// handleIndustryClick detects filter button clicks in the industry tab.
+func (u *UI) handleIndustryClick(mx, my int) {
+	// Filter buttons drawn at: x = contentX+12 + i*80, y = hudHeight+4, w=78, h=16
+	// (matches tab_industry.go: x=cx+12, y=cy+16, buttons at y-12=cy+4, w=btnW-2=78)
+	y := hudHeight + 4
+	for i := 0; i < 4; i++ {
+		btnX := contentX + 12 + i*80
+		if inRect(mx, my, btnX, y, 78, 16) {
+			u.industryState.filter = industryFilter(i)
+			return
+		}
 	}
 }
 
@@ -295,7 +329,7 @@ func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 				continue
 			}
 			if state == "DRAFT" {
-				btnX := colX + 8 + 4 + 140
+				btnX := colX + 4 + 140
 				btnY := rowY + 38
 				if inRect(mx, my, btnX, btnY, 50, 16) {
 					if pc.Def != nil && u.effectiveAP(world) >= pc.Def.APCost {
@@ -386,7 +420,7 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	// Modals (drawn last so they appear on top).
 	if world.PendingTickyPressure {
 		drawModalTicky(screen, world, &u.pendingActions, u.face)
-	} else if len(world.PendingShockResponses) > 0 {
+	} else if len(world.PendingShockResponses) > u.shockHandledCount {
 		drawModalShock(screen, world, &u.pendingActions, u.face)
 	}
 }

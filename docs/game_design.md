@@ -1081,17 +1081,25 @@ When in opposition, they are shadows whose relationships still matter.
       transitioning PM state to DEPARTED. Player must manage the fallout.
 
   Foreign Secretary: Noris Jackson
-    Career diplomat turned politician. Cautious, procedurally minded, keeps international
-    relationships warm. Not ideologically committed on climate but will not sabotage it.
-    Strong instinct for coalition-building in international forums.
-    ideologyScore: +30, netZeroSympathy: 50, riskTolerance: 25, populismScore: 20
-    Signals: "former Taitan ambassador to the Commonwealth bloc", "respected across party
-    lines for diplomatic competence", "rarely makes headlines"
-    International crisis weight: de-escalatory bias; boosts probability of multilateral
-    resolution outcomes; mild positive modifier on international green treaty events
-    Promotion path: if Cavendish departs and Truscott is unavailable/departed, Noris
-    Jackson is the next-most-likely PM candidate from the Right bench. His PM profile
-    is steady but uninspiring -- GovernmentPopularity changes are muted in both directions.
+    Laddish, loud, and socially well-connected in the way that old-school networking
+    achieves. Turns up at the right events, knows everyone at the bar, and somehow
+    gets things done between the drinking. Not obviously serious, but effective.
+    Enters the game slightly later than the rest of the Right bench (joins cabinet
+    mid-game, roughly weeks 60-80 into the first Right government term, as a rising
+    backbencher given his first senior post).
+    ideologyScore: +40, netZeroSympathy: 45, riskTolerance: 65, populismScore: 60
+    Signals: "known for his after-hours diplomatic back-channels", "more popular in
+    the press gallery than in cabinet", "never misses a party conference drinks reception"
+    International crisis weight: informal back-channel bias; unlocks "Quiet Word" and
+    "Side Conversation" resolution options unavailable to other Foreign Secretaries;
+    outcomes noisier than Noris -- higher variance, but ceiling is high when it works
+    Promotion path: HIGHER priority than Truscott. If Cavendish departs, Noris is
+    first in line for PM (the party prefers his broad appeal over Truscott's
+    ideological edge). His PM profile is high-variance: GovernmentPopularity swings
+    are amplified -- the laddishness that wins headlines can also generate scandals.
+    Availability: not present at game start; enters candidate pool at week 60-80 of
+    first Right government; if Right is in opposition, enters shadow cabinet at same
+    threshold and can be briefed from that point.
 
   Energy:      Rupert Holm
     Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home retrofit.
@@ -1189,12 +1197,16 @@ When in opposition, they are shadows whose relationships still matter.
          High aggression: unlocks "Escalate" and "Unilateral Action" options; increases
          probability of FossilDependency crisis events being framed as security threats
          (which can temporarily boost GovernmentPopularity but raises LCR risk).
-         Low aggression (Noris Jackson, John Ashworth): unlocks "Multilateral Dialogue"
-         and "Summit Initiative" options; higher probability of green treaty breakthroughs;
-         lower probability of trade retaliation events.
+         Low aggression (John Ashworth): unlocks "Multilateral Dialogue" and "Summit
+         Initiative" options; higher probability of green treaty breakthroughs; lower
+         probability of trade retaliation events.
+         Noris Jackson is moderate aggression but high variance -- his informal style
+         unlocks unique "Quiet Word" / "Side Conversation" options; outcome distribution
+         has a higher ceiling and heavier tail than any other Foreign Secretary.
 
        diplomaticSkill: hidden float (derived from career signal tags in config)
-         High skill (Noris Jackson): raises probability of favourable negotiated outcomes
+         High skill (Noris Jackson, John Ashworth): raises probability of favourable
+         negotiated outcomes
          Low skill (Tommy Braveheart): negotiated options have lower success probability
 
   2. Green Diplomacy Events

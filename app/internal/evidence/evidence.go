@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -14,29 +15,29 @@ import (
 
 // Commission represents one active advisory commission in progress.
 type Commission struct {
-	ID              string
-	OrgID           string
-	InsightType     config.InsightType
-	Scope           string  // free-text scope string visible in the UI
+	ID               string
+	OrgID            string
+	InsightType      config.InsightType
+	Scope            string  // free-text scope string visible in the UI
 	CommissionedWeek int
-	DeliveryWeek    int    // week number when delivery occurs
-	BudgetCost      float64 // GBP thousands, fixed at commission time
-	Failed          bool   // set to true if the failure roll fires on delivery
-	Delivered       bool
+	DeliveryWeek     int     // week number when delivery occurs
+	BudgetCost       float64 // GBP thousands, fixed at commission time
+	Failed           bool    // set to true if the failure roll fires on delivery
+	Delivered        bool
 }
 
 // InsightReport is produced when a Commission is delivered.
 type InsightReport struct {
-	CommissionID string
-	OrgID        string
-	InsightType  config.InsightType
-	Scope        string
-	RawValue     float64 // 0-100: the true underlying value before quality/bias distortion
-	ReportedValue float64 // 0-100: the value the organisation presents to the player
-	TopicKey     string  // stable key for cross-referencing multiple reports (e.g. "energy:lcr")
-	DeliveryWeek int
-	QualityScore float64 // 0-100: the quality roll that determined distortion magnitude
-	SpecialismBonus bool // true if the org had this InsightType in its Specialisms
+	CommissionID    string
+	OrgID           string
+	InsightType     config.InsightType
+	Scope           string
+	RawValue        float64 // 0-100: the true underlying value before quality/bias distortion
+	ReportedValue   float64 // 0-100: the value the organisation presents to the player
+	TopicKey        string  // stable key for cross-referencing multiple reports (e.g. "energy:lcr")
+	DeliveryWeek    int
+	QualityScore    float64 // 0-100: the quality roll that determined distortion magnitude
+	SpecialismBonus bool    // true if the org had this InsightType in its Specialisms
 }
 
 // OrgState tracks the runtime relationship and availability of one advisory org.
@@ -45,16 +46,20 @@ type OrgState struct {
 	RelationshipScore float64 // 0-100; starts at 50; improves with repeat use
 	CommissionCount   int
 	CoolingOffUntil   int  // week number after a failed commission; org unavailable until then
+	// MuricanUnlocked is set to true for tier-0 Murican orgs at game start, and
+	// set to true for tier-1 Murican orgs when a qualifying event fires.
+	// It has no effect on non-Murican orgs (they are always accessible).
+	MuricanUnlocked bool
 }
 
 // RelationshipEvent is passed to UpdateOrgRelationship to describe what happened.
 type RelationshipEvent string
 
 const (
-	RelationshipEventDelivered RelationshipEvent = "DELIVERED"    // commission completed successfully
-	RelationshipEventActedOn   RelationshipEvent = "ACTED_ON"     // player acted on a report finding
-	RelationshipEventIgnored   RelationshipEvent = "IGNORED"      // report finding ignored for 4+ weeks
-	RelationshipEventFailed    RelationshipEvent = "FAILED"       // commission failed entirely
+	RelationshipEventDelivered RelationshipEvent = "DELIVERED" // commission completed successfully
+	RelationshipEventActedOn   RelationshipEvent = "ACTED_ON"  // player acted on a report finding
+	RelationshipEventIgnored   RelationshipEvent = "IGNORED"   // report finding ignored for 4+ weeks
+	RelationshipEventFailed    RelationshipEvent = "FAILED"    // commission failed entirely
 )
 
 // ---------------------------------------------------------------------------
@@ -73,9 +78,9 @@ const (
 
 	coolingOffWeeks = 8 // org unavailable for 8 weeks after a failure
 
-	ideologicalBiasStrength    = 12.0 // max shift on 0-100 scale from ideological bias
-	clientBiasStrength         = 8.0  // max shift from client confirmation bias
-	noneNoiseSigma             = 2.0  // Gaussian noise sigma for BiasNone organisations
+	ideologicalBiasStrength = 12.0 // max shift on 0-100 scale from ideological bias
+	clientBiasStrength      = 8.0  // max shift from client confirmation bias
+	noneNoiseSigma          = 2.0  // Gaussian noise sigma for BiasNone organisations
 
 	outsideSpecialismQualityPenalty = 20.0 // quality deducted when InsightType not in Specialisms
 )
@@ -116,12 +121,14 @@ func DrawDeliveryWeek(dist config.TriangularDist, commissionedWeek int, rng *ran
 // ---------------------------------------------------------------------------
 
 // SeedOrgStates creates an OrgState for each OrgDefinition, starting at default values.
+// Tier-0 Murican orgs have MuricanUnlocked set to true from game start.
 func SeedOrgStates(defs []config.OrgDefinition) []OrgState {
 	out := make([]OrgState, 0, len(defs))
 	for _, d := range defs {
 		out = append(out, OrgState{
 			OrgID:             d.ID,
 			RelationshipScore: startingOrgRelationship,
+			MuricanUnlocked:   d.Origin == config.OrgMurican && d.MuricanAccessTier == 0,
 		})
 	}
 	return out
@@ -140,7 +147,7 @@ func CreateCommission(
 ) Commission {
 	deliveryWeek := DrawDeliveryWeek(org.DeliveryDist, week, rng)
 	return Commission{
-		ID:               org.ID + "_" + scope + "_" + itoa(week),
+		ID:               fmt.Sprintf("%s_%s_%d", org.ID, scope, week),
 		OrgID:            org.ID,
 		InsightType:      insightType,
 		Scope:            scope,
@@ -148,29 +155,6 @@ func CreateCommission(
 		DeliveryWeek:     deliveryWeek,
 		BudgetCost:       org.BaseCost,
 	}
-}
-
-// itoa converts an int to a string without importing strconv (avoids unused import).
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	for n > 0 {
-		pos--
-		buf[pos] = byte('0' + n%10)
-		n /= 10
-	}
-	if neg {
-		pos--
-		buf[pos] = '-'
-	}
-	return string(buf[pos:])
 }
 
 // TickDelivery advances all commissions by one week. Commissions whose DeliveryWeek
@@ -311,17 +295,41 @@ func UpdateOrgRelationship(org OrgState, event RelationshipEvent, currentWeek in
 	return org
 }
 
-// MuracanOrgAvailable returns whether a Murican-origin org is currently accessible.
-// These organisations are unlocked only when a Ticky-mechanic minister is in cabinet
-// AND the player has previously accepted a Ticky offer.
+// UnlockMuricanOrg marks a Murican org as event-unlocked. Call this when a
+// qualifying Murican international event fires for tier-1 orgs. No-op if the
+// org is already unlocked.
+func UnlockMuricanOrg(state OrgState) OrgState {
+	state.MuricanUnlocked = true
+	return state
+}
+
+// MuracanOrgAvailable returns whether a given org is currently accessible in
+// the Evidence tab.
+//
+// Non-Murican orgs are always accessible.
+//
+// Murican-origin orgs follow a tiered access model:
+//   - Tier 0: available from game start (MuricanUnlocked=true after SeedOrgStates).
+//   - Tier 1: unlocked by any qualifying Murican international event (simulation
+//     calls UnlockMuricanOrg when murican_tariff_threat, murican_fossil_subsidy_expansion,
+//     or equivalent events fire) OR via Ticky pressure.
+//   - Tier 2: accessible only when a Ticky-mechanic minister is governing AND the
+//     player has previously accepted a Ticky pressure offer.
 func MuracanOrgAvailable(
 	org config.OrgDefinition,
+	state OrgState,
 	tickyPresent bool,
 	tickyPressureAccepted bool,
 ) bool {
 	if org.Origin != config.OrgMurican {
-		// Non-Murican orgs have their own availability rules; always visible here.
 		return true
 	}
-	return tickyPresent && tickyPressureAccepted
+	switch org.MuricanAccessTier {
+	case 0:
+		return true
+	case 1:
+		return state.MuricanUnlocked || (tickyPresent && tickyPressureAccepted)
+	default: // tier 2
+		return tickyPresent && tickyPressureAccepted
+	}
 }

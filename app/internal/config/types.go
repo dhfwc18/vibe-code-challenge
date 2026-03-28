@@ -239,6 +239,12 @@ type OrgDefinition struct {
 	Name                   string
 	OrgType                OrgType
 	Origin                 OrgOrigin
+	// MuricanAccessTier controls when a Murican-origin org becomes accessible.
+	// Ignored for non-Murican orgs (always accessible).
+	//   0 = available from game start
+	//   1 = unlocked by any Murican-related international event firing (or Ticky)
+	//   2 = unlocked only via the Ticky pressure mechanic
+	MuricanAccessTier      int
 	BaseCost               float64        // GBP thousands per commission
 	DeliveryDist           TriangularDist // weeks
 	Quality                QualityRange

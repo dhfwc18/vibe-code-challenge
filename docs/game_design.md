@@ -285,7 +285,8 @@ internal/
 
   evidence/     Replaces "consultancy" package. Manages all three advisory organisation types:
                 Consultancy, ThinkTank, Academic. Each type has distinct cost, delivery speed,
-                quality distribution, and bias model. OrganisationRoster (14 named orgs).
+                quality distribution, and bias model. OrganisationRoster (18 named orgs:
+                15 Local + 3 Murican).
                 Commission management and delivery timer. InsightReport generation with
                 quality-adjusted and bias-distorted output. Cross-reference display (player
                 can view multiple reports on same topic side by side). Relationship score
@@ -309,7 +310,7 @@ internal/
   player/       CivilServant state, AP pool, StaffRoster, ActionRecord log, minister
                 relationships. Passive state container; simulation reads and updates it.
 
-  simulation/   WorldState (single source of truth), TurnEngine (14-phase weekly pipeline),
+  simulation/   WorldState (single source of truth), TurnEngine (18-phase weekly pipeline),
                 EventBus. Imports all domain packages. Only package that mutates WorldState.
 
   ui/           All Ebitengine scenes and input handling. Reads WorldState, never writes.
@@ -517,30 +518,28 @@ Organisation (static definition in config) {
 //
 // ----- MURICAN (Murica-based; origin: Murican) -----
 //
-// These orgs are never available in the Evidence tab by default. They surface
-// only through TICKY_PRESSURE events. Commissioning them raises LCR risk and
-// may trigger "foreign influence" press events if player has high visibility.
-// Their bias is strongly fossil-fuel-friendly / anti-net-zero-cost.
+// Murican orgs use a tiered access model (MuricanAccessTier on OrgDefinition):
+//   Tier 0 (game start):   Frontier Energy Institute -- widely cited internationally
+//                          in 2010; player can commission it from the opening screen.
+//   Tier 1 (event-unlocked OR Ticky): American Growth Alliance -- surfaces when Murican
+//                          geopolitical activity raises its Taitan profile (events:
+//                          murican_tariff_threat, murican_fossil_subsidy_expansion, etc.)
+//                          OR when Ticky pressure is active.
+//   Tier 2 (Ticky-only):  Pinnacle Energy Partners -- Ticky's personal donor network;
+//                          accessible only via the TICKY_PRESSURE mechanic.
+//
+// All Murican orgs carry LCR risk and may trigger "foreign influence" press events
+// if the player has high visibility. Their bias is fossil-fuel-friendly / anti-net-zero.
 //
 // Think Tanks [origin: Murican]:
-//   Frontier Energy Institute  -- fossil-fuel advocacy disguised as energy economics,
-//                                  bias +0.85 (strongly anti-net-zero), quality 30-65,
-//                                  popularityRisk 0.75 (very high -- "hiring Murican lobbyists"
-//                                  narrative), deliveryDistribution min=2, mode=4, max=8,
-//                                  failProb 0.04 (reliable delivery, reliably wrong)
-//   American Growth Alliance   -- free-market, anti-regulation, nominally economics-focused,
-//                                  bias +0.65 (sceptical of state intervention),
-//                                  quality 35-70, popularityRisk 0.65,
-//                                  deliveryDistribution min=3, mode=5, max=9, failProb 0.04
+//   Frontier Energy Institute  [Tier 0] -- fossil-fuel advocacy, bias +0.85, quality 30-65,
+//                                  popularityRisk 0.75, failProb 0.04
+//   American Growth Alliance   [Tier 1] -- free-market, anti-regulation, bias +0.65,
+//                                  quality 35-70, popularityRisk 0.65, failProb 0.04
 //
 // Consultancies [origin: Murican]:
-//   Pinnacle Energy Partners   -- energy sector, strong fossil-fuel clientele,
-//                                  high cost, medium (3-6w), quality 40-80,
-//                                  popularityRisk 0.6, clientBiasWeight 0.55 (high -- heavily
-//                                  client-oriented, will tell you what you want to hear),
-//                                  failProb 0.07, specialism: Power, EnergyMarket insights
-//                                  Note: quality ceiling is lower than Tacute despite similar
-//                                  specialism; bias is much higher
+//   Pinnacle Energy Partners   [Tier 2] -- fossil clientele, high cost, quality 40-80,
+//                                  clientBiasWeight 0.55, popularityRisk 0.60, failProb 0.07
 
 Commission {
   id: UUID

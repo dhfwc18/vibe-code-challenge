@@ -227,15 +227,26 @@ var orgDefinitions = []OrgDefinition{
 	},
 
 	// ------------------------------------------------------------------
-	// MURICAN ORGS (surfaced only via TICKY_PRESSURE events)
+	// MURICAN ORGS
 	// ------------------------------------------------------------------
+	// Availability is tiered by MuricanAccessTier:
+	//   Tier 0 (game start): Frontier Energy Institute -- a well-known fossil
+	//          think tank that already operates internationally in 2010.
+	//   Tier 1 (Murican event triggers OR Ticky): American Growth Alliance --
+	//          surfaces when Murican geopolitical activity raises its profile in
+	//          Taitan (murican_tariff_threat, murican_fossil_subsidy_expansion, etc.).
+	//   Tier 2 (Ticky-only): Pinnacle Energy Partners -- a commercial consultancy
+	//          with direct ties to Ticky's donor network; only accessible via
+	//          the Ticky pressure mechanic.
+	// Commissioning any Murican org carries LCR risk and may trigger press events.
 
 	{
-		ID:      "frontier_energy_institute",
-		Name:    "Frontier Energy Institute",
-		OrgType: OrgThinkTank,
-		Origin:  OrgMurican,
-		BaseCost: 120.0,
+		ID:                "frontier_energy_institute",
+		Name:              "Frontier Energy Institute",
+		OrgType:           OrgThinkTank,
+		Origin:            OrgMurican,
+		MuricanAccessTier: 0, // available from game start -- widely-cited internationally
+		BaseCost:          120.0,
 		DeliveryDist:           TriangularDist{Min: 2, Mode: 4, Max: 8},
 		Quality:                QualityRange{Min: 30, Max: 65},
 		BiasType:               BiasIdeological,
@@ -245,11 +256,12 @@ var orgDefinitions = []OrgDefinition{
 		Specialisms: []InsightType{InsightEnergyMarket, InsightPower},
 	},
 	{
-		ID:      "american_growth_alliance",
-		Name:    "American Growth Alliance",
-		OrgType: OrgThinkTank,
-		Origin:  OrgMurican,
-		BaseCost: 110.0,
+		ID:                "american_growth_alliance",
+		Name:              "American Growth Alliance",
+		OrgType:           OrgThinkTank,
+		Origin:            OrgMurican,
+		MuricanAccessTier: 1, // unlocked by Murican international events or Ticky
+		BaseCost:          110.0,
 		DeliveryDist:           TriangularDist{Min: 3, Mode: 5, Max: 9},
 		Quality:                QualityRange{Min: 35, Max: 70},
 		BiasType:               BiasIdeological,
@@ -259,11 +271,12 @@ var orgDefinitions = []OrgDefinition{
 		Specialisms: []InsightType{InsightEconomy, InsightPolicy},
 	},
 	{
-		ID:      "pinnacle_energy_partners",
-		Name:    "Pinnacle Energy Partners",
-		OrgType: OrgConsultancy,
-		Origin:  OrgMurican,
-		BaseCost: 300.0,
+		ID:                "pinnacle_energy_partners",
+		Name:              "Pinnacle Energy Partners",
+		OrgType:           OrgConsultancy,
+		Origin:            OrgMurican,
+		MuricanAccessTier: 2, // Ticky-only: accessible only via Ticky pressure mechanic
+		BaseCost:          300.0,
 		DeliveryDist:           TriangularDist{Min: 3, Mode: 5, Max: 9},
 		Quality:                QualityRange{Min: 40, Max: 80},
 		BiasType:               BiasClientConfirmation,

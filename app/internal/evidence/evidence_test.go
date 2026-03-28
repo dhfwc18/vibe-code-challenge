@@ -31,9 +31,10 @@ func consultancyOrg() config.OrgDefinition {
 	}
 }
 
-func muricanOrg() config.OrgDefinition {
+func muricanOrg(tier int) config.OrgDefinition {
 	org := consultancyOrg()
 	org.Origin = config.OrgMurican
+	org.MuricanAccessTier = tier
 	return org
 }
 
@@ -82,6 +83,26 @@ func TestSeedOrgStates_StartAtDefaultRelationship(t *testing.T) {
 	assert.Len(t, states, 1)
 	assert.Equal(t, startingOrgRelationship, states[0].RelationshipScore)
 	assert.Equal(t, "c1", states[0].OrgID)
+}
+
+func TestSeedOrgStates_MuricanTier0_UnlockedAtStart(t *testing.T) {
+	defs := []config.OrgDefinition{muricanOrg(0)}
+	states := SeedOrgStates(defs)
+	assert.True(t, states[0].MuricanUnlocked)
+}
+
+func TestSeedOrgStates_MuricanTier1_LockedAtStart(t *testing.T) {
+	defs := []config.OrgDefinition{muricanOrg(1)}
+	states := SeedOrgStates(defs)
+	assert.False(t, states[0].MuricanUnlocked)
+}
+
+func TestSeedOrgStates_LocalOrg_UnlockedFieldFalse(t *testing.T) {
+	// Local orgs don't use MuricanUnlocked; it remains false (availability
+	// is controlled by org.Origin check in MuracanOrgAvailable).
+	defs := []config.OrgDefinition{consultancyOrg()}
+	states := SeedOrgStates(defs)
+	assert.False(t, states[0].MuricanUnlocked)
 }
 
 // ---------------------------------------------------------------------------
@@ -247,18 +268,59 @@ func TestUpdateOrgRelationship_NaturalDecay_MovesToward50(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// MuracanOrgAvailable
+// MuracanOrgAvailable / UnlockMuricanOrg
 // ---------------------------------------------------------------------------
 
 func TestMuracanOrgAvailable_LocalOrg_AlwaysTrue(t *testing.T) {
 	org := consultancyOrg()
-	assert.True(t, MuracanOrgAvailable(org, false, false))
+	state := OrgState{OrgID: "c1"}
+	assert.True(t, MuracanOrgAvailable(org, state, false, false))
 }
 
-func TestMuracanOrgAvailable_MuricanOrg_RequiresBothFlags(t *testing.T) {
-	org := muricanOrg()
-	assert.False(t, MuracanOrgAvailable(org, false, false))
-	assert.False(t, MuracanOrgAvailable(org, true, false))
-	assert.False(t, MuracanOrgAvailable(org, false, true))
-	assert.True(t, MuracanOrgAvailable(org, true, true))
+func TestMuracanOrgAvailable_Tier0_AlwaysTrue(t *testing.T) {
+	org := muricanOrg(0)
+	state := OrgState{OrgID: "c1", MuricanUnlocked: true}
+	assert.True(t, MuracanOrgAvailable(org, state, false, false))
+	assert.True(t, MuracanOrgAvailable(org, state, true, true))
+}
+
+func TestMuracanOrgAvailable_Tier1_LockedWithoutEventOrTicky(t *testing.T) {
+	org := muricanOrg(1)
+	state := OrgState{OrgID: "c1", MuricanUnlocked: false}
+	assert.False(t, MuracanOrgAvailable(org, state, false, false))
+	assert.False(t, MuracanOrgAvailable(org, state, true, false))
+	assert.False(t, MuracanOrgAvailable(org, state, false, true))
+}
+
+func TestMuracanOrgAvailable_Tier1_UnlockedByEvent(t *testing.T) {
+	org := muricanOrg(1)
+	state := OrgState{OrgID: "c1", MuricanUnlocked: true}
+	assert.True(t, MuracanOrgAvailable(org, state, false, false))
+}
+
+func TestMuracanOrgAvailable_Tier1_UnlockedByTicky(t *testing.T) {
+	org := muricanOrg(1)
+	state := OrgState{OrgID: "c1", MuricanUnlocked: false}
+	assert.True(t, MuracanOrgAvailable(org, state, true, true))
+}
+
+func TestMuracanOrgAvailable_Tier2_RequiresBothTickyFlags(t *testing.T) {
+	org := muricanOrg(2)
+	state := OrgState{OrgID: "c1", MuricanUnlocked: true} // even if event unlocked, tier 2 needs Ticky
+	assert.False(t, MuracanOrgAvailable(org, state, false, false))
+	assert.False(t, MuracanOrgAvailable(org, state, true, false))
+	assert.True(t, MuracanOrgAvailable(org, state, true, true))
+}
+
+func TestUnlockMuricanOrg_SetsUnlocked(t *testing.T) {
+	state := OrgState{OrgID: "c1", MuricanUnlocked: false}
+	updated := UnlockMuricanOrg(state)
+	assert.True(t, updated.MuricanUnlocked)
+}
+
+func TestUnlockMuricanOrg_AlreadyUnlocked_IsNoop(t *testing.T) {
+	state := OrgState{OrgID: "c1", MuricanUnlocked: true, RelationshipScore: 60.0}
+	updated := UnlockMuricanOrg(state)
+	assert.True(t, updated.MuricanUnlocked)
+	assert.Equal(t, 60.0, updated.RelationshipScore) // unchanged
 }

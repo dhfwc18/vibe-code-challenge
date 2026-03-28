@@ -2,6 +2,9 @@ package game
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/save"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/simulation"
 )
 
 const (
@@ -11,11 +14,17 @@ const (
 )
 
 // Game implements ebiten.Game and owns all top-level game state.
-type Game struct{}
+type Game struct {
+	cfg   *config.Config
+	world simulation.WorldState
+}
 
-// New returns an initialised Game ready to be passed to ebiten.RunGame.
-func New() *Game {
-	return &Game{}
+// New returns an initialised Game with a fresh world seeded from masterSeed.
+func New(cfg *config.Config, masterSeed save.MasterSeed) *Game {
+	return &Game{
+		cfg:   cfg,
+		world: simulation.NewWorld(cfg, masterSeed),
+	}
 }
 
 // Update is called once per tick (60 Hz by default) and advances game state.

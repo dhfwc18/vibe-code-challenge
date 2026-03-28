@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vibe-code-challenge/app/internal/carbon"
-	"github.com/vibe-code-challenge/app/internal/config"
+	"twenty-fifty/internal/carbon"
+	"twenty-fifty/internal/config"
 )
 
 // ---------------------------------------------------------------------------

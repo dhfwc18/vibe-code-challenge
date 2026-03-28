@@ -1,4 +1,4 @@
-module github.com/vibe-code-challenge/app
+module twenty-fifty
 
 go 1.26.1
 

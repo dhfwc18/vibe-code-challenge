@@ -1,8 +1,8 @@
 package region
 
 import (
-	"github.com/vibe-code-challenge/app/internal/carbon"
-	"github.com/vibe-code-challenge/app/internal/config"
+	"twenty-fifty/internal/carbon"
+	"twenty-fifty/internal/config"
 )
 
 // Region holds the live state of one of Taitan's 12 administrative regions.

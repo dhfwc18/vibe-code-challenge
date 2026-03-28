@@ -3,7 +3,7 @@ package technology
 import (
 	"math"
 
-	"github.com/vibe-code-challenge/app/internal/config"
+	"twenty-fifty/internal/config"
 )
 
 // TechTracker holds the live maturity value for each of the 8 tracked

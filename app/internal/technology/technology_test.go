@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vibe-code-challenge/app/internal/config"
+	"twenty-fifty/internal/config"
 )
 
 var testCurve = config.TechCurveDef{

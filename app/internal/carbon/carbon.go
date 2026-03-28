@@ -1,6 +1,6 @@
 package carbon
 
-import "github.com/vibe-code-challenge/app/internal/config"
+import "twenty-fifty/internal/config"
 
 // ClimateLevel represents the four severity states of the climate system.
 // Transitions are driven by cumulative overshoot stock above the 2010 baseline.

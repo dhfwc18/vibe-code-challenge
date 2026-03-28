@@ -62,11 +62,13 @@ func (l EventLog) Entries() []EventEntry {
 }
 
 // ---------------------------------------------------------------------------
-// ShockResponseCard
+// PendingShockResponse
 // ---------------------------------------------------------------------------
 
-// ShockResponseCard is queued for the player when an event has OffersShockResponse=true.
-type ShockResponseCard struct {
+// PendingShockResponse is queued for the player when an event has OffersShockResponse=true.
+// It records which event triggered the response opportunity and on which week it was offered.
+// The full resolution logic (backfire probability, outcome) lives in climate.ShockResponseOutcome.
+type PendingShockResponse struct {
 	EventDefID string
 	Week       int
 }

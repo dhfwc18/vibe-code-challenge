@@ -5,7 +5,7 @@ Engine: Ebitengine v2. All values calibrated to HM Treasury Green Book / DESNZ d
 
 ---
 
-## A. Weekly Turn Sequence (17 Phases)
+## A. Weekly Turn Sequence (18 Phases)
 
 Each game week executes in a fixed pipeline.
 
@@ -80,7 +80,7 @@ Each game week executes in a fixed pipeline.
 17. Consultancy Delivery Check -- decrement timers; generate and deliver reports.
     Quality audit reports reveal TrueRetrofitRate vs ObservedRetrofitRate gap for
     specified tiles. Fuel poverty studies reveal FuelPoverty per tile in scope.
-16. End of Week Render -- update UI, flush event log.
+18. End of Week Render -- update UI, flush event log.
 
 ---
 
@@ -222,11 +222,12 @@ internal/
                 overshoot accounting, cumulative stock tracking, trajectory projection.
                 Outputs cumulativeStock used by climate package. Pure functions.
 
-  stakeholder/  All 16 political figures (4 parties x 4 roles) plus PM state machine.
-                Stakeholder struct shared by all figures. PartyPool keyed by Party and Role.
-                GoverningParty tracker. RelationshipManager per stakeholder.
-                Interaction cost calculator (dynamic AP based on relationship and seniority).
-                Opposition briefing value calculator (pre-election relationship investment).
+  stakeholder/  27 seeded political figures: 16 active cabinet-eligible (4 parties x 4 roles)
+                plus 11 successors and mid/late entrants. Stakeholder struct shared by all.
+                MinisterState machine (APPOINTED|ACTIVE|UNDER_PRESSURE|LEADERSHIP_CHALLENGE|
+                SACKED|RESIGNED|ELECTION_OUT|BACKBENCH|OPPOSITION_SHADOW|DEPARTED).
+                RelationshipScore, InfluenceScore, SpecialMechanic (TICKY/DIZZY/FATIGUE).
+                ApprovalChance and PolicyIdeologyPosition exported for policy package use.
 
   industry/     LCT company roster (15 base companies + emergent). Company struct with
                 static seed and dynamic state. CompanyStateMachine. Weekly background work
@@ -268,10 +269,6 @@ internal/
                 LCR and PlayerReputation). Separate from government/minister packages to
                 keep chain-effect logic in one place.
 
-  minister/     Minister struct, MinisterStateMachineEvaluator, MinisterPool, MinisterFactory.
-                Given minister + world snapshot, returns zero or more transition events.
-                Does not mutate state.
-
   government/   GovernmentStateMachine, ElectionOutcomeResolver, PopularityModifier,
                 PopularityHistory (52-week ring buffer). Computes election outcomes from
                 logistic model. Tracks GovernmentPopularity and weekly modifiers.
@@ -279,7 +276,7 @@ internal/
   polling/      Poller, PollResult, PollScheduler, NoiseModel. Never holds true popularity;
                 receives it as parameter. Gaussian noise model, configurable sigma.
 
-  policy/       PolicyCard catalogue, ApprovalPipeline (DRAFT->SUBMITTED->UNDER_REVIEW->
+  policy/       PolicyCard catalogue, ApprovalPipeline (DRAFT->UNDER_REVIEW->
                 APPROVED|REJECTED->ACTIVE|ARCHIVED), weekly effect resolution.
                 Depends on technology (unlock), region (capacity multiplier), carbon (accounting).
 

@@ -88,21 +88,31 @@ Each game week executes in a fixed pipeline.
 
 ### Minister State Machine
 
-States: POOL | APPOINTED | ACTIVE | UNDER_PRESSURE | SACKED | RESIGNED | ELECTION_OUT | DEPARTED
+States: APPOINTED | ACTIVE | UNDER_PRESSURE | LEADERSHIP_CHALLENGE | SACKED | RESIGNED |
+        ELECTION_OUT | BACKBENCH | OPPOSITION_SHADOW | DEPARTED
+
+Note: stakeholders not yet in play are tracked by IsUnlocked=false on the Stakeholder struct,
+not by a POOL state. A figure enters play when IsUnlocked=true and assigned a role.
 
 Transitions:
-  POOL          -> APPOINTED      : PM decision (election win, reshuffle, vacancy)
-  APPOINTED     -> ACTIVE         : 4-week grace period elapses
-  ACTIVE        -> UNDER_PRESSURE : MinisterPopularity < SackingThreshold for 1 week
-  UNDER_PRESSURE -> ACTIVE        : MinisterPopularity rises above SackingThreshold
-  UNDER_PRESSURE -> SACKED        : MinisterPopularity < SackingThreshold for 3 consecutive weeks
-  ACTIVE        -> RESIGNED       : IdeologyConflictScore > ResignationThreshold after major policy
-  ACTIVE        -> SACKED         : PM discretionary sack (low probability, higher if GovPop < 35)
-  ACTIVE        -> ELECTION_OUT   : Election result: party change
-  APPOINTED     -> ELECTION_OUT   : Election result: party change
-  SACKED        -> DEPARTED       : Immediate
-  RESIGNED      -> DEPARTED       : Immediate
-  ELECTION_OUT  -> DEPARTED       : Immediate
+  (unlocked)        -> APPOINTED           : PM decision (election win, reshuffle, vacancy)
+  APPOINTED         -> ACTIVE              : 4-week grace period elapses
+  ACTIVE            -> UNDER_PRESSURE      : MinisterPopularity < SackingThreshold for 1 week
+  UNDER_PRESSURE    -> ACTIVE              : MinisterPopularity rises above SackingThreshold
+  UNDER_PRESSURE    -> LEADERSHIP_CHALLENGE: Significant internal party opposition event fires
+  UNDER_PRESSURE    -> SACKED              : MinisterPopularity < SackingThreshold for 3 consecutive weeks
+  LEADERSHIP_CHALLENGE -> ACTIVE           : Challenge fails; minister survives
+  LEADERSHIP_CHALLENGE -> SACKED           : Challenge succeeds
+  ACTIVE            -> RESIGNED            : IdeologyConflictScore > ResignationThreshold after major policy
+  ACTIVE            -> SACKED              : PM discretionary sack (low probability, higher if GovPop < 35)
+  ACTIVE            -> ELECTION_OUT        : Election result: party change
+  APPOINTED         -> ELECTION_OUT        : Election result: party change
+  SACKED            -> BACKBENCH           : Ruling party minister lands on own backbenches
+  RESIGNED          -> BACKBENCH           : Ruling party minister lands on own backbenches
+  ELECTION_OUT      -> DEPARTED            : Lost seat entirely; exits pool
+  BACKBENCH         -> OPPOSITION_SHADOW   : Party loses election; backbencher becomes shadow minister
+  BACKBENCH         -> DEPARTED            : Announces retirement or deselected
+  OPPOSITION_SHADOW -> APPOINTED           : Party wins next election
 
 Sacking threshold: default 25, reduced by up to 10 if GovernmentPopularity > 60.
 Cabinet ministers: threshold 20. Junior ministers: threshold 30.
@@ -112,21 +122,26 @@ Resignation GovernmentPopularity penalty: -4 to -12 (larger than sacking: -2 to 
 
 ### Government State Machine
 
-States: GOVERNING | PRE_ELECTION | ELECTION | TRANSITION | SNAP_ELECTION_RISK | DISSOLVED
+States: STABLE | UNDER_PRESSURE | CONFIDENCE_VOTE | SNAP_ELECTION | ELECTION_CAMPAIGN |
+        PRE_ELECTION | ELECTION | CARETAKER | DISSOLVED
 
 Transitions:
-  GOVERNING          -> PRE_ELECTION       : Scheduled election minus 6 weeks
-  GOVERNING          -> SNAP_ELECTION_RISK : GovernmentPopularity < 30 for 4+ weeks
-  SNAP_ELECTION_RISK -> GOVERNING          : GovernmentPopularity rises above 30
-  SNAP_ELECTION_RISK -> DISSOLVED          : PM snap election decision (weekly probabilistic roll)
-  GOVERNING          -> DISSOLVED          : Tactical election call (rare, if GovPop > 55)
-  PRE_ELECTION       -> ELECTION           : Campaign period elapses
-  DISSOLVED          -> PRE_ELECTION       : Immediate
-  ELECTION           -> GOVERNING          : Incumbent wins
-  ELECTION           -> TRANSITION         : Incumbent loses
-  TRANSITION         -> GOVERNING          : New ministers appointed, 2-week timer elapses
+  STABLE            -> PRE_ELECTION       : Scheduled election minus 8 weeks
+  STABLE            -> UNDER_PRESSURE     : GovernmentPopularity < 30 for 4+ weeks
+  UNDER_PRESSURE    -> STABLE             : GovernmentPopularity rises above 30
+  UNDER_PRESSURE    -> CONFIDENCE_VOTE    : Internal party motion filed
+  CONFIDENCE_VOTE   -> STABLE             : PM wins vote; confidence restored
+  CONFIDENCE_VOTE   -> SNAP_ELECTION      : PM loses vote; calls election
+  STABLE            -> SNAP_ELECTION      : PM tactical election call (rare, if GovPop > 55)
+  SNAP_ELECTION     -> ELECTION_CAMPAIGN  : Immediate
+  PRE_ELECTION      -> ELECTION_CAMPAIGN  : Scheduled campaign period begins
+  ELECTION_CAMPAIGN -> ELECTION           : Campaign period elapses (4 weeks)
+  ELECTION          -> STABLE             : Incumbent wins
+  ELECTION          -> CARETAKER          : Incumbent loses; caretaker period begins
+  CARETAKER         -> STABLE             : New ministers appointed, transition elapses
+  DISSOLVED         -> PRE_ELECTION       : Parliament dissolved ahead of scheduled date
 
-PRE_ELECTION: player AP reduced to 3 (purdah). Policy approvals suspended.
+PRE_ELECTION / ELECTION_CAMPAIGN: player AP reduced to 3 (purdah). Policy approvals suspended.
 Election outcome: logistic model on GovernmentPopularity + economic indicators + seeded stochastic term.
 
 Scheduled UK elections (approximate, from 2010 game start):
@@ -279,6 +294,17 @@ internal/
 
   event/        GlobalEvent deck (weighted draw), ScandalEvaluator (per minister weekly roll),
                 PressureGroup persistent actors, EventLog (player-visible weekly feed).
+                Data-driven: all event definitions live in config seed data. The event package
+                is a pure dispatcher -- no per-event hardcoded logic.
+                ResolvedEffect pattern: ResolveEffect(EventEffect, world snapshots) returns a
+                flat map of concrete changes for each target (region, tile, stakeholder, company).
+                Targeting is driven by filter strings on EventEffect:
+                  RegionFilter    -- "COASTAL", "RURAL", "URBAN", "INDUSTRIAL", "AGRICULTURAL",
+                                     or a specific region ID. Empty = all regions.
+                  StakeholderFilter -- "CABINET", "ROLE:ENERGY", etc. Empty = no stakeholder effect.
+                  CompanyFilter   -- "ALL", "TECH:EVS", "TECH:OFFSHORE_WIND", etc. Empty = no effect.
+                MatchRegions / MatchStakeholders / MatchCompanies expand filter strings to lists.
+                New events can be added by extending config/events.go only -- no code changes needed.
 
   player/       CivilServant state, AP pool, StaffRoster, ActionRecord log, minister
                 relationships. Passive state container; simulation reads and updates it.

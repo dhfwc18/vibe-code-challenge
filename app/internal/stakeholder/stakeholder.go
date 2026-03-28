@@ -19,6 +19,10 @@ const (
 	MinisterStateDeparted            MinisterState = "DEPARTED"
 	MinisterStateBackbench           MinisterState = "BACKBENCH"
 	MinisterStateOppositionShadow    MinisterState = "OPPOSITION_SHADOW"
+	MinisterStateAppointed           MinisterState = "APPOINTED"    // just assigned a role this week
+	MinisterStateSacked              MinisterState = "SACKED"       // removed by the PM
+	MinisterStateResigned            MinisterState = "RESIGNED"     // resigned voluntarily
+	MinisterStateElectionOut         MinisterState = "ELECTION_OUT" // lost their seat at a general election
 )
 
 // Stakeholder holds all runtime state for one political NPC.
@@ -96,6 +100,17 @@ var policyIdeologyPosition = map[config.PolicySector]float64{
 	config.PolicySectorBuildings: -20.0,
 	config.PolicySectorIndustry:  20.0,
 	config.PolicySectorCross:     0.0,
+}
+
+// PolicyIdeologyPosition returns the ideology axis position for a given policy
+// sector. Returns 0.0 for unrecognised sectors. Exported so the policy package
+// can call it in EvaluateApprovalStep without duplicating the map.
+func PolicyIdeologyPosition(sector config.PolicySector) float64 {
+	pos, ok := policyIdeologyPosition[sector]
+	if !ok {
+		return 0.0
+	}
+	return pos
 }
 
 // SeedStakeholders creates live Stakeholder values from config seed definitions.

@@ -284,9 +284,10 @@ type RegionDef struct {
 	ID                       string
 	Name                     string
 	TileIDs                  []string
-	InitialSkillsNetwork     float64 // 0-100
-	InitialInstallerCapacity float64 // installs per week
-	InitialSupplyChain       float64 // 0-100
+	Tags                     []string // geographic tags e.g. "coastal", "rural", "urban", "industrial", "agricultural"
+	InitialSkillsNetwork     float64  // 0-100
+	InitialInstallerCapacity float64  // installs per week
+	InitialSupplyChain       float64  // 0-100
 }
 
 // TileDef is the immutable seed for one map tile.
@@ -336,15 +337,46 @@ type PolicyCardDef struct {
 }
 
 // EventEffect describes the quantitative impact of a global event when it fires.
+// Global fields apply to the whole country. Targeted fields require matching filters.
+//
+// Region targeting: RegionFilter is a comma-separated list of tags or region IDs.
+// Recognised values: "COASTAL", "RURAL", "URBAN", "INDUSTRIAL", "AGRICULTURAL", or a region ID.
+// An empty filter means the effect applies to ALL regions.
+//
+// Stakeholder targeting: StakeholderFilter matches by role or special value.
+// Recognised values: "CABINET" (all 4 role-holders), "ROLE:LEADER", "ROLE:CHANCELLOR",
+// "ROLE:FOREIGN_SECRETARY", "ROLE:ENERGY", "ALL". Empty = no stakeholder effect.
+//
+// Company targeting: CompanyFilter matches by tech category or special value.
+// Recognised values: "ALL", "TECH:OFFSHORE_WIND", "TECH:ONSHORE_SOLAR", "TECH:HEAT_PUMPS",
+// "TECH:EVS", "TECH:HYDROGEN", "TECH:CCUS", "TECH:GRID_RETAIL", "TECH:LEGACY_TRANSITION",
+// "TECH:INSTALLERS", "TECH:NUCLEAR". Empty = no company effect.
 type EventEffect struct {
-	GasPriceDeltaPct        float64 // percentage change to GasPrice
+	// Global effects
+	GasPriceDeltaPct         float64 // percentage change to GasPrice
 	ElectricityPriceDeltaPct float64
-	OilPriceDeltaPct        float64
-	EconomyDelta            float64 // direct delta to hidden Economy (0-100 scale)
-	LCRDelta                float64 // direct delta to LowCarbonReputation
-	GovtPopularityDelta     float64
-	FuelPovertyFlatDelta    float64 // applied uniformly to all affected tiles
-	CarbonEmissionsDeltaMt  float64 // additional MtCO2e this week (positive = more emissions)
+	OilPriceDeltaPct         float64
+	EconomyDelta             float64 // direct delta to hidden Economy (0-100 scale)
+	LCRDelta                 float64 // direct delta to LowCarbonReputation
+	GovtPopularityDelta      float64
+	CarbonEmissionsDeltaMt   float64 // additional MtCO2e this week (positive = more emissions)
+
+	// Region-targeted effects (filter selects which regions are affected)
+	RegionFilter             string  // see filter rules above
+	InstallerCapacityDelta   float64 // installs-per-week delta applied to matched regions
+	SkillsNetworkDelta       float64 // 0-100 scale delta applied to matched regions
+	TileFuelPovertyDelta     float64 // applied to every tile in matched regions
+	TileInsulationDamage     float64 // positive = insulation degraded (subtracted from InsulationLevel)
+
+	// Stakeholder-targeted effects (filter selects which ministers are affected)
+	StakeholderFilter        string  // see filter rules above
+	StakeholderRelDelta      float64 // delta to player relationship with matched stakeholders
+	StakeholderPressureDelta int     // +1/-1 to pressure counter on matched stakeholders
+
+	// Company-targeted effects (filter selects which active LCT companies are affected)
+	CompanyFilter            string  // see filter rules above
+	CompanyWorkRateDelta     float64 // 0-100 scale delta applied to matched companies
+	CompanyQualityDelta      float64 // 0-100 scale delta applied to matched companies
 }
 
 // EventDef is the immutable definition of a global event card.

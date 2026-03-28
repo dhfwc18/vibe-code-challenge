@@ -1198,13 +1198,23 @@ When in opposition, they are shadows whose relationships still matter.
     spikes, Economy drops sharply, TaxRevenue -15%. Resigns 2 turns after crisis onset.
 
   [MID]   Foreign Secretary: Noris Jackson
+    Born in Murica while his father was completing a fellowship there; grew up in
+    Taitan from age four. Part of his paternal lineage traces back to the Eastern
+    Provinces (Taitan's fictional Ottoman-analog region), a detail he mentions
+    occasionally in speeches when it is useful and never otherwise. Educated at
+    Briarfield and Oxbridge. Spent several years as a political journalist and foreign
+    correspondent before entering politics, which gave him a talent for constructing
+    a good story and a relaxed relationship with factual precision.
     Laddish, loud, socially well-connected. Turns up at the right events, knows
-    everyone at the bar, and somehow gets things done between the drinking.
+    everyone at the bar, and somehow gets things done between the drinking. Holds
+    dual Murican-Taitan citizenship, which Barage has occasionally used against him
+    and which he has never meaningfully resolved.
     Enters pool at weeks 60-80 of first Right government (or shadow cabinet if in
     opposition from same threshold).
     ideologyScore: +40, netZeroSympathy: 45, riskTolerance: 65, populismScore: 60
-    Signals: "known for after-hours diplomatic back-channels", "more popular in the
-    press gallery than in cabinet", "never misses a party conference drinks reception"
+    Signals: "born in Murica, dual citizen", "Briarfield and Oxbridge", "former foreign
+    correspondent", "known for after-hours diplomatic back-channels", "never misses a
+    party conference drinks reception"
     International crisis weight: informal back-channel bias; unlocks "Quiet Word" and
     "Side Conversation" options; high-variance outcomes
     Promotion path: HIGHER priority than Truscott for PM. High-variance PM profile.

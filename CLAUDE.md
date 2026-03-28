@@ -52,6 +52,23 @@ vibe-code-challenge/        <- parent repo (logs, docs, config)
 
 All Go code lives under `app/`. The parent directory holds session logs, CLAUDE.md, and README only.
 
+## Asset and Third-Party Credits
+
+Never use copyrighted materials without a licence that permits use in this project.
+
+**Rules:**
+- Only use assets (fonts, images, audio, data, code libraries) that are explicitly
+  released under a permissive licence (MIT, Apache 2.0, CC0, CC-BY, OFL, public domain).
+  Copyleft licences (GPL, LGPL, CC-SA) are not permitted -- see engine stack rule above.
+- Every third-party asset or library used must have an entry in `records/CREDITS.md`
+  before it is committed to the repo.
+- Format for each entry: name, source URL (if applicable), licence, and what it is used for.
+- If a free asset is obtained from a distribution site (itch.io, OpenGameArt, Google Fonts,
+  etc.) record both the original author and the distribution source.
+- When in doubt about a licence, do not use the asset -- ask first.
+- This rule applies retroactively: all libraries and reference data already in use must
+  be recorded in `records/CREDITS.md`.
+
 ## Testing Convention
 
 Every exported function must have at least one test. Test files live alongside the code they test (foo.go -> foo_test.go).
@@ -82,8 +99,11 @@ If any non-ASCII characters are found in existing files, remove them immediately
 
 ## Project Context
 
-**Game:** Net Zero - a government simulation game
-**Setting:** A UK-like country, present day politics and policy environment
+**Game:** 20-50 - a government simulation game
+**Setting:** Taitan -- a fictional UK-equivalent country
+**Global context:** Murica -- the fictional global hegemon (US equivalent). Murican policy,
+energy markets, LCT company ownership, and think tank funding all ripple into Taitan.
+Use "Taitan" and "Murica" consistently everywhere -- never use "UK" or "USA" in game content.
 **Player role:** Civil servant pushing for net zero initiative
 **Genre:** Map-based strategy with resource management as the central mechanic
 **Timeline:** In-game clock runs from 2010 to 2050; player must reach net zero before the deadline

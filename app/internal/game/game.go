@@ -7,7 +7,7 @@ import (
 const (
 	ScreenWidth  = 1280
 	ScreenHeight = 720
-	Title        = "Net Zero"
+	Title        = "20-50"
 )
 
 // Game implements ebiten.Game and owns all top-level game state.

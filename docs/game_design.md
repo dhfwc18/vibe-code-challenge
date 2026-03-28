@@ -1,6 +1,6 @@
-# Net Zero: Game Design Document
+# 20-50: Game Design Document
 
-Player role: UK civil servant, 2010-2050, pushing for net zero.
+Player role: Taitan civil servant, 2010-2050, pushing for net zero.
 Engine: Ebitengine v2. All values calibrated to HM Treasury Green Book / DESNZ data.
 
 ---

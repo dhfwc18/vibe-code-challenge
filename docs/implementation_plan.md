@@ -427,23 +427,53 @@ failure mechanic fires at correct probability.
 
 ### event
 
+Design principle: all event definitions live in config seed data. The event
+package is a pure dispatcher -- no per-event hardcoded logic. New events can
+be added or edited in config/events.go without touching any event package code.
+
 Key types:
-  GlobalEvent      -- drawn from weighted deck
-  ScandalEvent     -- per-minister weekly roll
-  PressureEvent    -- from persistent pressure groups
+  EventEntry       -- one fired event: def ID, week, resolved effects
   EventLog         -- circular buffer, player-visible, 52 weeks retention
-  ShockResponseCard -- queued for player action in Phase 13
+  ShockResponseCard -- queued for player action when OffersShockResponse=true
+  PressureGroup    -- persistent actor; accumulates pop/carbon/LCR-triggered events
+  PressureResult   -- output from ApplyPressureGroups
+  ResolvedEffect   -- flat map of concrete changes produced by ResolveEffect
+  RegionDelta      -- InstallerCapacityDelta, SkillsNetworkDelta per region ID
+  TileDelta        -- FuelPovertyDelta, InsulationDamage per tile ID
+  StakeholderDelta -- RelDelta, PressureDelta per stakeholder ID
+  CompanyDelta     -- WorkRateDelta, QualityDelta per company ID
 
 Key functions:
-  DrawEvent(deck, climateState, fossilDependency, rng) *GlobalEvent
-  RollScandal(stakeholder, weeklyPressure, rng) *ScandalEvent
-  ApplyPressureGroups(groups, carbonTrajectory, lcr) []PressureEvent
-  QueueShockResponse(event) ShockResponseCard
+  ComputeEventProbability(def, climateLevel, fossilDependency) float64
+  DrawEvent(defs, climateLevel, fossilDependency, rng) (config.EventDef, bool)
+  RollScandal(stakeholder, weeklyPressure, rng) bool
+  NewEventLog() EventLog
   AppendEventLog(log, entry) EventLog
+  DefaultPressureGroups() []PressureGroup
+  ApplyPressureGroups(groups, carbonTrajectory, lcr) ([]PressureGroup, []PressureResult)
+  MatchRegions(filter string, regions []config.RegionDef) []string   -- returns region IDs
+  MatchStakeholders(filter string, stakeholders []stakeholder.Stakeholder) []string
+  MatchCompanies(filter string, companies []industry.CompanyState) []string
+  ResolveEffect(effect config.EventEffect, regions, stakeholders, companies) ResolvedEffect
 
-Tests: draw probability scales with climate and fossil multipliers, scandal
-roll fires at correct base rate, pressure groups generate events at correct
-frequency, event log wraps at capacity.
+Targeting filter semantics (resolved by MatchRegions / MatchStakeholders / MatchCompanies):
+  RegionFilter:      "COASTAL","RURAL","URBAN","INDUSTRIAL","AGRICULTURAL" = tag match;
+                     any other string = exact region ID; empty = all regions.
+  StakeholderFilter: "CABINET" = all 4 role-holders; "ROLE:ENERGY" etc = role match;
+                     "ALL" = all unlocked stakeholders.
+  CompanyFilter:     "ALL" = all active companies; "TECH:EVS" etc = TechCategory match.
+
+Tests:
+  ComputeEventProbability scales correctly with climate and fossil multipliers.
+  DrawEvent returns false when all probabilities are zero.
+  MatchRegions_CoastalFilter_ReturnsOnlyCoastalRegions
+  MatchRegions_RegionIDFilter_ReturnsThatRegion
+  MatchStakeholders_CabinetFilter_ReturnsFourRoleHolders
+  MatchCompanies_TechFilter_ReturnsOnlyMatchingCategory
+  ResolveEffect_CoastalFloodingEffect_PopulatesRegionAndTileDeltas
+  ResolveEffect_EmptyFilters_ProducesNoTargetedDeltas
+  ApplyPressureGroups_HighCarbon_GeneratesEvent
+  RollScandal_ZeroPressure_NeverFires (10 000 iterations)
 
 ### player
 

@@ -17,6 +17,9 @@ const (
 	GovernmentPhaseSnapElection     GovernmentPhase = "SNAP_ELECTION"
 	GovernmentPhaseCaretaker        GovernmentPhase = "CARETAKER"
 	GovernmentPhaseElectionCampaign GovernmentPhase = "ELECTION_CAMPAIGN"
+	GovernmentPhasePreElection      GovernmentPhase = "PRE_ELECTION" // within 8 weeks of scheduled election
+	GovernmentPhaseElection         GovernmentPhase = "ELECTION"     // polling day week
+	GovernmentPhaseDissolved        GovernmentPhase = "DISSOLVED"    // parliament dissolved, no government
 )
 
 // GovernmentState tracks which party holds power, cabinet composition,

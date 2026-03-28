@@ -120,6 +120,16 @@ const (
 
 	// pollWeeklyProb is the Bernoulli draw probability for a government/regional poll.
 	pollWeeklyProb = 0.25
+
+	// maxPollHistory is the maximum number of poll snapshots retained in PollHistory.
+	// Older entries are dropped to prevent unbounded memory growth over a 40-year game.
+	maxPollHistory = 200
+
+	// maxTechDeliveryLog is the maximum number of tech delivery milestone strings retained.
+	maxTechDeliveryLog = 100
+
+	// maxInsightReports is the maximum number of delivered insight reports retained.
+	maxInsightReports = 50
 )
 
 // ---------------------------------------------------------------------------
@@ -690,6 +700,9 @@ func phaseRegionalWorldTick(w WorldState) WorldState {
 			w.Industry, w.Tech = industry.DeliverTech(w.Industry, defID, w.Tech, def)
 			w.TechDeliveryLog = append(w.TechDeliveryLog,
 				defID+" delivered tech maturity boost for "+string(tech))
+			if len(w.TechDeliveryLog) > maxTechDeliveryLog {
+				w.TechDeliveryLog = w.TechDeliveryLog[len(w.TechDeliveryLog)-maxTechDeliveryLog:]
+			}
 		}
 	}
 	return w
@@ -756,7 +769,7 @@ func phasePolicyResolution(w WorldState) WorldState {
 		if card.State != policy.PolicyStateActive {
 			continue
 		}
-		techFrac := techFractionForPolicy(card.Def, w.Tech)
+		techFrac := techFractionForPolicy(*card.Def, w.Tech)
 		capRegion := region.Region{
 			InstallerCapacity: sectorInstallerCapacity(
 				w.Regions, w.Cfg.Regions, card.Def.WeeklyEffect.Sector),
@@ -878,6 +891,9 @@ func phasePollingCheck(w WorldState) WorldState {
 		}
 
 		w.PollHistory = append(w.PollHistory, snap)
+		if len(w.PollHistory) > maxPollHistory {
+			w.PollHistory = w.PollHistory[len(w.PollHistory)-maxPollHistory:]
+		}
 	}
 
 	// LCR poll: fires on a randomised 10-16 week interval.
@@ -1331,7 +1347,7 @@ func phaseConsequenceResolution(w WorldState) WorldState {
 				if !ok {
 					continue
 				}
-				conflict := policy.IdeologyConflict(card.Def, s) * ideologyConflictWeight * significanceMultiplier(card.Def.Significance)
+				conflict := policy.IdeologyConflict(*card.Def, s) * ideologyConflictWeight * significanceMultiplier(card.Def.Significance)
 				for j := range w.Stakeholders {
 					if w.Stakeholders[j].ID == s.ID {
 						w.Stakeholders[j].IdeologyConflictScore = mathutil.Clamp(
@@ -1384,6 +1400,9 @@ func phaseConsultancyDelivery(w WorldState) WorldState {
 		rawVal := rawValueForInsight(c.InsightType, w)
 		report := evidence.GenerateReport(c, orgDef, string(c.InsightType), rawVal, 0.0, w.RNG)
 		w.Reports = append(w.Reports, report)
+		if len(w.Reports) > maxInsightReports {
+			w.Reports = w.Reports[len(w.Reports)-maxInsightReports:]
+		}
 	}
 
 	// Apply natural relationship decay for orgs that had no event this week.

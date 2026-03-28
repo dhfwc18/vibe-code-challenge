@@ -50,7 +50,7 @@ const (
 // PolicyCard combines the immutable definition from config with the runtime
 // approval and lifecycle state.
 type PolicyCard struct {
-	Def              config.PolicyCardDef
+	Def              *config.PolicyCardDef
 	State            PolicyState
 	WeeksActive      int  // incremented each week while ACTIVE
 	WeeksUnderReview int  // incremented each week while UNDER_REVIEW
@@ -68,12 +68,10 @@ type CarbonDelta struct {
 
 // SeedPolicyCards creates one PolicyCard per definition, all starting in DRAFT.
 func SeedPolicyCards(defs []config.PolicyCardDef) []PolicyCard {
-	cards := make([]PolicyCard, 0, len(defs))
-	for _, d := range defs {
-		cards = append(cards, PolicyCard{
-			Def:   d,
-			State: PolicyStateDraft,
-		})
+	cards := make([]PolicyCard, len(defs))
+	for i, d := range defs {
+		def := d // copy to heap
+		cards[i] = PolicyCard{Def: &def, State: PolicyStateDraft}
 	}
 	return cards
 }
@@ -120,17 +118,17 @@ func IdeologyConflict(def config.PolicyCardDef, s stakeholder.Stakeholder) float
 //     shortfall); the card stays UNDER_REVIEW.
 func EvaluateApprovalStep(
 	card PolicyCard,
-	def config.PolicyCardDef,
+	def *config.PolicyCardDef,
 	s stakeholder.Stakeholder,
 	req config.ApprovalRequirement,
 ) (approved bool, hardReject bool) {
-	if IdeologyConflict(def, s) > req.MaxIdeologyConflict {
+	if IdeologyConflict(*def, s) > req.MaxIdeologyConflict {
 		return false, true
 	}
 	// Significance-based formal refusal: a minister who strongly disagrees with a
 	// high-significance policy will issue a hard refusal after sustained review,
 	// even if the per-step ideology threshold was not crossed.
-	conflict := IdeologyConflict(def, s)
+	conflict := IdeologyConflict(*def, s)
 	switch def.Significance {
 	case config.PolicySignificanceMajor:
 		if conflict > majorSignificanceRefuseConflict && card.WeeksUnderReview >= majorSignificanceRefuseWeeks {

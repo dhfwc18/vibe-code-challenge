@@ -16,7 +16,7 @@ import (
 
 func makeCard(sector config.PolicySector, steps []config.ApprovalRequirement) PolicyCard {
 	return PolicyCard{
-		Def: config.PolicyCardDef{
+		Def: &config.PolicyCardDef{
 			ID:     "test_card",
 			Sector: sector,
 			WeeklyEffect: config.WeeklyEffectDef{
@@ -139,7 +139,7 @@ func TestEvaluateApprovalStep_AllMet_ReturnsApproved(t *testing.T) {
 	}
 	card := makeCard(config.PolicySectorPower, nil)
 	card.State = PolicyStateUnderReview
-	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
+	approved, hardReject := EvaluateApprovalStep(card, &config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
 	assert.True(t, approved)
 	assert.False(t, hardReject)
 }
@@ -154,7 +154,7 @@ func TestEvaluateApprovalStep_HighIdeologyConflict_HardReject(t *testing.T) {
 	}
 	card := makeCard(config.PolicySectorIndustry, nil)
 	card.State = PolicyStateUnderReview
-	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorIndustry}, s, req)
+	approved, hardReject := EvaluateApprovalStep(card, &config.PolicyCardDef{Sector: config.PolicySectorIndustry}, s, req)
 	assert.False(t, approved)
 	assert.True(t, hardReject)
 }
@@ -168,7 +168,7 @@ func TestEvaluateApprovalStep_LowRelationship_PendingNotReject(t *testing.T) {
 	}
 	card := makeCard(config.PolicySectorPower, nil)
 	card.State = PolicyStateUnderReview
-	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
+	approved, hardReject := EvaluateApprovalStep(card, &config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
 	assert.False(t, approved)
 	assert.False(t, hardReject)
 }
@@ -186,7 +186,7 @@ func TestEvaluateApprovalStep_MajorSignificance_HighConflictAndStalledWeeks_Hard
 		MinRelationshipScore: 40.0,
 		MaxIdeologyConflict:  200.0, // high threshold so per-step check does not fire
 	}
-	def := config.PolicyCardDef{
+	def := &config.PolicyCardDef{
 		Sector:       config.PolicySectorCross,
 		Significance: config.PolicySignificanceMajor,
 	}
@@ -204,7 +204,7 @@ func TestEvaluateApprovalStep_MajorSignificance_HighConflictButNotStalled_DoesNo
 		MinRelationshipScore: 40.0,
 		MaxIdeologyConflict:  200.0,
 	}
-	def := config.PolicyCardDef{
+	def := &config.PolicyCardDef{
 		Sector:       config.PolicySectorCross,
 		Significance: config.PolicySignificanceMajor,
 	}
@@ -221,7 +221,7 @@ func TestEvaluateApprovalStep_MinorSignificance_HighConflictAndStalledWeeks_NoSi
 		MinRelationshipScore: 40.0,
 		MaxIdeologyConflict:  200.0,
 	}
-	def := config.PolicyCardDef{
+	def := &config.PolicyCardDef{
 		Sector:       config.PolicySectorCross,
 		Significance: config.PolicySignificanceMinor,
 	}

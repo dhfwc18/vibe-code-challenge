@@ -357,7 +357,7 @@ func TestPolicy_MajorSignificance_HighConflictHardRejectedAfter8Weeks(t *testing
 	hasHighConflict := false
 	for _, req := range targetCard.Def.ApprovalSteps {
 		if s, ok := byRole[req.Role]; ok {
-			conflict := policy.IdeologyConflict(targetCard.Def, s)
+			conflict := policy.IdeologyConflict(*targetCard.Def, s)
 			if conflict > 75.0 {
 				hasHighConflict = true
 				break
@@ -673,7 +673,7 @@ func TestConsultancyAffinity_CabinetMinister_IncreasesOrgRelationship(t *testing
 func TestPolicyApproval_MajorSignificanceHighConflictLongStall_HardRejects(t *testing.T) {
 	// Build a synthetic scenario: MAJOR card stalled 8+ weeks, minister with high conflict.
 	card := policy.PolicyCard{
-		Def: config.PolicyCardDef{
+		Def: &config.PolicyCardDef{
 			Sector:       config.PolicySectorIndustry,
 			Significance: config.PolicySignificanceMajor,
 			ApprovalSteps: []config.ApprovalRequirement{
@@ -695,7 +695,7 @@ func TestPolicyApproval_MajorSignificanceHighConflictLongStall_HardRejects(t *te
 	req := card.Def.ApprovalSteps[0]
 	approved, hardReject := policy.EvaluateApprovalStep(card, card.Def, s, req)
 
-	conflict := policy.IdeologyConflict(card.Def, s)
+	conflict := policy.IdeologyConflict(*card.Def, s)
 	if conflict <= 75.0 {
 		// DESIGN NOTE: PolicyIdeologyPosition for INDUSTRY sector may be centrist,
 		// making conflict < 75 even with a high-ideology minister.
@@ -711,7 +711,7 @@ func TestPolicyApproval_MajorSignificanceHighConflictLongStall_HardRejects(t *te
 // conflict level and weeks under review (MINOR has no significance refusal threshold).
 func TestPolicyApproval_MinorSignificanceHighConflictLongStall_NoHardReject(t *testing.T) {
 	card := policy.PolicyCard{
-		Def: config.PolicyCardDef{
+		Def: &config.PolicyCardDef{
 			Sector:       config.PolicySectorIndustry,
 			Significance: config.PolicySignificanceMinor,
 			ApprovalSteps: []config.ApprovalRequirement{

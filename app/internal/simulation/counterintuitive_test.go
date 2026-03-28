@@ -76,7 +76,7 @@ func TestIdeologyConflict_PolicyApproved_ConflictAccumulates(t *testing.T) {
 	var targetDef config.PolicyCardDef
 	for _, card := range w.PolicyCards {
 		if card.Def.ID == policyID {
-			targetDef = card.Def
+			targetDef = *card.Def
 			break
 		}
 	}
@@ -629,7 +629,7 @@ func TestPolicy_SubmitAndApprove_ConflictMechanismWired(t *testing.T) {
 	var targetDef config.PolicyCardDef
 	for _, card := range w.PolicyCards {
 		if card.Def.ID == "national_retrofit_programme" {
-			targetDef = card.Def
+			targetDef = *card.Def
 			break
 		}
 	}

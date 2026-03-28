@@ -5,14 +5,23 @@ package config
 // ---------------------------------------------------------------------------
 
 // Party identifies the four political parties in Taitan.
+// The string value is the stable ID used in save files and config data.
 type Party string
 
 const (
-	PartyLeft    Party = "LEFT"
-	PartyRight   Party = "RIGHT"
-	PartyFarLeft Party = "FARLEFT"
-	PartyFarRight Party = "FARRIGHT"
+	PartyLeft     Party = "common_wealth"      // The Common Wealth
+	PartyRight    Party = "union_party"         // The Union Party
+	PartyFarLeft  Party = "renewal"             // Renewal
+	PartyFarRight Party = "taitan_restoration"  // Taitan Restoration
 )
+
+// PartyNames maps each Party ID to its display name shown in the UI.
+var PartyNames = map[Party]string{
+	PartyLeft:     "The Common Wealth",
+	PartyRight:    "The Union Party",
+	PartyFarLeft:  "Renewal",
+	PartyFarRight: "Taitan Restoration",
+}
 
 // Role identifies the four ministerial roles within each party.
 type Role string

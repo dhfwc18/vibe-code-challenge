@@ -359,10 +359,12 @@ PolicyCard (static, from config) {
 }
 
 OrgType enum: Consultancy | ThinkTank | Academic
+OrgOrigin enum: Local | Murican | Foreign
 
 Organisation (static definition in config) {
   id, name
   orgType: OrgType
+  origin: OrgOrigin           // Local = Taitan-based; Murican = Murica-based; Foreign = other
 
   // Cost and delivery:
   baseCost: float64
@@ -450,9 +452,11 @@ Organisation (static definition in config) {
 //   deliveryWeeks = sample(triangular distribution, min=baseMin, mode=baseMode, max=baseMax*1.5)
 //   A commission scoped to multiple regions or insight types uses baseMax*2.
 //
-// Organisation roster (15 orgs):
+// Organisation roster (18 orgs -- 15 Local, 3 Murican):
 //
-// Consultancies:
+// ----- LOCAL (Taitan-based) -----
+//
+// Consultancies [origin: Local]:
 //   Tacute Energy Solutions    -- energy sector specialist, very high cost, medium (3-5w),
 //                                  quality 70-95 (high floor and ceiling -- best in band),
 //                                  popularityRisk 0.2 (lowest in consultancy band),
@@ -471,7 +475,7 @@ Organisation (static definition in config) {
 //                                  quality 50-90, popularityRisk 0.35, clientBiasWeight 0.35,
 //                                  failProb 0.06, specialism: Buildings, region capacity assets
 //
-// Think Tanks:
+// Think Tanks [origin: Local]:
 //   The Albion Institute       -- right-leaning (bias +0.6), free market, popular with Right/FarRight
 //   Common Wealth Foundation   -- left-leaning (bias -0.6), public ownership advocate
 //   Progress Policy Centre     -- centre-left (bias -0.2), credible, moderate LCR risk
@@ -479,11 +483,38 @@ Organisation (static definition in config) {
 //   Energy Realists Network    -- fossil-fuel sympathetic (bias +0.7), high LCR risk
 //   Heritage UK                -- centre-right (bias +0.5), FarRight adjacent
 //
-// Academic:
+// Academic [origin: Local]:
 //   Northern Climate Research Centre   -- climate science specialism, slow, high quality
 //   Institute for Energy Transition    -- energy policy specialism, slow, high quality
 //   Centre for Housing and Retrofit    -- buildings/fuel poverty specialism
 //   Transport Futures Lab              -- transport sector specialism
+//
+// ----- MURICAN (Murica-based; origin: Murican) -----
+//
+// These orgs are never available in the Evidence tab by default. They surface
+// only through TICKY_PRESSURE events. Commissioning them raises LCR risk and
+// may trigger "foreign influence" press events if player has high visibility.
+// Their bias is strongly fossil-fuel-friendly / anti-net-zero-cost.
+//
+// Think Tanks [origin: Murican]:
+//   Frontier Energy Institute  -- fossil-fuel advocacy disguised as energy economics,
+//                                  bias +0.85 (strongly anti-net-zero), quality 30-65,
+//                                  popularityRisk 0.75 (very high -- "hiring Murican lobbyists"
+//                                  narrative), deliveryDistribution min=2, mode=4, max=8,
+//                                  failProb 0.04 (reliable delivery, reliably wrong)
+//   American Growth Alliance   -- free-market, anti-regulation, nominally economics-focused,
+//                                  bias +0.65 (sceptical of state intervention),
+//                                  quality 35-70, popularityRisk 0.65,
+//                                  deliveryDistribution min=3, mode=5, max=9, failProb 0.04
+//
+// Consultancies [origin: Murican]:
+//   Pinnacle Energy Partners   -- energy sector, strong fossil-fuel clientele,
+//                                  high cost, medium (3-6w), quality 40-80,
+//                                  popularityRisk 0.6, clientBiasWeight 0.55 (high -- heavily
+//                                  client-oriented, will tell you what you want to hear),
+//                                  failProb 0.07, specialism: Power, EnergyMarket insights
+//                                  Note: quality ceiling is lower than Tacute despite similar
+//                                  specialism; bias is much higher
 
 Commission {
   id: UUID
@@ -930,8 +961,8 @@ The player is always the civil servant. The political layer is something to navi
                supportive of regulated LCT market
   Right     -- centre-right, pro-market, net-zero via technology and private sector,
                resistant to mandates and spending
-  FarRight  -- nationalist, anti-net-zero framing, energy independence via fossil fuels,
-               hostile to LCT companies seen as foreign-owned
+  FarRight  -- nationalist ("Taitan for Taitons"), anti-net-zero framing, fossil energy
+               independence, hostile to foreign-owned LCT companies, Murica-aligned
 
 Each party has four key figures. When the party governs, these become the real post-holders.
 When in opposition, they are shadows whose relationships still matter.
@@ -940,6 +971,159 @@ When in opposition, they are shadows whose relationships still matter.
   Chancellor    -- controls Treasury; determines tax policy and overall spending envelope
   DefenceSecy   -- budget competitor; relevant during energy security events
   EnergySecy    -- player's direct boss; approves or blocks player's major policy proposals
+
+#### Rotation Rates
+
+  Government figures:   average tenure ~104 weeks (2 years), stochastic per Q7.
+                        Sacking threshold active. Popularity-driven.
+
+  Opposition figures:   average tenure ~520 weeks (10 years). Sacking threshold is
+                        much higher (opposition has fewer accountability mechanisms).
+                        Leadership challenges rare; fire only when popularity < 20 for
+                        8+ consecutive weeks OR after a catastrophic election result
+                        (lost seats threshold crossed). A strong opposition leader can
+                        hold the role for the entire 40-year game span.
+
+#### Named Cast (Seed Pool -- figures rotate in over time as earlier ones depart)
+
+  Note: all figures listed are TAITAN citizens. Murica is the global state; Murican
+  characters are foreign nationals and cannot hold Taitan government office, but they
+  influence the game through companies, think tanks, and pressure on Taitan politicians.
+
+  --- FarRight (Taitan First) ---
+
+  Leader:      Joe Barage
+    Born in Murica, moved to Taitan aged 14. Founder of "Taitan for Taitons" movement.
+    Loud, media-savvy, frames every issue as Taitan sovereignty vs foreign interference.
+    ideologyScore: +95, netZeroSympathy: 5, riskTolerance: 85, populismScore: 98
+    Signals: "Murica-born, naturalised Taiton", "questions the net zero cost to ordinary
+    Taitons", "close ties with Murican energy sector donors"
+    Rotation: very slow (opposition leader anchor -- expected to persist 15-20 years)
+
+  Chancellor:  Rex Harlow
+    Old money, former City trader. Sees green spending as economic self-harm.
+    ideologyScore: +80, netZeroSympathy: 15, riskTolerance: 40, populismScore: 50
+    Signals: "advocate for lower business regulation", "opposed the carbon levy bill",
+    "strong Taitan financial sector ties"
+
+  Defence:     Thomas "Tommy" Braveheart
+    Ex-military, no-nonsense, energy security framed as defence issue. Supports
+    domestic fossil extraction on sovereignty grounds, not ideology.
+    ideologyScore: +70, netZeroSympathy: 30, riskTolerance: 60, populismScore: 65
+    Signals: "decorated military career", "Taitan energy independence advocate",
+    "pragmatic on low-carbon if framed as security"
+
+  Energy:      TD "Ticky" Tennison
+    Career in Murican-linked energy sector before entering politics. Has personal
+    relationships with Murican consultancy and think tank founders.
+    ideologyScore: +85, netZeroSympathy: 10, riskTolerance: 70, populismScore: 75
+    Signals: "former energy sector lobbyist", "regular speaker at Murican energy forums",
+    "publicly sceptical of offshore wind economics"
+    Special mechanic: when governing, generates TICKY_PRESSURE events (see below).
+
+  --- Left (Taitan Labour equivalent) ---
+
+  Leader:      David Reeve
+    Pragmatic centrist. Pro-net-zero but cautious about pace and household costs.
+    ideologyScore: -25, netZeroSympathy: 65, riskTolerance: 45, populismScore: 40
+    Signals: "modernising figure within the party", "backed the Climate Commitment Act",
+    "known for consensus-building style"
+
+  Chancellor:  George Harmon
+    Fiscal conservative in a left-of-centre mould. Supportive of green investment if
+    cost-benefit is clear. Key blocker if policies look uncosted.
+    ideologyScore: -15, netZeroSympathy: 55, riskTolerance: 30, populismScore: 25
+    Signals: "former Bank of Taitan economist", "authored the Green Investment Framework",
+    "reputation for rigorous spending scrutiny"
+
+  Defence:     John Ashworth
+    Pragmatic, unremarkable on climate. Budget competition is his primary concern.
+    ideologyScore: -20, netZeroSympathy: 45, riskTolerance: 50, populismScore: 35
+
+  Energy:      Claire Blackwell
+    Player's first boss (Left governs at game start 2010). Moderately pro-climate,
+    cautious about radical moves. Good starting relationship with player.
+    ideologyScore: -30, netZeroSympathy: 70, riskTolerance: 40, populismScore: 30
+    Signals: "backed the Renewable Obligation scheme", "known for careful stakeholder
+    management", "willing to consider nuclear as part of the mix"
+
+  --- Right (Taitan Conservative equivalent) ---
+
+  Leader:      Victoria Ashton
+    Modernising conservative. Tech-optimist on net zero -- believes market can deliver.
+    Resistant to mandates and direct subsidies.
+    ideologyScore: +40, netZeroSympathy: 55, riskTolerance: 50, populismScore: 45
+    Signals: "rebranded party as 'pro-innovation'", "backs carbon pricing over mandates",
+    "publicly pro-nuclear"
+
+  Chancellor:  Philip Drake
+    Free market purist. Deeply sceptical of green industrial policy.
+    ideologyScore: +55, netZeroSympathy: 35, riskTolerance: 35, populismScore: 30
+    Signals: "authored free market think tank papers on energy", "opposed the windfall tax",
+    "wants to scrap net zero subsidies"
+
+  Defence:     Andrew Stafford
+    Hawkish, frames energy security as defence priority. Can be won over on renewables
+    if framed as reducing Taitan dependence on foreign fossil fuels.
+    ideologyScore: +50, netZeroSympathy: 40, riskTolerance: 60, populismScore: 40
+
+  Energy:      Rupert Holm
+    Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home retrofit.
+    Will approve technology-led policies readily; resists behaviour-change policies.
+    ideologyScore: +45, netZeroSympathy: 60, riskTolerance: 55, populismScore: 35
+    Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
+    "wants to cut planning red tape for renewables"
+
+  --- FarLeft (Taitan Progressive Alliance) ---
+
+  Leader:      Miriam Corbett
+    Long-standing socialist. Strong climate action but only via public ownership.
+    Hostile to corporate LCT companies and any market mechanism.
+    ideologyScore: -90, netZeroSympathy: 80, riskTolerance: 55, populismScore: 70
+    Signals: "advocate for nationalised energy", "opposes carbon trading as 'greenwash'",
+    "strong trade union backing"
+
+  Chancellor:  Priya Sharma
+    Academic economist, MMT-leaning. Believes public investment can fund transition
+    without fiscal constraints. Opposed to austerity framing.
+    ideologyScore: -80, netZeroSympathy: 75, riskTolerance: 65, populismScore: 50
+    Signals: "authored 'The Green New Deal for Taitan'", "favours debt-funded transition",
+    "hostile to private consultancy spend"
+
+  Defence:     Marcus Webb
+    Ex-military turned pacifist MP. Advocates redirecting defence budget to climate.
+    ideologyScore: -75, netZeroSympathy: 70, riskTolerance: 45, populismScore: 55
+
+  Energy:      Rosa Chen
+    Strong climate champion, anti-corporate. Will approve ambitious policies rapidly
+    but demands they exclude private profit. Hostile to Tacute and private consultancies.
+    ideologyScore: -85, netZeroSympathy: 95, riskTolerance: 70, populismScore: 65
+    Signals: "co-authored the Zero Carbon Cities bill", "publicly attacked Meridian Strategy
+    for 'profiteering from climate action'", "prefers academic evidence over consultancy"
+
+#### Ticky Pressure Mechanic
+
+  When TD Tennison is governing Energy Secretary, generates a TICKY_PRESSURE event
+  every 6-10 weeks (stochastic interval):
+
+    Event: "Ticky has suggested commissioning [org] for [insight type]"
+    Murican org pool (drawn from at random, weighted by insight type match):
+      -- Frontier Energy Institute   (think tank; Energy/Power/EnergyMarket topics)
+      -- American Growth Alliance    (think tank; Economy/Policy topics)
+      -- Pinnacle Energy Partners    (consultancy; Power/EnergyMarket topics)
+
+    Player options:
+      Accept (0 AP):   commission fires automatically at player's budget cost.
+                       IdeologyConflict with Ticky -= 10 (goodwill gained).
+                       LCR risk: -2 to -5 (nationalist backlash -- "foreign firms advising
+                       on Taitan energy policy").
+      Decline (1 AP):  IdeologyConflict with Ticky += 15.
+                       No LCR risk. Player chooses their own commission instead.
+      Negotiate (2 AP): propose a local alternative org of equivalent type.
+                       Outcome probabilistic: success = IdeologyConflict += 5 (partial),
+                       failure = IdeologyConflict += 20 and Ticky publicly criticises player.
+
+  Ticky pressure is unique to this minister. No other stakeholder generates this mechanic.
 
 #### Stakeholder Attributes (shared by all 16 figures)
 

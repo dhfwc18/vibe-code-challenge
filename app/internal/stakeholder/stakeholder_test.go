@@ -92,6 +92,12 @@ func TestSeedStakeholders_WeeksUnderPressureStartsAtZero(t *testing.T) {
 	assert.Equal(t, 0, out[0].WeeksUnderPressure)
 }
 
+func TestSeedStakeholders_IdeologyConflictScoreStartsAtZero(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.Equal(t, 0.0, out[0].IdeologyConflictScore)
+}
+
 func TestSeedStakeholders_IdentityFieldsCopied(t *testing.T) {
 	d := makeSeed("my_id", config.TimingStart, 0)
 	d.IdeologyScore = 42.0

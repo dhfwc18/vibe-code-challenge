@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/industry"
 	"twenty-fifty/internal/player"
 	"twenty-fifty/internal/policy"
 	"twenty-fifty/internal/save"
@@ -356,6 +357,26 @@ func TestAdvanceWeek_LobbyMinister_IncreasesRelationship(t *testing.T) {
 		}
 	}
 	t.Fatalf("stakeholder %q not found", targetID)
+}
+
+func TestNewWorld_TechDeliveryLogInitialized(t *testing.T) {
+	w := loadWorld(t)
+	assert.NotNil(t, w.TechDeliveryLog, "TechDeliveryLog must not be nil")
+	assert.Empty(t, w.TechDeliveryLog, "TechDeliveryLog must be empty at game start")
+}
+
+func TestHeadlessRun_TechDelivery_FiresForActiveCompany(t *testing.T) {
+	w := loadWorld(t)
+	// Activate a company so quality can accumulate each week.
+	for _, d := range w.Cfg.Companies {
+		w.Industry = industry.ActivateCompany(w.Industry, d.ID, config.TechOffshoreWind, 80.0)
+		break
+	}
+	// Advance enough weeks to exceed techDeliveryThreshold (200).
+	// A company at BaseQuality~60, WorkRate~80 accumulates ~38 units/week -> ~6 weeks to threshold.
+	w = advanceN(w, 10)
+	assert.NotEmpty(t, w.TechDeliveryLog,
+		"tech delivery milestone must fire after sustained quality accumulation")
 }
 
 func TestAdvanceWeek_SubmitPolicyLockedByTech_IsRejectedByGate(t *testing.T) {

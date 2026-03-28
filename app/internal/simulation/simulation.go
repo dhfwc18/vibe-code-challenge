@@ -37,6 +37,22 @@ const ministerSackingThresholdHighPop = 20.0
 // ministerSackingWeeks is consecutive weeks UNDER_PRESSURE before SACKED.
 const ministerSackingWeeks = 3
 
+// techDeliveryThreshold is the AccumulatedQuality level at which a company
+// delivers a technology maturity boost and resets its quality accumulator.
+const techDeliveryThreshold = 200.0
+
+// ideologyConflictWeight scales the raw ideology-conflict score (0-200 range)
+// into the accumulated IdeologyConflictScore per approved step.
+const ideologyConflictWeight = 0.015
+
+// ideologyConflictResignThreshold is the accumulated score at which a cabinet
+// minister transitions to RESIGNED due to sustained ideology conflict.
+const ideologyConflictResignThreshold = 8.0
+
+// ideologyConflictDecayRate is the weekly fraction by which IdeologyConflictScore
+// decays toward zero. At 0.05, the score halves in approximately 14 weeks.
+const ideologyConflictDecayRate = 0.05
+
 // ---------------------------------------------------------------------------
 // Calibration constants
 // ---------------------------------------------------------------------------
@@ -132,6 +148,9 @@ type WorldState struct {
 	GovernmentLastPollResult float64            // most recent noisy govt approval sample (sigma=3)
 	MinisterLastPollResults  map[string]float64 // keyed by stakeholder ID; sigma=5
 
+	// Tech delivery milestones (persistent; never reset)
+	TechDeliveryLog []string // one entry per company delivery event, e.g. "company_id delivered tech boost for OFFSHORE_WIND"
+
 	// Weekly transient accumulators -- reset at the top of each AdvanceWeek call.
 	WeeklyNetCarbonMt        float64 // net carbon emitted this week (base minus reductions)
 	WeeklyPolicyReductionMt  float64 // total carbon removed by active policies
@@ -187,6 +206,7 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 		FossilDependency:        initialFossilDependency,
 		WeeksUntilLCRPoll:       10 + rng.Intn(7),
 		MinisterLastPollResults: make(map[string]float64),
+		TechDeliveryLog:         []string{},
 	}
 
 	// Government: Common Wealth rules from 2010; first election ~2015.
@@ -563,6 +583,13 @@ func phaseRegionalWorldTick(w WorldState) WorldState {
 			continue
 		}
 		w.Industry = industry.TickCompany(w.Industry, defID, def, avgCap)
+		// Tech delivery: fire when accumulated quality crosses the threshold.
+		if cs, ok := w.Industry.Companies[defID]; ok && cs.IsActive && cs.AccumulatedQuality >= techDeliveryThreshold {
+			tech := cs.ContractedTech
+			w.Industry, w.Tech = industry.DeliverTech(w.Industry, defID, w.Tech, def)
+			w.TechDeliveryLog = append(w.TechDeliveryLog,
+				defID+" delivered tech maturity boost for "+string(tech))
+		}
 	}
 	return w
 }
@@ -619,9 +646,9 @@ func phasePolicyResolution(w WorldState) WorldState {
 	}
 
 	// Compute aggregate carbon reduction from active policies.
-	// Uses the first region as representative for capacity multiplier scaling.
-	// National-scope BaseCarbonDeltaMt values are applied once per policy.
-	repRegion := representativeRegion(w.Regions)
+	// Each policy uses the installer capacity of regions relevant to its sector.
+	// PROXY: per-policy region scoping is not in config; sector heuristics are used
+	// (INDUSTRY -> industrial-tagged regions; all others -> all-region average).
 	avgRetrofit := avgTrueRetrofitRate(w.Tiles)
 
 	for _, card := range w.PolicyCards {
@@ -629,7 +656,11 @@ func phasePolicyResolution(w WorldState) WorldState {
 			continue
 		}
 		techFrac := techFractionForPolicy(card.Def, w.Tech)
-		delta := policy.ResolveWeeklyEffect(card, repRegion, techFrac, avgRetrofit)
+		capRegion := region.Region{
+			InstallerCapacity: sectorInstallerCapacity(
+				w.Regions, w.Cfg.Regions, card.Def.WeeklyEffect.Sector),
+		}
+		delta := policy.ResolveWeeklyEffect(card, capRegion, techFrac, avgRetrofit)
 		w.WeeklyPolicyReductionMt += delta.DeltaMt
 		w.WeeklyPolicyBudgetCostGBP += delta.BudgetCostPerWeek
 	}
@@ -702,7 +733,7 @@ func phaseEconomyTick(w WorldState) WorldState {
 		w.LastBudget = economy.AllocateBudget(
 			w.LastTaxRevenue,
 			baseDeptFractions(),
-			neutralMinisterWeights(),
+			cabinetBudgetWeights(w.Government, w.Stakeholders, lcrDelta),
 			reputation.ChainToBudgetModifier(w.LCR.Value),
 			w.Economy.LobbyEffects,
 		)
@@ -918,8 +949,31 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 		// Passive relationship decay every week (no player action, no event).
 		w.Stakeholders[i] = stakeholder.TickRelationship(w.Stakeholders[i], 0, 0)
 
-		// Popularity-based state transitions for cabinet ministers only.
 		updated := w.Stakeholders[i]
+
+		// Ideology conflict score: decay each week for non-terminal ministers.
+		if !isTerminalState(updated.State) && updated.IdeologyConflictScore > 0 {
+			w.Stakeholders[i].IdeologyConflictScore = mathutil.Clamp(
+				updated.IdeologyConflictScore*(1.0-ideologyConflictDecayRate), 0, 100)
+			updated = w.Stakeholders[i]
+		}
+
+		// Ideology conflict resignation: cabinet ministers only.
+		if !isTerminalState(updated.State) &&
+			updated.State != stakeholder.MinisterStateAppointed &&
+			isInCabinet(w.Government, updated.ID) &&
+			updated.IdeologyConflictScore >= ideologyConflictResignThreshold {
+			w.Stakeholders[i].State = stakeholder.MinisterStateResigned
+			for role, sid := range w.Government.CabinetByRole {
+				if sid == updated.ID {
+					w.Government = government.RemoveMinister(w.Government, role)
+					break
+				}
+			}
+			continue
+		}
+
+		// Popularity-based state transitions for cabinet ministers only.
 		if isTerminalState(updated.State) || updated.State == stakeholder.MinisterStateAppointed {
 			continue
 		}
@@ -985,14 +1039,42 @@ func phaseConsequenceResolution(w WorldState) WorldState {
 	// Evaluate approval steps for UNDER_REVIEW policies.
 	// Runs before player actions so submissions this tick are not evaluated until next tick.
 	active := unlockedStakeholders(w.Stakeholders)
+
+	// Build role -> stakeholder map for ideology conflict tracking.
+	byRole := make(map[config.Role]stakeholder.Stakeholder)
+	for _, s := range active {
+		if _, exists := byRole[s.Role]; !exists {
+			byRole[s.Role] = s
+		}
+	}
+
 	for i, card := range w.PolicyCards {
 		if card.State != policy.PolicyStateUnderReview {
 			continue
 		}
+		prevSteps := card.StepsCleared
 		w.PolicyCards[i] = policy.EvaluateApproval(card, active)
 		// If all approval steps cleared, activate immediately.
 		if w.PolicyCards[i].State == policy.PolicyStateApproved {
 			w.PolicyCards[i] = policy.ActivatePolicy(w.PolicyCards[i])
+		}
+		// For each newly cleared step, accumulate ideology conflict on the approving minister.
+		if w.PolicyCards[i].StepsCleared > prevSteps {
+			for step := prevSteps; step < w.PolicyCards[i].StepsCleared && step < len(card.Def.ApprovalSteps); step++ {
+				req := card.Def.ApprovalSteps[step]
+				s, ok := byRole[req.Role]
+				if !ok {
+					continue
+				}
+				conflict := policy.IdeologyConflict(card.Def, s) * ideologyConflictWeight
+				for j := range w.Stakeholders {
+					if w.Stakeholders[j].ID == s.ID {
+						w.Stakeholders[j].IdeologyConflictScore = mathutil.Clamp(
+							w.Stakeholders[j].IdeologyConflictScore+conflict, 0, 100)
+						break
+					}
+				}
+			}
 		}
 	}
 	return w
@@ -1006,6 +1088,9 @@ func phaseConsultancyDelivery(w WorldState) WorldState {
 	defs := orgDefMap(w.Cfg)
 	updated, delivered := evidence.TickDelivery(w.Commissions, defs, w.Week, w.RNG)
 	w.Commissions = updated
+
+	// Track which org IDs received a relationship event this week (to avoid double-decay).
+	eventedOrgs := make(map[string]bool, len(delivered))
 
 	for _, c := range delivered {
 		orgDef, ok := defs[c.OrgID]
@@ -1023,16 +1108,24 @@ func phaseConsultancyDelivery(w WorldState) WorldState {
 				ev = evidence.RelationshipEventFailed
 			}
 			w.OrgStates[j] = evidence.UpdateOrgRelationship(os, ev, w.Week)
+			eventedOrgs[c.OrgID] = true
 		}
 
 		if c.Failed {
 			continue
 		}
 
-		// Generate the insight report. rawValue is a neutral placeholder;
-		// the simulation tuning pass will provide per-topic truth values.
-		report := evidence.GenerateReport(c, orgDef, string(c.InsightType), 50.0, 0.0, w.RNG)
+		// Generate the insight report using the true world-state value for this topic.
+		rawVal := rawValueForInsight(c.InsightType, w)
+		report := evidence.GenerateReport(c, orgDef, string(c.InsightType), rawVal, 0.0, w.RNG)
 		w.Reports = append(w.Reports, report)
+	}
+
+	// Apply natural relationship decay for orgs that had no event this week.
+	for j, os := range w.OrgStates {
+		if !eventedOrgs[os.OrgID] {
+			w.OrgStates[j] = evidence.UpdateOrgRelationship(os, "", w.Week)
+		}
 	}
 	return w
 }
@@ -1113,15 +1206,6 @@ func avgTrueRetrofitRate(tiles []region.Tile) float64 {
 		sum += t.TrueRetrofitRate
 	}
 	return sum / float64(len(tiles))
-}
-
-// representativeRegion returns the first region for use as a capacity proxy
-// in national policy resolution. Returns a zero-value Region if none exist.
-func representativeRegion(regions []region.Region) region.Region {
-	if len(regions) == 0 {
-		return region.Region{}
-	}
-	return regions[0]
 }
 
 // techFractionForPolicy returns the 0-1 tech maturity fraction for a policy's
@@ -1237,5 +1321,169 @@ func isValidMinisterState(s stakeholder.MinisterState) bool {
 func isTerminalState(s stakeholder.MinisterState) bool {
 	return s == stakeholder.MinisterStateDeparted ||
 		s == stakeholder.MinisterStateSacked ||
-		s == stakeholder.MinisterStateElectionOut
+		s == stakeholder.MinisterStateElectionOut ||
+		s == stakeholder.MinisterStateResigned
+}
+
+// rawValueForInsight returns the true world-state value (0-100) for the given
+// insight type. This is the ground truth before quality and bias distortion are
+// applied by evidence.GenerateReport.
+func rawValueForInsight(t config.InsightType, w WorldState) float64 {
+	switch t {
+	case config.InsightPower:
+		// Renewable grid share (0-100): how clean the national grid is.
+		return mathutil.Clamp(w.EnergyMarket.RenewableGridShare, 0, 100)
+	case config.InsightTransport:
+		// Invert fossil dependency: high fossil = low decarbonisation progress.
+		return mathutil.Clamp(100.0-w.FossilDependency, 0, 100)
+	case config.InsightBuildings:
+		// Average insulation quality across all housing tiles.
+		return avgInsulationLevel(w.Tiles)
+	case config.InsightIndustry:
+		// Fraction of LCT companies currently active, scaled to 0-100.
+		return activeCompanyFraction(w.Industry) * 100.0
+	case config.InsightEconomy:
+		return mathutil.Clamp(w.Economy.Value, 0, 100)
+	case config.InsightPolicy:
+		// Fraction of policy cards currently in force, scaled to 0-100.
+		return activePolicyFraction(w.PolicyCards) * 100.0
+	case config.InsightClimate:
+		// Combine discrete level (0-3) and continuous intra-level severity (0-1)
+		// into a monotone 0-100 signal.
+		levelBase := float64(w.ClimateState.Level) / 3.0
+		return mathutil.Clamp((levelBase+w.ClimateState.Severity/3.0)*100.0, 0, 100)
+	case config.InsightFuelPoverty:
+		return avgFuelPoverty(w.Tiles)
+	case config.InsightRetrofit:
+		return avgTrueRetrofitRate(w.Tiles)
+	case config.InsightEnergyMarket:
+		// Renewable grid share as proxy for market stability; gas price index
+		// expansion is deferred pending energy market model growth.
+		// PROXY: gas-price-based index not yet implemented.
+		return mathutil.Clamp(w.EnergyMarket.RenewableGridShare, 0, 100)
+	default:
+		return 50.0 // neutral fallback for unrecognised insight types
+	}
+}
+
+// sectorInstallerCapacity returns the average InstallerCapacity for regions
+// relevant to the given policy sector.
+//
+// PROXY: per-policy region scoping is not stored in config; sector heuristics apply:
+//   - INDUSTRY: average of regions tagged "industrial" (fallback: all regions).
+//   - All other sectors: average of all regions.
+func sectorInstallerCapacity(regions []region.Region, regionDefs []config.RegionDef, sector config.PolicySector) float64 {
+	if len(regions) == 0 {
+		return 0
+	}
+	// Build ID -> tags lookup from static config.
+	tagsByID := make(map[string][]string, len(regionDefs))
+	for _, d := range regionDefs {
+		tagsByID[d.ID] = d.Tags
+	}
+
+	if sector == config.PolicySectorIndustry {
+		sum, count := 0.0, 0
+		for _, r := range regions {
+			for _, tag := range tagsByID[r.ID] {
+				if tag == "industrial" {
+					sum += r.InstallerCapacity
+					count++
+					break
+				}
+			}
+		}
+		if count > 0 {
+			return sum / float64(count)
+		}
+	}
+	// Default: average of all regions.
+	sum := 0.0
+	for _, r := range regions {
+		sum += r.InstallerCapacity
+	}
+	return sum / float64(len(regions))
+}
+
+// cabinetBudgetWeights derives per-department budget weights from the current
+// cabinet's ideology and net-zero sympathy. Returns weights on the same scale
+// as neutralMinisterWeights (1.0 = neutral; range 0.5-2.0).
+//
+// Role-to-department mapping:
+//   - RoleLeader        -> DeptCross
+//   - RoleChancellor    -> DeptBuildings, DeptIndustry
+//   - RoleEnergy        -> DeptPower, DeptTransport
+//   - RoleForeignSecretary -> no domestic dept (neutral retained)
+func cabinetBudgetWeights(g government.GovernmentState, stakeholders []stakeholder.Stakeholder, lcrDelta float64) map[string]float64 {
+	weights := neutralMinisterWeights()
+
+	byID := make(map[string]stakeholder.Stakeholder, len(stakeholders))
+	for _, s := range stakeholders {
+		byID[s.ID] = s
+	}
+
+	roleDepts := map[config.Role][]string{
+		config.RoleLeader:    {government.DeptCross},
+		config.RoleChancellor: {government.DeptBuildings, government.DeptIndustry},
+		config.RoleEnergy:    {government.DeptPower, government.DeptTransport},
+	}
+
+	for role, sid := range g.CabinetByRole {
+		s, ok := byID[sid]
+		if !ok {
+			continue
+		}
+		depts, hasDepts := roleDepts[role]
+		if !hasDepts {
+			continue
+		}
+		stats := government.ComputeMinisterStats(s, lcrDelta)
+		for _, dept := range depts {
+			weights[dept] = stats.BudgetAllocationBias[dept]
+		}
+	}
+	return weights
+}
+
+// avgInsulationLevel returns the mean InsulationLevel (0-100) across all tiles.
+// Returns 50.0 if no tiles exist.
+func avgInsulationLevel(tiles []region.Tile) float64 {
+	if len(tiles) == 0 {
+		return 50.0
+	}
+	sum := 0.0
+	for _, t := range tiles {
+		sum += t.InsulationLevel
+	}
+	return sum / float64(len(tiles))
+}
+
+// activeCompanyFraction returns the fraction of all LCT companies that are
+// currently active, in [0, 1]. Returns 0 if there are no companies.
+func activeCompanyFraction(ind industry.IndustryState) float64 {
+	if len(ind.Companies) == 0 {
+		return 0
+	}
+	active := 0
+	for _, cs := range ind.Companies {
+		if cs.IsActive {
+			active++
+		}
+	}
+	return float64(active) / float64(len(ind.Companies))
+}
+
+// activePolicyFraction returns the fraction of policy cards currently ACTIVE,
+// in [0, 1]. Returns 0 if there are no cards.
+func activePolicyFraction(cards []policy.PolicyCard) float64 {
+	if len(cards) == 0 {
+		return 0
+	}
+	active := 0
+	for _, c := range cards {
+		if c.State == policy.PolicyStateActive {
+			active++
+		}
+	}
+	return float64(active) / float64(len(cards))
 }

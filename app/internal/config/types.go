@@ -353,6 +353,7 @@ type PolicyCardDef struct {
 	LCRDeltaPerWeek       float64            // weekly change to LowCarbonReputation when active
 	PopularityRiskPerWeek float64            // weekly GovernmentPopularity delta when active
 	Significance          PolicySignificance // political weight: MINOR, MODERATE, or MAJOR
+	RDBonus map[Technology]float64 // weekly tech maturity acceleration per tech when ACTIVE; nil = no R&D effect
 }
 
 // EventEffect describes the quantitative impact of a global event when it fires.

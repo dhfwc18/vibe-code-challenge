@@ -132,7 +132,7 @@ Transitions:
 
 Sacking threshold: default 25, reduced to 20 if GovernmentPopularity > 60 (PM shielded).
 Cabinet ministers: threshold 20. Junior ministers: threshold 30.
-Resignation trigger: (IdeologyDistance * PolicySignificance) > 80.
+Resignation trigger: (IdeologyDistance * PolicySignificance) > 8.0.
 PolicySignificance: MINOR=10, MODERATE=30, MAJOR=70.
 Resignation GovernmentPopularity penalty: -4 to -12 (larger than sacking: -2 to -8).
 
@@ -1283,7 +1283,7 @@ When in opposition, they are shadows whose relationships still matter.
     Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
     "wants to cut planning red tape for renewables"
     Consultancy affinity: ClearPath Advisory, Tacute Energy Solutions
-      When governing: +10 passive relationship bonus with both firms.
+      When governing: +0.3 per week passive relationship bonus with both firms.
 
   [LATE]  Sandra Obi-Williams
     British-Afrian heritage, grew up in a Right-leaning coastal town. Modernising

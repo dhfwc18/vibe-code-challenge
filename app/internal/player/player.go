@@ -25,8 +25,9 @@ const (
 	ActionTypeLobbyMinister    ActionType = "LOBBY_MINISTER"
 	ActionTypeHireStaff        ActionType = "HIRE_STAFF"
 	ActionTypeFireStaff        ActionType = "FIRE_STAFF"
-	ActionTypeShockResponse    ActionType = "SHOCK_RESPONSE"
-	ActionTypeOther            ActionType = "OTHER"
+	ActionTypeShockResponse           ActionType = "SHOCK_RESPONSE"
+	ActionTypeRespondTickyPressure    ActionType = "RESPOND_TICKY_PRESSURE"
+	ActionTypeOther                   ActionType = "OTHER"
 )
 
 // ---------------------------------------------------------------------------

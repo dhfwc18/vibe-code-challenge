@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/government"
 	"twenty-fifty/internal/industry"
 	"twenty-fifty/internal/player"
 	"twenty-fifty/internal/policy"
@@ -870,4 +871,113 @@ func TestBudget_TotalAllocation_PositiveAfterFirstQuarter(t *testing.T) {
 	}
 	assert.Greater(t, total, 0.0,
 		"total budget allocation across departments must be positive after first quarter end")
+}
+
+// ---------------------------------------------------------------------------
+// R&D bonus
+// ---------------------------------------------------------------------------
+
+// TestRDBonus_ActivePolicy_AcceleratesTechMaturity verifies that an active R&D
+// policy increases tech maturity faster than no policy.
+func TestRDBonus_ActivePolicy_AcceleratesTechMaturity(t *testing.T) {
+	// Baseline: 26 weeks with no active policies.
+	wBase := loadWorld(t)
+	for range 26 {
+		wBase, _ = AdvanceWeek(wBase, nil)
+	}
+	baseNuclear := wBase.Tech.Maturity(config.TechNuclear)
+
+	// Experiment: activate nuclear_new_build_cfd directly (bypass approval pipeline)
+	// by finding the card and setting it to ACTIVE.
+	wActive := loadWorld(t)
+	for i, card := range wActive.PolicyCards {
+		if card.Def.ID == "nuclear_new_build_cfd" {
+			wActive.PolicyCards[i].State = policy.PolicyStateActive
+			break
+		}
+	}
+	for range 26 {
+		wActive, _ = AdvanceWeek(wActive, nil)
+	}
+	activeNuclear := wActive.Tech.Maturity(config.TechNuclear)
+
+	assert.Greater(t, activeNuclear, baseNuclear,
+		"active nuclear CfD policy must accelerate nuclear tech maturity vs baseline")
+}
+
+// ---------------------------------------------------------------------------
+// Ticky pressure mechanic
+// ---------------------------------------------------------------------------
+
+// TestTickyPressure_AcceptDeal_UnlocksOrgAndBoostsRelationship verifies that
+// accepting a Ticky pressure deal improves his relationship score and unlocks
+// the Tier 1 Murican org.
+func TestTickyPressure_AcceptDeal_UnlocksOrgAndBoostsRelationship(t *testing.T) {
+	w := loadWorld(t)
+
+	// Force Ticky into cabinet: find td_tennison and assign him as Energy Secretary.
+	tickyID := "ticky_tennison"
+	found := false
+	for i, s := range w.Stakeholders {
+		if s.ID == tickyID {
+			w.Stakeholders[i].IsUnlocked = true
+			w.Stakeholders[i].State = stakeholder.MinisterStateActive
+			found = true
+			break
+		}
+	}
+	require.True(t, found, "ticky_tennison must be seeded")
+	w.Government = government.AssignMinister(w.Government, config.RoleEnergy, tickyID)
+
+	// Record baseline relationship.
+	var baseRel float64
+	for _, s := range w.Stakeholders {
+		if s.ID == tickyID {
+			baseRel = s.RelationshipScore
+			break
+		}
+	}
+
+	// Confirm Tier 1 Murican org is not yet unlocked.
+	for _, os := range w.OrgStates {
+		if os.OrgID == tickyTier1OrgID {
+			assert.False(t, os.MuricanUnlocked,
+				"american_growth_alliance must start locked")
+			break
+		}
+	}
+
+	// Reset countdown to 0 so pressure fires next week.
+	w.TickyCountdown = 0
+
+	// Advance one week to trigger the pressure event.
+	w, _ = AdvanceWeek(w, nil)
+	require.True(t, w.PendingTickyPressure, "pressure must be pending after countdown reaches 0")
+
+	// Accept the deal.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeRespondTickyPressure, Detail: "ACCEPT"},
+	})
+
+	// Pressure cleared.
+	assert.False(t, w.PendingTickyPressure, "pressure must be cleared after player responds")
+
+	// Relationship improved.
+	var newRel float64
+	for _, s := range w.Stakeholders {
+		if s.ID == tickyID {
+			newRel = s.RelationshipScore
+			break
+		}
+	}
+	assert.Greater(t, newRel, baseRel, "accepting deal must improve Ticky relationship")
+
+	// Tier 1 org now unlocked.
+	for _, os := range w.OrgStates {
+		if os.OrgID == tickyTier1OrgID {
+			assert.True(t, os.MuricanUnlocked,
+				"american_growth_alliance must be unlocked after accepting Ticky deal")
+			break
+		}
+	}
 }

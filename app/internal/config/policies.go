@@ -35,6 +35,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.08,
 		PopularityRiskPerWeek: 0.02,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechOffshoreWind: 0.04,
+		},
 	},
 	{
 		ID:                  "onshore_wind_planning_reform",
@@ -59,6 +62,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.06,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechOnshoreWind: 0.04,
+		},
 	},
 	{
 		ID:                  "solar_pv_subsidy",
@@ -82,6 +88,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMinor,
+		RDBonus: map[Technology]float64{
+			TechSolarPV: 0.02,
+		},
 	},
 	{
 		ID:                  "nuclear_new_build_cfd",
@@ -107,6 +116,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.04,
 		Significance:          PolicySignificanceMajor,
+		RDBonus: map[Technology]float64{
+			TechNuclear: 0.06,
+		},
 	},
 	{
 		ID:                  "grid_modernisation_fund",
@@ -131,6 +143,10 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMinor,
+		RDBonus: map[Technology]float64{
+			TechOffshoreWind: 0.01,
+			TechOnshoreWind:  0.01,
+		},
 	},
 
 	// ------------------------------------------------------------------
@@ -160,6 +176,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.07,
 		PopularityRiskPerWeek: 0.04,
 		Significance:          PolicySignificanceMajor,
+		RDBonus: map[Technology]float64{
+			TechEVs: 0.04,
+		},
 	},
 	{
 		ID:                  "ev_charging_infrastructure",
@@ -183,6 +202,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMinor,
+		RDBonus: map[Technology]float64{
+			TechEVs: 0.01,
+		},
 	},
 	{
 		ID:                  "public_transport_electrification",
@@ -207,6 +229,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.02,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechEVs: 0.02,
+		},
 	},
 
 	// ------------------------------------------------------------------
@@ -237,6 +262,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.02,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechHeatPumps: 0.04,
+		},
 	},
 	{
 		ID:                  "national_retrofit_programme",
@@ -262,6 +290,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMajor,
+		RDBonus: map[Technology]float64{
+			TechHeatPumps: 0.04,
+		},
 	},
 	{
 		ID:                  "minimum_energy_efficiency_standard",
@@ -287,6 +318,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.05,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechHeatPumps: 0.02,
+		},
 	},
 	{
 		ID:                  "boiler_upgrade_scheme",
@@ -310,6 +344,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.03,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMinor,
+		RDBonus: map[Technology]float64{
+			TechHeatPumps: 0.01,
+		},
 	},
 	{
 		ID:                  "social_housing_decarbonisation",
@@ -334,6 +371,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: -0.01, // net positive to popularity
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechHeatPumps: 0.02,
+		},
 	},
 
 	// ------------------------------------------------------------------
@@ -389,6 +429,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.08,
 		PopularityRiskPerWeek: 0.02,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechHydrogen: 0.04,
+		},
 	},
 	{
 		ID:                  "industrial_ccs_investment",
@@ -413,6 +456,9 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.07,
 		PopularityRiskPerWeek: 0.02,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechIndustrialCCS: 0.04,
+		},
 	},
 
 	// ------------------------------------------------------------------
@@ -467,6 +513,16 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.01,
 		Significance:          PolicySignificanceMajor,
+		RDBonus: map[Technology]float64{
+			TechOffshoreWind:  0.02,
+			TechOnshoreWind:   0.02,
+			TechSolarPV:       0.02,
+			TechNuclear:       0.02,
+			TechHeatPumps:     0.02,
+			TechEVs:           0.02,
+			TechHydrogen:      0.02,
+			TechIndustrialCCS: 0.02,
+		},
 	},
 	{
 		ID:                  "green_skills_fund",
@@ -490,6 +546,16 @@ var policyCardDefs = []PolicyCardDef{
 		LCRDeltaPerWeek:       0.03,
 		PopularityRiskPerWeek: -0.01,
 		Significance:          PolicySignificanceModerate,
+		RDBonus: map[Technology]float64{
+			TechOffshoreWind:  0.01,
+			TechOnshoreWind:   0.01,
+			TechSolarPV:       0.01,
+			TechNuclear:       0.01,
+			TechHeatPumps:     0.01,
+			TechEVs:           0.01,
+			TechHydrogen:      0.01,
+			TechIndustrialCCS: 0.01,
+		},
 	},
 	{
 		ID:                  "fuel_poverty_emergency_fund",

@@ -79,6 +79,29 @@ const lobbyBudgetEffect = 1.10
 // Calibration constants
 // ---------------------------------------------------------------------------
 
+// tickyStakeholderID is the unique ID of TD Tennison, the only stakeholder
+// with the Ticky pressure special mechanic.
+const tickyStakeholderID = "ticky_tennison"
+
+// tickyTier1OrgID is the Tier 1 Murican org that Ticky unlocks on Accept/Negotiate.
+const tickyTier1OrgID = "american_growth_alliance"
+
+// tickyPressureMinWeeks is the minimum weeks between Ticky pressure events.
+const tickyPressureMinWeeks = 6
+
+// tickyPressureMaxVariance is added to tickyPressureMinWeeks via RNG to give
+// a 6-10 week interval between pressure events.
+const tickyPressureMaxVariance = 5
+
+// tickyRelationshipAccept is the relationship delta when the player accepts.
+const tickyRelationshipAccept = 8.0
+
+// tickyRelationshipDecline is the relationship delta when the player declines.
+const tickyRelationshipDecline = -5.0
+
+// tickyRelationshipNegotiate is the relationship delta when the player negotiates.
+const tickyRelationshipNegotiate = -2.0
+
 const (
 	// baselineYearlyMt is the 2010 UK-equivalent baseline annual emissions.
 	baselineYearlyMt = 590.0
@@ -163,6 +186,11 @@ type WorldState struct {
 	PressureGroups        []event.PressureGroup
 	PendingShockResponses []event.PendingShockResponse
 
+	// Ticky pressure mechanic: tracks recurring pressure events from TD Tennison.
+	TickyCountdown               int  // weeks until next pressure event; only decrements when Ticky is in cabinet
+	PendingTickyPressure         bool // true when Ticky has applied pressure and player has not yet responded
+	TickyPressureAcceptedThisQuarter bool // true if player accepted or negotiated this quarter; reset at quarter-end
+
 	// Player
 	Player player.CivilServant
 
@@ -227,6 +255,7 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 		GovernmentLastPollResult: initialGovtPopularity,
 		FossilDependency:        initialFossilDependency,
 		WeeksUntilLCRPoll:       10 + rng.Intn(7),
+		TickyCountdown:          tickyPressureMinWeeks + rng.Intn(tickyPressureMaxVariance),
 		MinisterLastPollResults: make(map[string]float64),
 		TechDeliveryLog:         []string{},
 	}
@@ -324,6 +353,7 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 
 	// Phase 4: Scandal and Pressure Roll.
 	w = phaseScandalAndPressureRoll(w)
+	w = phaseTickyPressureTick(w)
 
 	// Phase 5: Technology Progress Tick.
 	w = phaseTechnologyProgressTick(w)
@@ -623,10 +653,10 @@ func phaseScandalAndPressureRoll(w WorldState) WorldState {
 // ---------------------------------------------------------------------------
 
 func phaseTechnologyProgressTick(w WorldState) WorldState {
-	// Advance each tech along its logistic curve. Acceleration bonuses from
-	// R&D policies will be added once active policy effects are plumbed through.
+	bonuses := activePolicyRDBonuses(w.PolicyCards)
 	for _, curve := range w.Cfg.Technologies {
-		w.Tech = technology.AdvanceTick(w.Tech, curve, 0.0)
+		bonus := bonuses[curve.ID]
+		w.Tech = technology.AdvanceTick(w.Tech, curve, bonus)
 	}
 	return w
 }
@@ -800,6 +830,7 @@ func phaseEconomyTick(w WorldState) WorldState {
 	// Quarter-end: clear lobby effects, recompute tax revenue and budget allocation.
 	if w.Week%13 == 0 {
 		w.Economy = economy.ClearLobbyEffectsAtQuarterEnd(w.Economy)
+		w.TickyPressureAcceptedThisQuarter = false
 		w.LastTaxRevenue = economy.ComputeTaxRevenue(w.Economy, w.Quarter, w.Year)
 		w.LastBudget = economy.AllocateBudget(
 			w.LastTaxRevenue,
@@ -919,6 +950,11 @@ func applyAction(w WorldState, a Action) WorldState {
 			break
 		}
 
+	case player.ActionTypeRespondTickyPressure:
+		// a.Detail = "ACCEPT" | "DECLINE" | "NEGOTIATE"
+		// Only executes if a Ticky pressure event is pending.
+		w = applyTickyPressureResponse(w, a)
+
 	case player.ActionTypeShockResponse:
 		// a.Target = EventDefID; a.Detail = ShockResponseOption string.
 		w = applyShockResponse(w, a)
@@ -956,8 +992,15 @@ func applyCommissionReport(w WorldState, a Action) WorldState {
 		if os.CoolingOffUntil > w.Week {
 			return w // still cooling off after a failed commission
 		}
-		// Check Murican org availability (tickyPresent/tickyPressureAccepted wired in tuning pass).
-		if !evidence.MuracanOrgAvailable(orgDef, os, false, false) {
+		// Check Murican org availability.
+		tickyPresent := false
+		for _, sid := range w.Government.CabinetByRole {
+			if sid == tickyStakeholderID {
+				tickyPresent = true
+				break
+			}
+		}
+		if !evidence.MuracanOrgAvailable(orgDef, os, tickyPresent, w.TickyPressureAcceptedThisQuarter) {
 			return w
 		}
 		comm := evidence.CreateCommission(
@@ -995,6 +1038,101 @@ func applyShockResponse(w WorldState, a Action) WorldState {
 		return w
 	}
 	return w
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4b: Ticky Pressure Tick
+// ---------------------------------------------------------------------------
+
+// phaseTickyPressureTick manages TD Tennison's recurring pressure mechanic.
+// When Ticky is in cabinet, the countdown decrements each week. On reaching
+// zero, PendingTickyPressure is set and the countdown resets to 6-10 weeks.
+// The player must respond via ActionTypeRespondTickyPressure before the next
+// pressure fires; an unanswered pressure is silently replaced.
+func phaseTickyPressureTick(w WorldState) WorldState {
+	tickyInCabinet := false
+	for _, sid := range w.Government.CabinetByRole {
+		if sid == tickyStakeholderID {
+			tickyInCabinet = true
+			break
+		}
+	}
+	if !tickyInCabinet {
+		return w
+	}
+	if w.TickyCountdown > 0 {
+		w.TickyCountdown--
+		return w
+	}
+	// Countdown reached zero: fire pressure event.
+	w.PendingTickyPressure = true
+	w.TickyCountdown = tickyPressureMinWeeks + w.RNG.Intn(tickyPressureMaxVariance)
+	return w
+}
+
+// applyTickyPressureResponse resolves the player's response to a Ticky pressure event.
+//
+//   - ACCEPT:    +8 relationship with Ticky; unlocks american_growth_alliance this quarter.
+//   - DECLINE:   -5 relationship with Ticky; no Murican org access.
+//   - NEGOTIATE: -2 relationship with Ticky; unlocks american_growth_alliance this quarter.
+//
+// Has no effect if no pressure event is pending.
+func applyTickyPressureResponse(w WorldState, a Action) WorldState {
+	if !w.PendingTickyPressure {
+		return w
+	}
+	var relDelta float64
+	switch a.Detail {
+	case "ACCEPT":
+		relDelta = tickyRelationshipAccept
+		w = unlockTickyOrg(w)
+		w.TickyPressureAcceptedThisQuarter = true
+	case "DECLINE":
+		relDelta = tickyRelationshipDecline
+	case "NEGOTIATE":
+		relDelta = tickyRelationshipNegotiate
+		w = unlockTickyOrg(w)
+		w.TickyPressureAcceptedThisQuarter = true
+	default:
+		return w
+	}
+	for i, s := range w.Stakeholders {
+		if s.ID == tickyStakeholderID {
+			w.Stakeholders[i] = stakeholder.TickRelationship(s, relDelta, 0)
+			break
+		}
+	}
+	w.PendingTickyPressure = false
+	w.Player = player.RecordAction(w.Player, player.ActionRecord{
+		ActionType: a.Type, Week: w.Week, APCost: 0,
+	})
+	return w
+}
+
+// unlockTickyOrg marks the Tier 1 Murican org as unlocked for this quarter.
+func unlockTickyOrg(w WorldState) WorldState {
+	for i, os := range w.OrgStates {
+		if os.OrgID == tickyTier1OrgID {
+			w.OrgStates[i] = evidence.UnlockMuricanOrg(os)
+			return w
+		}
+	}
+	return w
+}
+
+// activePolicyRDBonuses sums the RDBonus values from all ACTIVE policy cards.
+// Returns a map from Technology to total weekly acceleration bonus.
+func activePolicyRDBonuses(cards []policy.PolicyCard) map[config.Technology]float64 {
+	out := make(map[config.Technology]float64)
+	for _, card := range cards {
+		if card.State != policy.PolicyStateActive {
+			continue
+		}
+		for tech, bonus := range card.Def.RDBonus {
+			out[tech] += bonus
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------

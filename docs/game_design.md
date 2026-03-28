@@ -986,19 +986,30 @@ When in opposition, they are shadows whose relationships still matter.
 
 #### Named Cast (Seed Pool -- figures rotate in over time as earlier ones depart)
 
-  Note: Taitan is an ethnically and culturally diverse country. This must be reflected
-  in the cast at all times -- across parties, generations, and roles. The FarRight party
-  cast is intentionally less diverse as a thematic and satirical choice; all other parties
-  should reflect the country they claim to represent. New figures added to the seed pool
-  in future must maintain this standard.
+  Note: Taitan is an ethnically and culturally diverse country. The political class
+  reflects this increasingly over the game's timeline: the 2010 starting pool skews
+  toward the demographic of that era's parliament; figures entering from the mid-2010s
+  onward reflect a broader cross-section of Taitan society. This arc should feel
+  natural. The FarRight pool is intentionally less diverse as a satirical choice.
+  All future figures added to any pool must be reviewed against this principle.
 
   Note: all figures listed are TAITAN citizens. Murica is the global state; Murican
   characters are foreign nationals and cannot hold Taitan government office, but they
   influence the game through companies, think tanks, and pressure on Taitan politicians.
 
-  --- FarRight (Taitan First) ---
+  Entry timing notation used below:
+    [START]     -- in post or available at game start (2010)
+    [MID]       -- enters pool approximately 2015-2022
+    [LATE]      -- enters pool approximately 2023-2035
+    [SUCCESSOR] -- only enters pool after a specific departure trigger
 
-  Leader:      Joe Barage
+  ============================================================
+  --- FarRight (Taitan First) ---
+  ============================================================
+  // Pool is intentionally limited and homogeneous -- the party's demographic is
+  // part of the satire. Barage is the anchor; figures around him are interchangeable.
+
+  [START] Leader:           Joe Barage
     Born in Murica, moved to Taitan aged 14. Founder of "Taitan for Taitons" movement.
     Loud, media-savvy, frames every issue as Taitan sovereignty vs foreign interference.
     ideologyScore: +95, netZeroSympathy: 5, riskTolerance: 85, populismScore: 98
@@ -1006,23 +1017,23 @@ When in opposition, they are shadows whose relationships still matter.
     Taitons", "close ties with Murican energy sector donors"
     Rotation: very slow (opposition leader anchor -- expected to persist 15-20 years)
 
-  Chancellor:  Rex Harlow
+  [START] Chancellor:       Rex Harlow
     Old money, former City trader. Sees green spending as economic self-harm.
     ideologyScore: +80, netZeroSympathy: 15, riskTolerance: 40, populismScore: 50
     Signals: "advocate for lower business regulation", "opposed the carbon levy bill",
     "strong Taitan financial sector ties"
 
-  Foreign Secretary: Thomas "Tommy" Braveheart
+  [START] Foreign Secretary: Thomas "Tommy" Braveheart
     Ex-military, no-nonsense, frames energy security as a sovereignty issue. Supports
     domestic fossil extraction on independence grounds, not ideology. Will back
-    renewables if the case is made on strategic self-sufficiency.
+    renewables if framed as strategic self-sufficiency.
     ideologyScore: +70, netZeroSympathy: 30, riskTolerance: 60, populismScore: 65
     Signals: "decorated military career", "Taitan energy independence advocate",
     "pragmatic on low-carbon if framed as security"
     International crisis weight: high aggression, prefers unilateral Taitan response;
     amplifies FossilDependency risk framing in crisis events
 
-  Energy:      TD "Ticky" Tennison
+  [START] Energy:           TD "Ticky" Tennison
     Career in Murican-linked energy sector before entering politics. Has personal
     relationships with Murican consultancy and think tank founders.
     ideologyScore: +85, netZeroSympathy: 10, riskTolerance: 70, populismScore: 75
@@ -1030,7 +1041,17 @@ When in opposition, they are shadows whose relationships still matter.
     "publicly sceptical of offshore wind economics"
     Special mechanic: when governing, generates TICKY_PRESSURE events (see below).
 
+  [MID]   Gary Norris
+    Former Right voter and local councillor who defected after deciding the Right
+    had abandoned ordinary working people. Provides the party's "sensible face" for
+    broadcast media. Instinctively anti-net-zero on cost grounds, not ideology.
+    ideologyScore: +75, netZeroSympathy: 20, riskTolerance: 55, populismScore: 80
+    Signals: "defected from Right citing 'out-of-touch establishment'",
+    "talks about energy bills more than sovereignty", "surprisingly good on local radio"
+
+  ============================================================
   --- Left (Taitan Labour equivalent) ---
+  ============================================================
   //
   // DESIGN NOTE: Left party figures after JJ Cameron are portrayed with deliberate
   // vagueness. This is an intentional creative choice and absolutely nothing to do
@@ -1038,7 +1059,7 @@ When in opposition, they are shadows whose relationships still matter.
   // the author's consulting pipeline. Nothing at all. Completely unrelated.
   //
 
-  Leader:      JJ Cameron
+  [START] Leader:           JJ Cameron
     Veteran backbencher. Former secondary school teacher (RE and History), lifelong
     trade union rep, self-published author of seven pamphlets including "The Carbon
     Commons: Energy as a Public Good" (2003), "Manhole Covers of the Taitan Waterboard
@@ -1047,72 +1068,89 @@ When in opposition, they are shadows whose relationships still matter.
     Elevated to the leadership via a surprise grassroots membership wave after the
     party's third consecutive electoral defeat; the parliamentary party was unanimously
     horrified and the membership was unanimously delighted.
-    Has been on the record about net zero and energy justice since 2001, which is
-    either admirable consistency or evidence that he has not updated his views in
-    twenty years depending on who you ask. His specific climate positions -- public
-    energy ownership, community retrofit cooperatives, anti-corporate transition --
-    are genuinely coherent and offer real LCR opportunities if the player can work
-    with the framing. His studied neutrality on Murican foreign policy and historical
-    sympathy for anti-Murica movements creates international crisis complications.
-    Has written formally to complain about the design of three separate manhole covers
-    in his constituency. Replies promptly to all correspondence.
+    Has been on the record about net zero and energy justice since 2001 -- his
+    positions (public energy ownership, community retrofit cooperatives, anti-corporate
+    transition) are genuinely coherent and offer real LCR opportunities if the player
+    can work with the framing. His studied neutrality on Murican foreign policy creates
+    international complications. Replies promptly to all correspondence.
     ideologyScore: -78, netZeroSympathy: 87, riskTolerance: 38, populismScore: 72
     Signals: "been saying this since 2001", "enormous membership support, limited
     swing-voter appeal", "famously neutral on the Murican defence alliance question",
     "allotment open to the public every second Sunday"
-    Popularity mechanic: high polarisation modifier -- low-income and high-FuelPoverty
-    tiles respond strongly positively; professional and suburban tiles respond negatively.
-    GovernmentPopularity variance is the highest of any leader while he is in post.
-    FarLeft pull: periodically pushes renationalisation and anti-corporate climate
-    measures from within cabinet. Player must absorb, redirect, or neutralise.
-    Murican tension: his public neutrality on defence alliances amplifies negative
-    outcomes on Murican-related international events and may trigger TICKY_PRESSURE
-    events even when Ticky is not in office (Joe Barage will use it in the press).
-    Departure trigger: ELECTORAL_FATIGUE after 2 election losses -- party coup fires
-    regardless of popularity. The membership accepts what the country will not.
-    Rotation: anchor figure at start; departs via ELECTORAL_FATIGUE if Left loses twice
+    Popularity mechanic: high polarisation -- low-income/high-FuelPoverty tiles
+    strongly positive; professional and suburban tiles negative. Highest GovernmentPopularity
+    variance of any leader.
+    FarLeft pull: periodically pushes renationalisation and anti-corporate climate measures.
+    Murican tension: neutrality amplifies negative outcomes on Murican-related events;
+    Barage uses it in the press regardless of who is governing.
+    Departure trigger: ELECTORAL_FATIGUE after 2 election losses.
 
-  Leader (successor): David Reeve
-    Enters the Left leader pool only after JJ Cameron departs. A sensible figure
-    with broadly correct instincts. Has views on things. Considered reliable.
-    The party's attempt to appear electable to people who did not vote for it last time.
-    ideologyScore: -25, netZeroSympathy: 65, riskTolerance: 45, populismScore: 40
-    Signals: "modernising figure within the party", "backed the Climate Commitment Act",
-    "known for consensus-building style"
-    Note: if Left never loses two elections under JJ Cameron, Reeve never leads.
+  [START] Chancellor:       George Harmon
+    Fiscal conservative in a left-of-centre mould. Supportive of green investment if
+    cost-benefit is clear. The person in the room most likely to ask where the money
+    is coming from, and most likely to be right that nobody has checked.
+    ideologyScore: -15, netZeroSympathy: 55, riskTolerance: 30, populismScore: 25
+    Signals: "former public sector economist", "authored the Green Investment Framework",
+    "reputation for spending scrutiny"
 
-  Chancellor:  Nia Okafor
-    Second-generation Taitan, parents from West Afria. Grew up in a post-industrial
-    northern constituency that has been on the wrong end of every energy price spike
-    since 1990. This shapes her fiscal instincts: she supports green investment
-    because she has seen what the alternative looks like from the inside, not because
-    it is fashionable. Unsentimental about uncosted policies.
-    ideologyScore: -18, netZeroSympathy: 62, riskTolerance: 28, populismScore: 30
-    Signals: "former regional development economist", "co-authored the Green Investment
-    Framework", "reputation for asking where the money is coming from and why"
+  [START] Foreign Secretary: John Ashworth
+    Experienced. Reliable. Has strong feelings about correct procedure. Represents
+    the solid, unremarkable competence the party relies on to fill the cabinet table.
+    ideologyScore: -20, netZeroSympathy: 45, riskTolerance: 50, populismScore: 35
+    International crisis weight: cautious multilateralist; coalition-builder; mild
+    positive modifier on green diplomacy outcomes
 
-  Foreign Secretary: Tariq Rashid
-    Third-generation Taitan, heritage from South Azaria. Former diplomat, returned to
-    politics through the party's community organising wing. Procedurally careful,
-    coalition-minded, effective at managing multilateral processes without much noise.
-    Comfortable operating in international rooms that do not look like him.
-    ideologyScore: -22, netZeroSympathy: 48, riskTolerance: 48, populismScore: 33
-    International crisis weight: cautious multilateralist; favours international
-    agreements and coalition responses; mild positive modifier on green diplomacy outcomes;
-    personal credibility in Commonwealth and South Azarian bloc forums gives minor
-    bonus on those specific diplomatic tracks
-
-  Energy:      Claire Blackwell
+  [START] Energy:           Claire Blackwell
     Player's first boss (Left governs at game start 2010). Committed to getting
-    things done within the system, which is either pragmatism or lack of imagination
-    depending on your priors. Good starting relationship with player.
+    things done within the system. Good starting relationship with player.
     ideologyScore: -30, netZeroSympathy: 70, riskTolerance: 40, populismScore: 30
     Signals: "backed the Renewable Obligation scheme", "known for careful stakeholder
     management", "willing to consider nuclear as part of the mix"
 
-  --- Right (Taitan Conservative equivalent) ---
+  [SUCCESSOR] Leader:       David Reeve
+    Enters pool only after JJ Cameron departs via ELECTORAL_FATIGUE. A sensible figure
+    with broadly correct instincts. Has views on things. Considered reliable. The
+    party's attempt to appear electable to people who did not vote for it last time.
+    ideologyScore: -25, netZeroSympathy: 65, riskTolerance: 45, populismScore: 40
+    Signals: "modernising figure", "backed the Climate Commitment Act",
+    "known for consensus-building style"
+    Note: if Left never loses twice under Cameron, Reeve never leads.
 
-  Leader:      Daniel "Pork" Cavendish
+  [MID]   Nia Okafor
+    Second-generation Taitan, parents from West Afria. Grew up in a post-industrial
+    northern constituency that has been on the wrong end of every energy price spike
+    since 1990. Her fiscal instincts are shaped by that history -- she supports green
+    investment because she has seen what the alternative looks like from the inside.
+    Unsentimental about uncosted policies.
+    ideologyScore: -18, netZeroSympathy: 62, riskTolerance: 28, populismScore: 30
+    Signals: "former regional development economist", "co-authored the Green Investment
+    Framework", "reputation for asking where the money is coming from and why"
+
+  [MID]   Tariq Rashid
+    Third-generation Taitan, South Azarian heritage. Former career diplomat who
+    returned to domestic politics through the party's community organising wing.
+    Coalition-minded, procedurally careful, effective in multilateral forums.
+    Comfortable in international rooms that do not always look like him.
+    ideologyScore: -22, netZeroSympathy: 48, riskTolerance: 48, populismScore: 33
+    International crisis weight: cautious multilateralist; mild positive modifier
+    on green diplomacy; credibility bonus on Commonwealth and South Azarian tracks
+
+  [LATE]  Marcus Osei
+    Third-generation Taitan, Ghanian-West Afrian heritage. Grew up in a port city,
+    first in his family to attend university. Strong climate justice framing --
+    explicitly links energy poverty, colonial resource extraction, and net zero as
+    one interconnected problem. Popular with younger voters and the party's activist
+    base. Can generate significant LCR upside; also capable of generating press
+    controversy if climate justice rhetoric runs ahead of government messaging.
+    ideologyScore: -40, netZeroSympathy: 85, riskTolerance: 55, populismScore: 60
+    Signals: "founding member of the Climate Justice Caucus", "fluent in three
+    languages", "genuinely exciting to listen to, which makes the party nervous"
+
+  ============================================================
+  --- Right (Taitan Conservative equivalent) ---
+  ============================================================
+
+  [START] Leader:           Daniel "Pork" Cavendish
     Old-money upper class, went to the right schools, inherited the right connections.
     Somewhat flaky under pressure -- impressive in calm conditions, prone to drift in a
     crisis. Privately supportive of net zero (it plays well in his social circle) but
@@ -1123,88 +1161,126 @@ When in opposition, they are shadows whose relationships still matter.
     by the establishment", "occasionally says the right thing for unclear reasons"
     Rotation: moderate (anchor figure but flakiness makes tenure unpredictable)
 
-  Chancellor:  Dawn "Dizzy" Truscott
-    Sharp, ideologically driven free-marketeer. Believes the state should step back
-    and let capital decarbonise the economy on its own schedule. High personal ambition.
+  [START] Chancellor:       Philip Drake
+    Free market purist, deeply sceptical of green industrial policy. The kind of
+    person who describes every subsidy as "market distortion" and means it.
+    ideologyScore: +55, netZeroSympathy: 35, riskTolerance: 35, populismScore: 30
+    Signals: "authored free market think tank papers on energy", "opposed the windfall
+    tax", "wants to scrap net zero subsidies"
+
+  [START] Foreign Secretary: Andrew Stafford
+    Hawkish, frames energy security as strategic priority. Can be won over on
+    renewables if the argument is made in terms of reducing Taitan dependence on
+    foreign fossil fuel states.
+    ideologyScore: +50, netZeroSympathy: 40, riskTolerance: 60, populismScore: 40
+    International crisis weight: moderate aggression, open to coordinated responses
+    if Taitan leads; positive framing on energy security arguments
+
+  [START] Energy:           Rupert Holm
+    Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home retrofit.
+    Will approve technology-led policies readily; resists behaviour-change policies.
+    ideologyScore: +45, netZeroSympathy: 60, riskTolerance: 55, populismScore: 35
+    Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
+    "wants to cut planning red tape for renewables"
+
+  [MID]   Chancellor:       Dawn "Dizzy" Truscott
+    Enters the pool as Drake's natural successor -- sharper, more ambitious, more
+    ideologically driven. Sharp free-marketeer with high personal ambition.
     ideologyScore: +60, netZeroSympathy: 30, riskTolerance: 75, populismScore: 40
     Signals: "youngest ever Chancellor candidate", "authored the Truscott Compact on
     fiscal rules", "close ties with Taitan financial sector and Meridian Strategy alumni"
     Consultancy affinity: Meridian Strategy, Axiom Infrastructure
-      When governing: +15 passive relationship bonus with both firms (no explicit
-      pressure -- their principals are simply on familiar terms with her office).
-    Special mechanic (DIZZY_SURGE): if promoted to PM (Leadership Challenge -> INCUMBENT),
-      immediately enacts three deregulation policies in rapid succession. This triggers
-      a bond market confidence event within 2 turns: GovernmentBorrowingCost spikes,
-      Economy drops sharply, TaxRevenue -15%. She resigns 2 turns after the crisis onset,
-      transitioning PM state to DEPARTED. Player must manage the fallout.
+      When governing: +15 passive relationship bonus with both firms.
+    Special mechanic (DIZZY_SURGE): if promoted to PM, enacts three deregulation policies
+    immediately. Bond market confidence event within 2 turns: GovernmentBorrowingCost
+    spikes, Economy drops sharply, TaxRevenue -15%. Resigns 2 turns after crisis onset.
 
-  Foreign Secretary: Noris Jackson
+  [MID]   Foreign Secretary: Noris Jackson
     Mixed heritage -- Taitan mother, father from the Caribbean Islands bloc. Grew up
     between two worlds and learned early that being the person everyone is comfortable
-    talking to is a genuine skill. Laddish, loud, and socially well-connected in the
-    way that old-school networking achieves. Turns up at the right events, knows
-    everyone at the bar, and somehow gets things done between the drinking. Not
-    obviously serious, but effective.
-    Enters the game slightly later than the rest of the Right bench (joins cabinet
-    mid-game, roughly weeks 60-80 into the first Right government term, as a rising
-    backbencher given his first senior post).
+    talking to is a genuine skill. Laddish, loud, socially well-connected. Turns up
+    at the right events, knows everyone at the bar, and somehow gets things done
+    between the drinking.
+    Enters pool at weeks 60-80 of first Right government (or shadow cabinet if in
+    opposition from same threshold).
     ideologyScore: +40, netZeroSympathy: 45, riskTolerance: 65, populismScore: 60
-    Signals: "known for his after-hours diplomatic back-channels", "more popular in
-    the press gallery than in cabinet", "never misses a party conference drinks reception"
+    Signals: "known for after-hours diplomatic back-channels", "more popular in the
+    press gallery than in cabinet", "never misses a party conference drinks reception"
     International crisis weight: informal back-channel bias; unlocks "Quiet Word" and
-    "Side Conversation" resolution options unavailable to other Foreign Secretaries;
-    outcomes noisier than Noris -- higher variance, but ceiling is high when it works
-    Promotion path: HIGHER priority than Truscott. If Cavendish departs, Noris is
-    first in line for PM (the party prefers his broad appeal over Truscott's
-    ideological edge). His PM profile is high-variance: GovernmentPopularity swings
-    are amplified -- the laddishness that wins headlines can also generate scandals.
-    Availability: not present at game start; enters candidate pool at week 60-80 of
-    first Right government; if Right is in opposition, enters shadow cabinet at same
-    threshold and can be briefed from that point.
+    "Side Conversation" options; high-variance outcomes
+    Promotion path: HIGHER priority than Truscott for PM. High-variance PM profile.
 
-  Energy:      Ajay Mehta
-    Second-generation Taitan, parents from East Azaria, grew up in a nuclear
-    engineering household. The family dinner table consensus was that fission is
-    the answer and everything else is sentiment. He has not fundamentally revised
-    this position. Tech-optimist, strongly pro-nuclear, lukewarm on mandates and
-    home retrofit. Will approve technology-led policies readily; resists anything
-    that looks like telling people what to do in their own homes.
+  [LATE]  Ajay Mehta
+    Second-generation Taitan, East Azarian heritage, grew up in a nuclear engineering
+    household. The family dinner table consensus was that fission is the answer and
+    everything else is sentiment. He has not revised this. Tech-optimist, pro-nuclear,
+    resistant to behaviour-change policy.
     ideologyScore: +45, netZeroSympathy: 62, riskTolerance: 55, populismScore: 35
     Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
-    "wants to cut planning red tape for renewables", "publicly dismissive of
-    behaviour-change campaigns"
+    "wants to cut planning red tape for renewables"
     Consultancy affinity: ClearPath Advisory, Tacute Energy Solutions
       When governing: +10 passive relationship bonus with both firms.
 
-  --- FarLeft (Taitan Progressive Alliance) ---
+  [LATE]  Sandra Obi-Williams
+    British-Afrian heritage, grew up in a Right-leaning coastal town. Modernising
+    Conservative who genuinely believes the market can drive net zero faster than
+    state intervention. Her climate record is real but her framing is market-first;
+    she is the party's answer to the accusation that the Right does not take climate
+    seriously. Good optics, credible on technology, resistant to mandates.
+    ideologyScore: +38, netZeroSympathy: 65, riskTolerance: 45, populismScore: 42
+    Signals: "youngest Right MP in her intake", "backed the Green Innovation Fund",
+    "vocal critic of 'anti-growth' climate pessimism"
 
-  Leader:      Miriam Corbett
+  ============================================================
+  --- FarLeft (Taitan Progressive Alliance) ---
+  ============================================================
+
+  [START] Leader:           Miriam Corbett
     Long-standing socialist. Strong climate action but only via public ownership.
-    Hostile to corporate LCT companies and any market mechanism.
+    Hostile to corporate LCT companies and market mechanisms.
     ideologyScore: -90, netZeroSympathy: 80, riskTolerance: 55, populismScore: 70
     Signals: "advocate for nationalised energy", "opposes carbon trading as 'greenwash'",
     "strong trade union backing"
 
-  Chancellor:  Priya Sharma
-    Academic economist, MMT-leaning. Believes public investment can fund transition
+  [START] Chancellor:       Priya Sharma
+    Academic economist, MMT-leaning. Believes public investment can fund the transition
     without fiscal constraints. Opposed to austerity framing.
     ideologyScore: -80, netZeroSympathy: 75, riskTolerance: 65, populismScore: 50
     Signals: "authored 'The Green New Deal for Taitan'", "favours debt-funded transition",
     "hostile to private consultancy spend"
 
-  Foreign Secretary: Marcus Webb
+  [START] Foreign Secretary: Marcus Webb
     Ex-military turned pacifist MP. Advocates redirecting defence budget to climate
-    diplomacy and international green aid. Deeply uncomfortable with hard-power responses.
+    diplomacy and green aid. Deeply uncomfortable with hard-power responses.
     ideologyScore: -75, netZeroSympathy: 70, riskTolerance: 45, populismScore: 55
-    International crisis weight: pacifist bias; de-escalatory but sometimes naive;
-    can trigger negative diplomatic events if adversary reads restraint as weakness
+    International crisis weight: pacifist bias; de-escalatory but naive; can trigger
+    negative events if adversary reads restraint as weakness
 
-  Energy:      Rosa Chen
+  [START] Energy:           Rosa Chen
     Strong climate champion, anti-corporate. Will approve ambitious policies rapidly
     but demands they exclude private profit. Hostile to Tacute and private consultancies.
     ideologyScore: -85, netZeroSympathy: 95, riskTolerance: 70, populismScore: 65
     Signals: "co-authored the Zero Carbon Cities bill", "publicly attacked Meridian Strategy
     for 'profiteering from climate action'", "prefers academic evidence over consultancy"
+
+  [MID]   Declan Murphy
+    Irish-Taitan heritage, community energy cooperative organiser from a former mining
+    constituency. Pragmatic within the FarLeft framework -- he wants public ownership
+    but he also wants the lights to stay on, which occasionally puts him at odds with
+    the purer ideologues in the party. Effective at local mobilisation.
+    ideologyScore: -70, netZeroSympathy: 78, riskTolerance: 50, populismScore: 68
+    Signals: "founded the Taitan Community Energy Network", "known for getting
+    things built", "occasionally describes Rosa Chen as 'impractical'"
+
+  [LATE]  Amara Diallo
+    Mixed Taitan-West Afrian heritage. Grew up in a coastal city watching the climate
+    change in real time -- flood lines creeping up the seawall every decade. Climate
+    justice framing is not theoretical for her. Youngest figure in the FarLeft pool;
+    represents the next generation of the party, impatient with the pace of change
+    even by FarLeft standards.
+    ideologyScore: -82, netZeroSympathy: 98, riskTolerance: 75, populismScore: 72
+    Signals: "youngest FarLeft MP ever elected", "testified before the Taitan Climate
+    Committee at 19", "describes net zero by 2050 as 'not fast enough'"
 
 #### Ticky Pressure Mechanic
 

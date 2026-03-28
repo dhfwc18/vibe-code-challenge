@@ -1006,12 +1006,15 @@ When in opposition, they are shadows whose relationships still matter.
     Signals: "advocate for lower business regulation", "opposed the carbon levy bill",
     "strong Taitan financial sector ties"
 
-  Defence:     Thomas "Tommy" Braveheart
-    Ex-military, no-nonsense, energy security framed as defence issue. Supports
-    domestic fossil extraction on sovereignty grounds, not ideology.
+  Foreign Secretary: Thomas "Tommy" Braveheart
+    Ex-military, no-nonsense, frames energy security as a sovereignty issue. Supports
+    domestic fossil extraction on independence grounds, not ideology. Will back
+    renewables if the case is made on strategic self-sufficiency.
     ideologyScore: +70, netZeroSympathy: 30, riskTolerance: 60, populismScore: 65
     Signals: "decorated military career", "Taitan energy independence advocate",
     "pragmatic on low-carbon if framed as security"
+    International crisis weight: high aggression, prefers unilateral Taitan response;
+    amplifies FossilDependency risk framing in crisis events
 
   Energy:      TD "Ticky" Tennison
     Career in Murican-linked energy sector before entering politics. Has personal
@@ -1036,9 +1039,11 @@ When in opposition, they are shadows whose relationships still matter.
     Signals: "former Bank of Taitan economist", "authored the Green Investment Framework",
     "reputation for rigorous spending scrutiny"
 
-  Defence:     John Ashworth
+  Foreign Secretary: John Ashworth
     Pragmatic, unremarkable on climate. Budget competition is his primary concern.
     ideologyScore: -20, netZeroSympathy: 45, riskTolerance: 50, populismScore: 35
+    International crisis weight: cautious multilateralist; favours international
+    agreements and coalition responses; mild positive modifier on green diplomacy outcomes
 
   Energy:      Claire Blackwell
     Player's first boss (Left governs at game start 2010). Moderately pro-climate,
@@ -1049,23 +1054,44 @@ When in opposition, they are shadows whose relationships still matter.
 
   --- Right (Taitan Conservative equivalent) ---
 
-  Leader:      Victoria Ashton
-    Modernising conservative. Tech-optimist on net zero -- believes market can deliver.
-    Resistant to mandates and direct subsidies.
-    ideologyScore: +40, netZeroSympathy: 55, riskTolerance: 50, populismScore: 45
-    Signals: "rebranded party as 'pro-innovation'", "backs carbon pricing over mandates",
-    "publicly pro-nuclear"
+  Leader:      Daniel "Pork" Cavendish
+    Old-money upper class, went to the right schools, inherited the right connections.
+    Somewhat flaky under pressure -- impressive in calm conditions, prone to drift in a
+    crisis. Privately supportive of net zero (it plays well in his social circle) but
+    easily swayed by party faction pressure. The exact origin of his nickname is a
+    mystery: associates deflect when asked, and he simply smiles.
+    ideologyScore: +35, netZeroSympathy: 60, riskTolerance: 30, populismScore: 25
+    Signals: "educated at Briarfield and Oxbridge", "considered a safe pair of hands
+    by the establishment", "occasionally says the right thing for unclear reasons"
+    Rotation: moderate (anchor figure but flakiness makes tenure unpredictable)
 
-  Chancellor:  Philip Drake
-    Free market purist. Deeply sceptical of green industrial policy.
-    ideologyScore: +55, netZeroSympathy: 35, riskTolerance: 35, populismScore: 30
-    Signals: "authored free market think tank papers on energy", "opposed the windfall tax",
-    "wants to scrap net zero subsidies"
+  Chancellor:  Dawn "Dizzy" Truscott
+    Sharp, ideologically driven free-marketeer. Believes the state should step back
+    and let capital decarbonise the economy on its own schedule. High personal ambition.
+    ideologyScore: +60, netZeroSympathy: 30, riskTolerance: 75, populismScore: 40
+    Signals: "youngest ever Chancellor candidate", "authored the Truscott Compact on
+    fiscal rules", "close ties with Taitan financial sector and Meridian Strategy alumni"
+    Consultancy affinity: Meridian Strategy, Axiom Infrastructure
+      When governing: +15 passive relationship bonus with both firms (no explicit
+      pressure -- their principals are simply on familiar terms with her office).
+    Special mechanic (DIZZY_SURGE): if promoted to PM (Leadership Challenge -> INCUMBENT),
+      immediately enacts three deregulation policies in rapid succession. This triggers
+      a bond market confidence event within 2 turns: GovernmentBorrowingCost spikes,
+      Economy drops sharply, TaxRevenue -15%. She resigns 2 turns after the crisis onset,
+      transitioning PM state to DEPARTED. Player must manage the fallout.
 
-  Defence:     Andrew Stafford
-    Hawkish, frames energy security as defence priority. Can be won over on renewables
-    if framed as reducing Taitan dependence on foreign fossil fuels.
-    ideologyScore: +50, netZeroSympathy: 40, riskTolerance: 60, populismScore: 40
+  Foreign Secretary: Noris Jackson
+    Career diplomat turned politician. Cautious, procedurally minded, keeps international
+    relationships warm. Not ideologically committed on climate but will not sabotage it.
+    Strong instinct for coalition-building in international forums.
+    ideologyScore: +30, netZeroSympathy: 50, riskTolerance: 25, populismScore: 20
+    Signals: "former Taitan ambassador to the Commonwealth bloc", "respected across party
+    lines for diplomatic competence", "rarely makes headlines"
+    International crisis weight: de-escalatory bias; boosts probability of multilateral
+    resolution outcomes; mild positive modifier on international green treaty events
+    Promotion path: if Cavendish departs and Truscott is unavailable/departed, Noris
+    Jackson is the next-most-likely PM candidate from the Right bench. His PM profile
+    is steady but uninspiring -- GovernmentPopularity changes are muted in both directions.
 
   Energy:      Rupert Holm
     Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home retrofit.
@@ -1073,6 +1099,8 @@ When in opposition, they are shadows whose relationships still matter.
     ideologyScore: +45, netZeroSympathy: 60, riskTolerance: 55, populismScore: 35
     Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
     "wants to cut planning red tape for renewables"
+    Consultancy affinity: ClearPath Advisory, Tacute Energy Solutions
+      When governing: +10 passive relationship bonus with both firms.
 
   --- FarLeft (Taitan Progressive Alliance) ---
 
@@ -1090,9 +1118,12 @@ When in opposition, they are shadows whose relationships still matter.
     Signals: "authored 'The Green New Deal for Taitan'", "favours debt-funded transition",
     "hostile to private consultancy spend"
 
-  Defence:     Marcus Webb
-    Ex-military turned pacifist MP. Advocates redirecting defence budget to climate.
+  Foreign Secretary: Marcus Webb
+    Ex-military turned pacifist MP. Advocates redirecting defence budget to climate
+    diplomacy and international green aid. Deeply uncomfortable with hard-power responses.
     ideologyScore: -75, netZeroSympathy: 70, riskTolerance: 45, populismScore: 55
+    International crisis weight: pacifist bias; de-escalatory but sometimes naive;
+    can trigger negative diplomatic events if adversary reads restraint as weakness
 
   Energy:      Rosa Chen
     Strong climate champion, anti-corporate. Will approve ambitious policies rapidly
@@ -1125,6 +1156,56 @@ When in opposition, they are shadows whose relationships still matter.
 
   Ticky pressure is unique to this minister. No other stakeholder generates this mechanic.
 
+#### Consultancy Affinity Mechanic (Right party -- soft incentive)
+
+  Some Right party figures have personal or professional ties to specific advisory firms.
+  When those figures hold governing office, affiliated firms receive a passive relationship
+  bonus. This is not a pressure event -- the player receives no event card, no AP is
+  spent, and no IdeologyConflict change occurs. The bonus applies silently each week the
+  figure is in post and expires the week they leave office.
+
+  Affinity map (Right party, governing state only):
+    Dawn "Dizzy" Truscott (Chancellor): Meridian Strategy +15, Axiom Infrastructure +15
+    Rupert Holm (Energy):               ClearPath Advisory +10, Tacute Energy Solutions +10
+
+  Design intent: contrasts with Ticky's hard pressure. Ticky forces a choice with AP
+  and relationship stakes. Affinity simply makes certain firms marginally easier to work
+  with -- a soft environmental nudge, not a coercive one.
+
+  If the player is already at a high relationship score with an affiliated firm, the
+  bonus is capped so that total relationshipScore cannot exceed 100.
+
+#### Foreign Secretary Role and International Events
+
+  The Foreign Secretary role (one per party) has two distinct mechanics not shared
+  by other roles:
+
+  1. International Crisis Response
+     When a macro-environment event fires (oil shock, climate summit, Murican policy
+     shift, international trade dispute), the governing Foreign Secretary's attributes
+     determine the response option set and outcome probability weights:
+
+       crisisAggression: derived from riskTolerance and ideologyScore
+         High aggression: unlocks "Escalate" and "Unilateral Action" options; increases
+         probability of FossilDependency crisis events being framed as security threats
+         (which can temporarily boost GovernmentPopularity but raises LCR risk).
+         Low aggression (Noris Jackson, John Ashworth): unlocks "Multilateral Dialogue"
+         and "Summit Initiative" options; higher probability of green treaty breakthroughs;
+         lower probability of trade retaliation events.
+
+       diplomaticSkill: hidden float (derived from career signal tags in config)
+         High skill (Noris Jackson): raises probability of favourable negotiated outcomes
+         Low skill (Tommy Braveheart): negotiated options have lower success probability
+
+  2. Green Diplomacy Events
+     Every 12-16 weeks, a green diplomacy event fires (independent of crises):
+       -- International climate summit: outcome influenced by Foreign Secretary
+       -- Bilateral energy deal: Foreign Secretary relationship weight applies
+       -- Murican policy shift (driven by Murica's governing party, Ticky signals this)
+     A pro-diplomacy Foreign Secretary (high netZeroSympathy, high diplomaticSkill)
+     converts more of these into LCR boosts or green aid unlocks.
+     A hawkish or pacifist-naive Foreign Secretary risks botching summit optics.
+
 #### Stakeholder Attributes (shared by all 16 figures)
 
   Hidden:
@@ -1132,6 +1213,10 @@ When in opposition, they are shadows whose relationships still matter.
     netZeroSympathy: float64        // 0 hostile to 100 champion
     riskTolerance: float64          // 0 cautious to 100 reckless
     populismScore: float64          // 0 technocratic to 100 populist
+    diplomaticSkill: float64        // 0 blunt to 100 skilled; used only for Foreign Secretary
+                                    // role mechanics; inert for all other roles
+    consultancyAffinity: []string   // org IDs; populated for Right figures only;
+                                    // drives passive relationship bonus when governing
   Observable on appointment:
     2-3 personality signals (known public positions, reputation descriptors)
   Tracked:

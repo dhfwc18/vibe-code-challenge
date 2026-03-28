@@ -1,6 +1,9 @@
 package energy
 
-import "twenty-fifty/internal/config"
+import (
+	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/mathutil"
+)
 
 // Historical price anchors from Green Book / Ofgem data at game start (2010).
 const (
@@ -81,10 +84,10 @@ func NewMarket() EnergyMarket {
 // The grid coupling floor is enforced after all deltas are applied.
 // Prices are clamped to [0, 9999]. Returns a new EnergyMarket.
 func TickPrices(m EnergyMarket, gasDeltaPct, elecDeltaPct, oilDeltaPct, gridShareDelta float64) EnergyMarket {
-	m.GasPrice = clamp(m.GasPrice*(1+gasDeltaPct/100), 0, 9999)
-	m.ElectricityPrice = clamp(m.ElectricityPrice*(1+elecDeltaPct/100), 0, 9999)
-	m.OilPrice = clamp(m.OilPrice*(1+oilDeltaPct/100), 0, 9999)
-	m.RenewableGridShare = clamp(m.RenewableGridShare+gridShareDelta, 0, 100)
+	m.GasPrice = mathutil.Clamp(m.GasPrice*(1+gasDeltaPct/100), 0, 9999)
+	m.ElectricityPrice = mathutil.Clamp(m.ElectricityPrice*(1+elecDeltaPct/100), 0, 9999)
+	m.OilPrice = mathutil.Clamp(m.OilPrice*(1+oilDeltaPct/100), 0, 9999)
+	m.RenewableGridShare = mathutil.Clamp(m.RenewableGridShare+gridShareDelta, 0, 100)
 
 	// Enforce grid coupling floor after all deltas.
 	floor := GridCouplingFloor(m.GasPrice, m.RenewableGridShare)
@@ -117,18 +120,9 @@ func GridCouplingFloor(gasPrice, renewableGridShare float64) float64 {
 // to the market without advancing the history ring buffers.
 // Call TickPrices separately to record the post-shock price in history.
 func ApplyShock(m EnergyMarket, effect config.EventEffect) EnergyMarket {
-	m.GasPrice = clamp(m.GasPrice*(1+effect.GasPriceDeltaPct/100), 0, 9999)
-	m.ElectricityPrice = clamp(m.ElectricityPrice*(1+effect.ElectricityPriceDeltaPct/100), 0, 9999)
-	m.OilPrice = clamp(m.OilPrice*(1+effect.OilPriceDeltaPct/100), 0, 9999)
+	m.GasPrice = mathutil.Clamp(m.GasPrice*(1+effect.GasPriceDeltaPct/100), 0, 9999)
+	m.ElectricityPrice = mathutil.Clamp(m.ElectricityPrice*(1+effect.ElectricityPriceDeltaPct/100), 0, 9999)
+	m.OilPrice = mathutil.Clamp(m.OilPrice*(1+effect.OilPriceDeltaPct/100), 0, 9999)
 	return m
 }
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}

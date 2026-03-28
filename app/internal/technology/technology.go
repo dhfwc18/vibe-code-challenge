@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/mathutil"
 )
 
 // TechTracker holds the live maturity value for each of the 8 tracked
@@ -60,7 +61,7 @@ func AdvanceTick(tracker TechTracker, curve config.TechCurveDef, accelerationBon
 	shape := EvaluateLogistic(current, 50.0, 0.08)
 	weeklyGain := curve.BaseAdoptionRate*shape + accelerationBonus
 	result := copyTracker(tracker)
-	result.Maturities[curve.ID] = clamp(current+weeklyGain, 0, 100)
+	result.Maturities[curve.ID] = mathutil.Clamp(current+weeklyGain, 0, 100)
 	return result
 }
 
@@ -73,7 +74,7 @@ func ApplyAccelerationBonus(tracker TechTracker, bonusMap map[config.Technology]
 	result := copyTracker(tracker)
 	for tech, bonus := range bonusMap {
 		if current, ok := result.Maturities[tech]; ok {
-			result.Maturities[tech] = clamp(current+bonus, 0, 100)
+			result.Maturities[tech] = mathutil.Clamp(current+bonus, 0, 100)
 		}
 	}
 	return result
@@ -83,7 +84,7 @@ func ApplyAccelerationBonus(tracker TechTracker, bonusMap map[config.Technology]
 // given technology maturity. COP ranges from 2.0 (zero maturity) to 3.5
 // (fully mature). Used by the region package's fuel poverty formula.
 func HeatPumpCOP(maturity float64) float64 {
-	return 2.0 + (clamp(maturity, 0, 100)/100.0)*1.5
+	return 2.0 + (mathutil.Clamp(maturity, 0, 100)/100.0)*1.5
 }
 
 // Maturity returns the current maturity for a specific technology.
@@ -102,15 +103,6 @@ func (s TechSnapshot) Maturity(tech config.Technology) float64 {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}
 
 func copyTracker(t TechTracker) TechTracker {
 	m := make(map[config.Technology]float64, len(t.Maturities))

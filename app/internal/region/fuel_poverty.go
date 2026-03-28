@@ -2,6 +2,7 @@ package region
 
 import (
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/mathutil"
 	"twenty-fifty/internal/technology"
 )
 
@@ -34,16 +35,16 @@ const (
 //	insulationFactor = 1 - (insulationLevel / 200)   // 1.0 at 0%, 0.5 at 100%
 //	heatingDemand    = baseHeatingDemand * insulationFactor * seasonalMultiplier
 //	costPerUnit      = price for HeatingType (COP-adjusted for HeatPump)
-//	FuelPoverty      = clamp((costPerUnit * heatingDemand / localIncome) * weight, 0, 100)
+//	FuelPoverty      = mathutil.Clamp((costPerUnit * heatingDemand / localIncome) * weight, 0, 100)
 func ComputeFuelPoverty(in FuelPovertyInput) float64 {
-	insulationFactor := 1.0 - (clamp(in.InsulationLevel, 0, 100) / 200.0)
+	insulationFactor := 1.0 - (mathutil.Clamp(in.InsulationLevel, 0, 100) / 200.0)
 	heatingDemand := baseHeatingDemand * insulationFactor * in.SeasonalMultiplier
 	costPerUnit := heatingCostPerUnit(in)
 	income := in.LocalIncome
 	if income < minLocalIncome {
 		income = minLocalIncome
 	}
-	return clamp((costPerUnit*heatingDemand/income)*povertyScalingWeight, 0, 100)
+	return mathutil.Clamp((costPerUnit*heatingDemand/income)*povertyScalingWeight, 0, 100)
 }
 
 // heatingCostPerUnit returns the effective energy price per demand unit for

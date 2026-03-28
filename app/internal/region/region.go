@@ -3,6 +3,7 @@ package region
 import (
 	"twenty-fifty/internal/carbon"
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/mathutil"
 )
 
 // Region holds the live state of one of Taitan's 12 administrative regions.
@@ -104,7 +105,7 @@ func IsRevealed(tile Tile, attribute string) bool {
 // CapacityMultiplier returns a [0, 1] fraction of the reference installer
 // capacity for this region. Used as a multiplier in policy carbon-effect resolution.
 func CapacityMultiplier(r Region) float64 {
-	return clamp(r.InstallerCapacity/referenceInstallerCapacity, 0, 1)
+	return mathutil.Clamp(r.InstallerCapacity/referenceInstallerCapacity, 0, 1)
 }
 
 // ComputeTrueRetrofitRate returns the actual retrofit completion rate after
@@ -115,8 +116,8 @@ func CapacityMultiplier(r Region) float64 {
 //
 // Always returns a value in [0, observedRate].
 func ComputeTrueRetrofitRate(observedRate, installerQuality float64) float64 {
-	q := clamp(installerQuality, 0, 100) / 100.0
-	return clamp(observedRate*q, 0, 100)
+	q := mathutil.Clamp(installerQuality, 0, 100) / 100.0
+	return mathutil.Clamp(observedRate*q, 0, 100)
 }
 
 // UpdateLocalPoliticalOpinion updates a tile's political opinion for one week.
@@ -132,17 +133,7 @@ func UpdateLocalPoliticalOpinion(tile Tile, fuelPovertyDelta, climateEventImpact
 	opinion := tile.PoliticalOpinion
 	opinion += fuelPovertyDelta * 0.30
 	opinion -= climateEventImpact * 0.50 * climateAmplifier
-	tile.PoliticalOpinion = clamp(opinion, 0, 100)
+	tile.PoliticalOpinion = mathutil.Clamp(opinion, 0, 100)
 	return tile
 }
 
-// clamp constrains v to [min, max].
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}

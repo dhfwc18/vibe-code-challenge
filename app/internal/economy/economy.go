@@ -1,5 +1,7 @@
 package economy
 
+import "twenty-fifty/internal/mathutil"
+
 // EconomyState holds the hidden economy model state for one playthrough.
 type EconomyState struct {
 	Value        float64            // 0-100, hidden from player
@@ -45,7 +47,7 @@ func NewEconomyState() EconomyState {
 //   - fossilDrag:       penalty from high fossil dependency (stranded assets risk)
 func TickEconomy(state EconomyState, climateDamage, fuelPovertyDrag, shockSeverity, policyBonus, fossilDrag float64) EconomyState {
 	delta := policyBonus - climateDamage - fuelPovertyDrag*0.20 - shockSeverity*0.50 - fossilDrag*0.10
-	state.Value = clamp(state.Value+delta, 0, 100)
+	state.Value = mathutil.Clamp(state.Value+delta, 0, 100)
 	return state
 }
 
@@ -54,7 +56,7 @@ func TickEconomy(state EconomyState, climateDamage, fuelPovertyDrag, shockSeveri
 func ComputeTaxRevenue(state EconomyState, quarter, year int) TaxRevenue {
 	quarterlyRevenue := (state.Value / 50.0) * (referenceAnnualRevenueGBPbn / 4.0)
 	return TaxRevenue{
-		GBPBillions: clamp(quarterlyRevenue, 0, 9999),
+		GBPBillions: mathutil.Clamp(quarterlyRevenue, 0, 9999),
 		Quarter:     quarter,
 		Year:        year,
 	}
@@ -122,7 +124,7 @@ func ClearLobbyEffectsAtQuarterEnd(state EconomyState) EconomyState {
 // DeriveFossilDependency computes a 0-100 fossil dependency score from energy mix.
 // gasFraction and oilFraction are each in [0, 1] (fraction of total energy demand).
 func DeriveFossilDependency(gasFraction, oilFraction float64) float64 {
-	return clamp((clamp(gasFraction, 0, 1)+clamp(oilFraction, 0, 1))*100, 0, 100)
+	return mathutil.Clamp((mathutil.Clamp(gasFraction, 0, 1)+mathutil.Clamp(oilFraction, 0, 1))*100, 0, 100)
 }
 
 // ---------------------------------------------------------------------------
@@ -137,12 +139,3 @@ func copyLobbyEffects(src map[string]float64) map[string]float64 {
 	return dst
 }
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}

@@ -3,6 +3,8 @@ package reputation
 import (
 	"math"
 	"math/rand"
+
+	"twenty-fifty/internal/mathutil"
 )
 
 // LowCarbonReputation tracks the player's green credibility.
@@ -42,7 +44,7 @@ func TickReputation(lcr LowCarbonReputation, weeklyPolicyCarbonDelta, eventImpac
 	if policyGain < minPolicyGain {
 		decay = (lcr.Value - naturalDecayTarget) * naturalDecayRate
 	}
-	lcr.Value = clamp(lcr.Value+policyGain+eventImpact-decay, 0, 100)
+	lcr.Value = mathutil.Clamp(lcr.Value+policyGain+eventImpact-decay, 0, 100)
 	return lcr
 }
 
@@ -64,7 +66,7 @@ func ChainToGovtPopularity(lcrDelta float64) float64 {
 //	LCR=50  -> 1.00 (neutral)
 //	LCR=100 -> 1.15
 func ChainToBudgetModifier(lcr float64) float64 {
-	normalised := (clamp(lcr, 0, 100) - 50.0) / 50.0 // -1 to +1
+	normalised := (mathutil.Clamp(lcr, 0, 100) - 50.0) / 50.0 // -1 to +1
 	return budgetModifierMid + normalised*budgetModifierRange
 }
 
@@ -72,7 +74,7 @@ func ChainToBudgetModifier(lcr float64) float64 {
 // Returns an updated LowCarbonReputation with LastPollResult set.
 func PollLCR(lcr LowCarbonReputation, rng *rand.Rand) LowCarbonReputation {
 	noise := rng.NormFloat64() * pollNoiseSigma
-	lcr.LastPollResult = clamp(lcr.Value+noise, 0, 100)
+	lcr.LastPollResult = mathutil.Clamp(lcr.Value+noise, 0, 100)
 	return lcr
 }
 
@@ -81,7 +83,7 @@ func PollLCR(lcr LowCarbonReputation, rng *rand.Rand) LowCarbonReputation {
 // Uses a sigmoid centred so lcr=60 + playerRep=60 gives p~0.5.
 // Monotone-increasing in both inputs.
 func CapitalisationProbability(lcr, playerReputation float64) float64 {
-	combined := clamp(lcr, 0, 100) + clamp(playerReputation, 0, 100)
+	combined := mathutil.Clamp(lcr, 0, 100) + mathutil.Clamp(playerReputation, 0, 100)
 	// sigmoid: p = 1 / (1 + exp(-(combined - 120) / 20))
 	return 1.0 / (1.0 + math.Exp(-(combined-120.0)/20.0))
 }
@@ -92,12 +94,3 @@ func CapitalisationSuccess(lcr, playerReputation float64, rng *rand.Rand) bool {
 	return rng.Float64() < CapitalisationProbability(lcr, playerReputation)
 }
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}

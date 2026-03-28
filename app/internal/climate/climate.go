@@ -5,6 +5,7 @@ import (
 
 	"twenty-fifty/internal/carbon"
 	"twenty-fifty/internal/config"
+	"twenty-fifty/internal/mathutil"
 )
 
 // ClimateState combines the discrete severity level with a continuous position
@@ -76,7 +77,7 @@ func severityWithinLevel(stock float64, level carbon.ClimateLevel) float64 {
 	if hi <= lo {
 		return 1.0
 	}
-	return clamp((stock-lo)/(hi-lo), 0, 1)
+	return mathutil.Clamp((stock-lo)/(hi-lo), 0, 1)
 }
 
 // RollClimateEvent rolls the event deck for one week.
@@ -113,9 +114,9 @@ func RollClimateEvent(defs []config.EventDef, state ClimateState, fossilDependen
 // Monotone-decreasing in both lcr and playerReputation (both 0-100).
 // Base backfire rate of 35% is reduced proportionally by credibility and reputation.
 func BackfireProbability(lcr, playerReputation float64) float64 {
-	lcrFactor := 1.0 - clamp(lcr, 0, 100)/100.0
-	repFactor := 1.0 - clamp(playerReputation, 0, 100)/100.0
-	return clamp(0.35*lcrFactor*repFactor, 0, 1)
+	lcrFactor := 1.0 - mathutil.Clamp(lcr, 0, 100)/100.0
+	repFactor := 1.0 - mathutil.Clamp(playerReputation, 0, 100)/100.0
+	return mathutil.Clamp(0.35*lcrFactor*repFactor, 0, 1)
 }
 
 // ShockResponseOutcome resolves a player's choice on a ShockResponseCard.
@@ -153,12 +154,3 @@ func ShockResponseOutcome(card ShockResponseCard, option ShockResponseOption, rn
 	return result
 }
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
-}

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"twenty-fifty/internal/carbon"
-	"twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
 )
 
 func seededRNG(seed int64) *rand.Rand {

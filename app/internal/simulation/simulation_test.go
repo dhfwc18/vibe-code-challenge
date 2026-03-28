@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/industry"
-	"twenty-fifty/internal/player"
-	"twenty-fifty/internal/policy"
-	"twenty-fifty/internal/save"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/industry"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/player"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/policy"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/save"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 // ---------------------------------------------------------------------------

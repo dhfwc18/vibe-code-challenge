@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"sort"
 
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
-	"twenty-fifty/internal/region"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/region"
 )
 
 // RegionPoll is the political snapshot for one region at one polling period.

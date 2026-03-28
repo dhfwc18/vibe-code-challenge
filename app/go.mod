@@ -1,4 +1,4 @@
-module twenty-fifty
+module github.com/vibe-code-challenge/twenty-fifty
 
 go 1.26.1
 

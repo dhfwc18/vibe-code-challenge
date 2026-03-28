@@ -13,15 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"twenty-fifty/internal/carbon"
-	"twenty-fifty/internal/climate"
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/event"
-	"twenty-fifty/internal/evidence"
-	"twenty-fifty/internal/government"
-	"twenty-fifty/internal/player"
-	"twenty-fifty/internal/policy"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/climate"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/event"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/evidence"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/government"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/player"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/policy"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 package player
 
-import "twenty-fifty/internal/mathutil"
+import "github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 
 // ---------------------------------------------------------------------------
 // Enumerations

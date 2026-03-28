@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/region"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/region"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 // ---------------------------------------------------------------------------

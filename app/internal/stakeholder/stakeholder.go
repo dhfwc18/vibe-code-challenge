@@ -3,9 +3,9 @@ package stakeholder
 import (
 	"math/rand"
 
-	"twenty-fifty/internal/carbon"
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 )
 
 // MinisterState represents the lifecycle of a political figure in the game.

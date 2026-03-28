@@ -5,8 +5,8 @@ import (
 	"math"
 	"math/rand"
 
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 )
 
 // ---------------------------------------------------------------------------

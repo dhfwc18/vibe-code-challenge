@@ -1,10 +1,10 @@
 package policy
 
 import (
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
-	"twenty-fifty/internal/region"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/region"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 // significanceRefuseConflict is the ideology conflict threshold above which a

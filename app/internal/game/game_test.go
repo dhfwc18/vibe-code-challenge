@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"twenty-fifty/internal/game"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/game"
 )
 
 func TestNew_ReturnsNonNilGame(t *testing.T) {

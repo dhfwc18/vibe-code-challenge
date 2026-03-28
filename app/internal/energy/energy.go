@@ -1,8 +1,8 @@
 package energy
 
 import (
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 )
 
 // Historical price anchors from Green Book / Ofgem data at game start (2010).

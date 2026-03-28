@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"twenty-fifty/internal/game"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/game"
 )
 
 func main() {

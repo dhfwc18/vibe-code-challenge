@@ -1,6 +1,6 @@
 package economy
 
-import "twenty-fifty/internal/mathutil"
+import "github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 
 // EconomyState holds the hidden economy model state for one playthrough.
 type EconomyState struct {

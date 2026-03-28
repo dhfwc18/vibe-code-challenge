@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/rand"
 
-	"twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 )
 
 // LowCarbonReputation tracks the player's green credibility.

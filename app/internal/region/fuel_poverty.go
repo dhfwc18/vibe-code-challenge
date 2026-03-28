@@ -1,9 +1,9 @@
 package region
 
 import (
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
-	"twenty-fifty/internal/technology"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/technology"
 )
 
 // FuelPovertyInput bundles all inputs to the fuel poverty formula for one tile

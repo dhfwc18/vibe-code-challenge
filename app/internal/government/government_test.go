@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 func makeStakeholder(id string, ideo, nzs float64, role config.Role) stakeholder.Stakeholder {

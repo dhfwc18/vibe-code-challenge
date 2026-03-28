@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"twenty-fifty/internal/carbon"
-	"twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
 )
 
 // seededRNG returns a deterministic *rand.Rand for testing.

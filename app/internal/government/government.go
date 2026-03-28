@@ -1,9 +1,9 @@
 package government
 
 import (
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
-	"twenty-fifty/internal/stakeholder"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/stakeholder"
 )
 
 // GovernmentPhase represents the electoral cycle state of the government.

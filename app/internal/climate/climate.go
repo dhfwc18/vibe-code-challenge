@@ -3,9 +3,9 @@ package climate
 import (
 	"math/rand"
 
-	"twenty-fifty/internal/carbon"
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 )
 
 // ClimateState combines the discrete severity level with a continuous position

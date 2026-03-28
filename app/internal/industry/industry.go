@@ -3,9 +3,9 @@ package industry
 import (
 	"sort"
 
-	"twenty-fifty/internal/config"
-	"twenty-fifty/internal/mathutil"
-	"twenty-fifty/internal/technology"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/technology"
 )
 
 // CompanyStatus represents the lifecycle state of an LCT company.

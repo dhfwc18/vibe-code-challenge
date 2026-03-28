@@ -50,6 +50,12 @@ Source:  https://github.com/stretchr/testify
 Licence: MIT
 Use:     Assertion helpers in tests
 
+Name:    golang.org/x/image
+Type:    Library
+Source:  https://pkg.go.dev/golang.org/x/image
+Licence: BSD 3-Clause
+Use:     basicfont.Face7x13 bitmap font for all UI text rendering (MVP font placeholder)
+
 ---
 
 ## Reference Data

@@ -18,6 +18,7 @@ import (
 	"twenty-fifty/internal/config"
 	"twenty-fifty/internal/event"
 	"twenty-fifty/internal/evidence"
+	"twenty-fifty/internal/government"
 	"twenty-fifty/internal/player"
 	"twenty-fifty/internal/policy"
 	"twenty-fifty/internal/stakeholder"
@@ -834,35 +835,29 @@ func TestCommissionReport_CoolingOff_NoCommissionAdded(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// P. Budget lobby effect -- DESIGN NOTE: not yet wired to player actions
+// P. Budget lobby effect -- wired to player actions
 // ---------------------------------------------------------------------------
 
-// TestBudgetLobbyEffect_NotWiredToPlayerActions documents that the LobbyEffects
-// map in EconomyState is NOT populated by the player lobby action.
-//
-// DESIGN NOTE: LobbyEffects exists in EconomyState and is cleared at quarter-end,
-// but ActionTypeLobbyMinister only updates stakeholder RelationshipScore.
-// Budget allocation lobby effects (per-department multipliers) are not yet wired
-// to player actions. This test documents that gap and will need updating when the
-// feature is implemented.
-func TestBudgetLobbyEffect_NotWiredToPlayerActions(t *testing.T) {
+// TestBudgetLobbyEffect_LobbyAction_PopulatesDeptMultiplier verifies that
+// ActionTypeLobbyMinister populates LobbyEffects for the lobbied minister's
+// departments. Lobbying the Energy Secretary (DeptPower + DeptTransport) must
+// result in a multiplier > 1.0 on both departments before the quarter resets.
+func TestBudgetLobbyEffect_LobbyAction_PopulatesDeptMultiplier(t *testing.T) {
 	w := loadWorld(t)
 
-	var targetID string
-	for _, s := range w.Stakeholders {
-		if s.IsUnlocked {
-			targetID = s.ID
-			break
-		}
-	}
-	require.NotEmpty(t, targetID, "need an unlocked stakeholder")
+	// Find the cabinet Energy Secretary -- maps to DeptPower and DeptTransport.
+	energySecID, ok := w.Government.CabinetByRole[config.RoleEnergy]
+	require.True(t, ok, "need an Energy Secretary in cabinet")
+	require.NotEmpty(t, energySecID, "Energy Secretary ID must not be empty")
 
 	w, _ = AdvanceWeek(w, []Action{
-		{Type: player.ActionTypeLobbyMinister, Target: targetID},
+		{Type: player.ActionTypeLobbyMinister, Target: energySecID},
 	})
 
-	// DESIGN NOTE: LobbyEffects is not populated by ActionTypeLobbyMinister.
-	// The lobby action only updates RelationshipScore. Budget lobby is not yet wired.
-	assert.Empty(t, w.Economy.LobbyEffects,
-		"DESIGN NOTE: LobbyEffects should be empty after lobby action (budget lobby not yet wired to player actions)")
+	assert.Greater(t, w.Economy.LobbyEffects[government.DeptPower], 1.0,
+		"lobbying Energy Secretary must set DeptPower multiplier above 1.0")
+	assert.Greater(t, w.Economy.LobbyEffects[government.DeptTransport], 1.0,
+		"lobbying Energy Secretary must set DeptTransport multiplier above 1.0")
+	assert.Empty(t, w.Economy.LobbyEffects[government.DeptBuildings],
+		"DeptBuildings must be unaffected when Energy Secretary is lobbied (not their dept)")
 }

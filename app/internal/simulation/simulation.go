@@ -71,6 +71,10 @@ const ideologyConflictResignThreshold = 8.0
 // decays toward zero. At 0.05, the score halves in approximately 14 weeks.
 const ideologyConflictDecayRate = 0.05
 
+// lobbyBudgetEffect is the per-action multiplier applied to the lobbied minister's
+// departments in LobbyEffects. 1.10 = 10% budget share boost for that dept this quarter.
+const lobbyBudgetEffect = 1.10
+
 // ---------------------------------------------------------------------------
 // Calibration constants
 // ---------------------------------------------------------------------------
@@ -906,6 +910,9 @@ func applyAction(w WorldState, a Action) WorldState {
 			}
 			w.Player = cs
 			w.Stakeholders[i] = stakeholder.TickRelationship(s, 5.0, 0)
+			for _, dept := range roleToDepts(s.Role) {
+				w.Economy = economy.AccumulateLobbyEffect(w.Economy, dept, lobbyBudgetEffect)
+			}
 			w.Player = player.RecordAction(w.Player, player.ActionRecord{
 				ActionType: a.Type, Week: w.Week, APCost: lobbyAPCost,
 			})
@@ -1534,6 +1541,21 @@ func sectorInstallerCapacity(regions []region.Region, regionDefs []config.Region
 //   - RoleChancellor    -> DeptBuildings, DeptIndustry
 //   - RoleEnergy        -> DeptPower, DeptTransport
 //   - RoleForeignSecretary -> no domestic dept (neutral retained)
+// roleToDepts maps a ministerial Role to the domestic department IDs it
+// influences for budget allocation. RoleForeignSecretary has no domestic
+// departments and returns nil.
+func roleToDepts(role config.Role) []string {
+	switch role {
+	case config.RoleLeader:
+		return []string{government.DeptCross}
+	case config.RoleChancellor:
+		return []string{government.DeptBuildings, government.DeptIndustry}
+	case config.RoleEnergy:
+		return []string{government.DeptPower, government.DeptTransport}
+	}
+	return nil
+}
+
 func cabinetBudgetWeights(g government.GovernmentState, stakeholders []stakeholder.Stakeholder, lcrDelta float64) map[string]float64 {
 	weights := neutralMinisterWeights()
 
@@ -1542,19 +1564,13 @@ func cabinetBudgetWeights(g government.GovernmentState, stakeholders []stakehold
 		byID[s.ID] = s
 	}
 
-	roleDepts := map[config.Role][]string{
-		config.RoleLeader:    {government.DeptCross},
-		config.RoleChancellor: {government.DeptBuildings, government.DeptIndustry},
-		config.RoleEnergy:    {government.DeptPower, government.DeptTransport},
-	}
-
 	for role, sid := range g.CabinetByRole {
 		s, ok := byID[sid]
 		if !ok {
 			continue
 		}
-		depts, hasDepts := roleDepts[role]
-		if !hasDepts {
+		depts := roleToDepts(role)
+		if len(depts) == 0 {
 			continue
 		}
 		stats := government.ComputeMinisterStats(s, lcrDelta)

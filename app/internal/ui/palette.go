@@ -1,0 +1,43 @@
+package ui
+
+import "image/color"
+
+// Party colours.
+var (
+	ColourPartyLeft     = color.RGBA{R: 0xC0, G: 0x39, B: 0x2B, A: 0xFF}
+	ColourPartyRight    = color.RGBA{R: 0x1A, G: 0x3A, B: 0x5C, A: 0xFF}
+	ColourPartyFarLeft  = color.RGBA{R: 0x27, G: 0xAE, B: 0x60, A: 0xFF}
+	ColourPartyFarRight = color.RGBA{R: 0x6C, G: 0x34, B: 0x83, A: 0xFF}
+	ColourPartyNeutral  = color.RGBA{R: 0x7F, G: 0x8C, B: 0x8D, A: 0xFF}
+)
+
+// Climate level colours.
+var (
+	ColourClimateLow       = color.RGBA{R: 0x2E, G: 0xCC, B: 0x71, A: 0xFF}
+	ColourClimateMedium    = color.RGBA{R: 0xF3, G: 0x9C, B: 0x12, A: 0xFF}
+	ColourClimateHigh      = color.RGBA{R: 0xE6, G: 0x7E, B: 0x22, A: 0xFF}
+	ColourClimateCritical  = color.RGBA{R: 0xE7, G: 0x4C, B: 0x3C, A: 0xFF}
+	ColourClimateEmergency = color.RGBA{R: 0x92, G: 0x2B, B: 0x21, A: 0xFF}
+)
+
+// Org type badge colours.
+var (
+	ColourOrgConsultancy = color.RGBA{R: 0x8E, G: 0x44, B: 0xAD, A: 0xFF}
+	ColourOrgThinkTank   = color.RGBA{R: 0x29, G: 0x80, B: 0xB9, A: 0xFF}
+	ColourOrgAcademic    = color.RGBA{R: 0x16, G: 0xA0, B: 0x85, A: 0xFF}
+)
+
+// General UI colours.
+var (
+	ColourBackground    = color.RGBA{R: 0x12, G: 0x20, B: 0x1A, A: 0xFF}
+	ColourPanel         = color.RGBA{R: 0x1E, G: 0x2D, B: 0x24, A: 0xFF}
+	ColourTextPrimary   = color.RGBA{R: 0xE8, G: 0xE8, B: 0xE8, A: 0xFF}
+	ColourTextMuted     = color.RGBA{R: 0x7F, G: 0x8C, B: 0x8D, A: 0xFF}
+	ColourAccent        = color.RGBA{R: 0x2E, G: 0xCC, B: 0x71, A: 0xFF}
+	ColourButtonNormal  = color.RGBA{R: 0x2C, G: 0x3E, B: 0x2D, A: 0xFF}
+	ColourButtonHover   = color.RGBA{R: 0x3D, G: 0x5C, B: 0x3E, A: 0xFF}
+	ColourButtonDisabled = color.RGBA{R: 0x1E, G: 0x28, B: 0x20, A: 0xFF}
+)
+
+// Overlay colour for modals.
+var ColourOverlay = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xCC}

@@ -1,0 +1,497 @@
+package config
+
+// policyCardDefs lists the policy card catalogue.
+// APCost is the action-point spend to play the card.
+// BudgetCostToSubmit is the one-off GBP millions cost to table the policy.
+// WeeklyEffect.BudgetCostPerWeek is the ongoing sustain cost in GBP millions/week.
+// TechUnlockGate = "" means no technology gate applies.
+// ApprovalSteps are checked in order; all must pass before the card activates.
+var policyCardDefs = []PolicyCardDef{
+
+	// ------------------------------------------------------------------
+	// POWER SECTOR
+	// ------------------------------------------------------------------
+
+	{
+		ID:                 "offshore_wind_cfd",
+		Name:               "Offshore Wind CfD Round",
+		Sector:             PolicySectorPower,
+		Description:        "Issue a Contracts for Difference auction for offshore wind capacity, guaranteeing a strike price that de-risks private investment.",
+		APCost:             2,
+		BudgetCostToSubmit: 20.0,
+		TechUnlockGate:     TechOffshoreWind,
+		TechUnlockThreshold: 20.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+			{Role: RoleEnergy, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorPower,
+			BaseCarbonDeltaMt: -0.18,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 1.4,
+		},
+		LCRDeltaPerWeek:       0.08,
+		PopularityRiskPerWeek: 0.02,
+	},
+	{
+		ID:                  "onshore_wind_planning_reform",
+		Name:                "Onshore Wind Planning Reform",
+		Sector:              PolicySectorPower,
+		Description:         "Remove the de facto ban on onshore wind in the planning framework, allowing consenting applications to proceed on their merits.",
+		APCost:              3,
+		BudgetCostToSubmit:  5.0,
+		TechUnlockGate:      TechOnshoreWind,
+		TechUnlockThreshold: 25.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 45.0, MaxIdeologyConflict: 40.0},
+			{Role: RoleEnergy, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorPower,
+			BaseCarbonDeltaMt: -0.12,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 0.4,
+		},
+		LCRDeltaPerWeek:       0.06,
+		PopularityRiskPerWeek: 0.06,
+	},
+	{
+		ID:                  "solar_pv_subsidy",
+		Name:                "Solar PV Feed-in Tariff",
+		Sector:              PolicySectorPower,
+		Description:         "Reintroduce a technology-specific feed-in tariff for rooftop and ground-mount solar PV installations to accelerate deployment.",
+		APCost:              2,
+		BudgetCostToSubmit:  10.0,
+		TechUnlockGate:      TechSolarPV,
+		TechUnlockThreshold: 10.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorPower,
+			BaseCarbonDeltaMt: -0.08,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 0.9,
+		},
+		LCRDeltaPerWeek:       0.05,
+		PopularityRiskPerWeek: 0.01,
+	},
+	{
+		ID:                  "nuclear_new_build_cfd",
+		Name:                "Nuclear New-Build CfD",
+		Sector:              PolicySectorPower,
+		Description:         "Commission a new nuclear power station under a Regulated Asset Base model, guaranteeing investor returns over a 35-year period.",
+		APCost:              4,
+		BudgetCostToSubmit:  50.0,
+		TechUnlockGate:      TechNuclear,
+		TechUnlockThreshold: 35.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 50.0, MaxIdeologyConflict: 35.0},
+			{Role: RoleChancellor, MinRelationshipScore: 50.0, MaxIdeologyConflict: 35.0},
+			{Role: RoleEnergy, MinRelationshipScore: 40.0, MaxIdeologyConflict: 45.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorPower,
+			BaseCarbonDeltaMt: -0.25,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 3.8,
+		},
+		LCRDeltaPerWeek:       0.04,
+		PopularityRiskPerWeek: 0.04,
+	},
+	{
+		ID:                  "grid_modernisation_fund",
+		Name:                "Grid Modernisation Fund",
+		Sector:              PolicySectorPower,
+		Description:         "Capitalise an infrastructure fund to accelerate connection queues, smart grid upgrades, and long-duration storage deployment.",
+		APCost:              2,
+		BudgetCostToSubmit:  30.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+			{Role: RoleEnergy, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorPower,
+			BaseCarbonDeltaMt: -0.06,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 2.2,
+		},
+		LCRDeltaPerWeek:       0.04,
+		PopularityRiskPerWeek: 0.01,
+	},
+
+	// ------------------------------------------------------------------
+	// TRANSPORT SECTOR
+	// ------------------------------------------------------------------
+
+	{
+		ID:                  "zev_mandate",
+		Name:                "Zero Emission Vehicle Mandate",
+		Sector:              PolicySectorTransport,
+		Description:         "Require automakers to achieve a rising proportion of zero-emission new car and van sales, enforced by financial penalties per non-compliant unit.",
+		APCost:              3,
+		BudgetCostToSubmit:  8.0,
+		TechUnlockGate:      TechEVs,
+		TechUnlockThreshold: 15.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 40.0, MaxIdeologyConflict: 45.0},
+			{Role: RoleEnergy, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorTransport,
+			BaseCarbonDeltaMt: -0.14,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 0.2,
+		},
+		LCRDeltaPerWeek:       0.07,
+		PopularityRiskPerWeek: 0.04,
+	},
+	{
+		ID:                  "ev_charging_infrastructure",
+		Name:                "Public EV Charging Network",
+		Sector:              PolicySectorTransport,
+		Description:         "Fund a national rapid-charging network with mandatory coverage targets for rural areas and motorway corridors.",
+		APCost:              2,
+		BudgetCostToSubmit:  25.0,
+		TechUnlockGate:      TechEVs,
+		TechUnlockThreshold: 10.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorTransport,
+			BaseCarbonDeltaMt: -0.04,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 1.1,
+		},
+		LCRDeltaPerWeek:       0.04,
+		PopularityRiskPerWeek: 0.01,
+	},
+	{
+		ID:                  "public_transport_electrification",
+		Name:                "Rail and Bus Electrification",
+		Sector:              PolicySectorTransport,
+		Description:         "Fund electrification of remaining diesel rail lines and set binding phase-out dates for diesel buses in major cities.",
+		APCost:              3,
+		BudgetCostToSubmit:  35.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 45.0, MaxIdeologyConflict: 45.0},
+			{Role: RoleLeader, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorTransport,
+			BaseCarbonDeltaMt: -0.10,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 2.6,
+		},
+		LCRDeltaPerWeek:       0.06,
+		PopularityRiskPerWeek: 0.02,
+	},
+
+	// ------------------------------------------------------------------
+	// BUILDINGS SECTOR
+	// ------------------------------------------------------------------
+
+	{
+		ID:                  "heat_pump_grant",
+		Name:                "Heat Pump Grant Scheme",
+		Sector:              PolicySectorBuildings,
+		Description:         "Offer households a direct capital grant to cover the cost differential between a new heat pump and a gas boiler replacement.",
+		APCost:              2,
+		BudgetCostToSubmit:  15.0,
+		TechUnlockGate:      TechHeatPumps,
+		TechUnlockThreshold: 12.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+			{Role: RoleEnergy, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorBuildings,
+			BaseCarbonDeltaMt: -0.10,
+			CapacityDependent: true,
+			TechDependent:     true,
+			RetrofitDependent: false,
+			BudgetCostPerWeek: 1.6,
+		},
+		LCRDeltaPerWeek:       0.06,
+		PopularityRiskPerWeek: 0.02,
+	},
+	{
+		ID:                  "national_retrofit_programme",
+		Name:                "National Retrofit Programme",
+		Sector:              PolicySectorBuildings,
+		Description:         "Provide means-tested grants and low-interest loans for whole-house insulation retrofit, prioritising fuel-poor households.",
+		APCost:              3,
+		BudgetCostToSubmit:  20.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+			{Role: RoleLeader, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorBuildings,
+			BaseCarbonDeltaMt: -0.08,
+			CapacityDependent: true,
+			TechDependent:     false,
+			RetrofitDependent: true,
+			BudgetCostPerWeek: 2.0,
+		},
+		LCRDeltaPerWeek:       0.05,
+		PopularityRiskPerWeek: 0.01,
+	},
+	{
+		ID:                  "minimum_energy_efficiency_standard",
+		Name:                "Minimum Energy Efficiency Standard",
+		Sector:              PolicySectorBuildings,
+		Description:         "Legislate a minimum EPC C rating for all rented properties; landlords who fail to comply face financial penalties.",
+		APCost:              2,
+		BudgetCostToSubmit:  4.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 35.0, MaxIdeologyConflict: 50.0},
+			{Role: RoleChancellor, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorBuildings,
+			BaseCarbonDeltaMt: -0.06,
+			CapacityDependent: true,
+			TechDependent:     false,
+			RetrofitDependent: true,
+			BudgetCostPerWeek: 0.3,
+		},
+		LCRDeltaPerWeek:       0.04,
+		PopularityRiskPerWeek: 0.05,
+	},
+	{
+		ID:                  "boiler_upgrade_scheme",
+		Name:                "Boiler Upgrade Scheme",
+		Sector:              PolicySectorBuildings,
+		Description:         "Offer a smaller voucher-based incentive for replacing old gas boilers with heat pumps, targeting households with serviceable but ageing heating systems.",
+		APCost:              1,
+		BudgetCostToSubmit:  8.0,
+		TechUnlockGate:      TechHeatPumps,
+		TechUnlockThreshold: 8.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleEnergy, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorBuildings,
+			BaseCarbonDeltaMt: -0.05,
+			CapacityDependent: true,
+			TechDependent:     true,
+			BudgetCostPerWeek: 0.8,
+		},
+		LCRDeltaPerWeek:       0.03,
+		PopularityRiskPerWeek: 0.01,
+	},
+	{
+		ID:                  "social_housing_decarbonisation",
+		Name:                "Social Housing Decarbonisation Fund",
+		Sector:              PolicySectorBuildings,
+		Description:         "Ring-fence capital for local authorities to retrofit social housing stock to at least EPC C, directly reducing fuel poverty in the worst-off areas.",
+		APCost:              2,
+		BudgetCostToSubmit:  18.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorBuildings,
+			BaseCarbonDeltaMt: -0.07,
+			CapacityDependent: true,
+			TechDependent:     false,
+			RetrofitDependent: true,
+			BudgetCostPerWeek: 1.5,
+		},
+		LCRDeltaPerWeek:       0.05,
+		PopularityRiskPerWeek: -0.01, // net positive to popularity
+	},
+
+	// ------------------------------------------------------------------
+	// INDUSTRY SECTOR
+	// ------------------------------------------------------------------
+
+	{
+		ID:                  "emissions_trading_scheme",
+		Name:                "Industrial Emissions Trading Scheme",
+		Sector:              PolicySectorIndustry,
+		Description:         "Establish a mandatory cap-and-trade scheme covering the largest industrial emitters, with a declining cap aligned to carbon budgets.",
+		APCost:              4,
+		BudgetCostToSubmit:  12.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 50.0, MaxIdeologyConflict: 40.0},
+			{Role: RoleChancellor, MinRelationshipScore: 45.0, MaxIdeologyConflict: 45.0},
+			{Role: RoleEnergy, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+			{Role: RoleForeignSecretary, MinRelationshipScore: 30.0, MaxIdeologyConflict: 60.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorIndustry,
+			BaseCarbonDeltaMt: -0.20,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 0.5,
+		},
+		LCRDeltaPerWeek:       0.10,
+		PopularityRiskPerWeek: 0.06,
+	},
+	{
+		ID:                  "hydrogen_industrial_cluster",
+		Name:                "Hydrogen Industrial Cluster",
+		Sector:              PolicySectorIndustry,
+		Description:         "Co-invest with private partners to establish a low-carbon hydrogen production hub serving heavy industry in the Northern Industrial Belt.",
+		APCost:              3,
+		BudgetCostToSubmit:  40.0,
+		TechUnlockGate:      TechHydrogen,
+		TechUnlockThreshold: 15.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 45.0, MaxIdeologyConflict: 45.0},
+			{Role: RoleEnergy, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorIndustry,
+			BaseCarbonDeltaMt: -0.16,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 2.8,
+		},
+		LCRDeltaPerWeek:       0.08,
+		PopularityRiskPerWeek: 0.02,
+	},
+	{
+		ID:                  "industrial_ccs_investment",
+		Name:                "Industrial CCS Investment Programme",
+		Sector:              PolicySectorIndustry,
+		Description:         "Provide capital grants and revenue support for carbon capture and storage projects at major industrial point sources.",
+		APCost:              3,
+		BudgetCostToSubmit:  45.0,
+		TechUnlockGate:      TechIndustrialCCS,
+		TechUnlockThreshold: 12.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 45.0, MaxIdeologyConflict: 45.0},
+			{Role: RoleEnergy, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorIndustry,
+			BaseCarbonDeltaMt: -0.18,
+			CapacityDependent: false,
+			TechDependent:     true,
+			BudgetCostPerWeek: 3.0,
+		},
+		LCRDeltaPerWeek:       0.07,
+		PopularityRiskPerWeek: 0.02,
+	},
+
+	// ------------------------------------------------------------------
+	// CROSS-CUTTING
+	// ------------------------------------------------------------------
+
+	{
+		ID:                  "carbon_price_floor",
+		Name:                "Carbon Price Floor",
+		Sector:              PolicySectorCross,
+		Description:         "Set a minimum price for carbon across all sectors of the economy, providing a long-term investment signal and raising Treasury revenue.",
+		APCost:              4,
+		BudgetCostToSubmit:  6.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 50.0, MaxIdeologyConflict: 35.0},
+			{Role: RoleChancellor, MinRelationshipScore: 50.0, MaxIdeologyConflict: 35.0},
+			{Role: RoleForeignSecretary, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorCross,
+			BaseCarbonDeltaMt: -0.22,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: -1.2, // net revenue positive
+		},
+		LCRDeltaPerWeek:       0.12,
+		PopularityRiskPerWeek: 0.08,
+	},
+	{
+		ID:                  "green_investment_bank",
+		Name:                "National Green Investment Bank",
+		Sector:              PolicySectorCross,
+		Description:         "Capitalise a state-backed investment bank mandated to crowd in private finance for clean energy and retrofit projects.",
+		APCost:              3,
+		BudgetCostToSubmit:  60.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleLeader, MinRelationshipScore: 45.0, MaxIdeologyConflict: 40.0},
+			{Role: RoleChancellor, MinRelationshipScore: 50.0, MaxIdeologyConflict: 35.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorCross,
+			BaseCarbonDeltaMt: -0.12,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 1.0,
+		},
+		LCRDeltaPerWeek:       0.06,
+		PopularityRiskPerWeek: 0.01,
+	},
+	{
+		ID:                  "green_skills_fund",
+		Name:                "Green Skills and Jobs Fund",
+		Sector:              PolicySectorCross,
+		Description:         "Fund apprenticeship and retraining schemes to build the installer and engineering workforce needed across all low-carbon sectors.",
+		APCost:              2,
+		BudgetCostToSubmit:  22.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 35.0, MaxIdeologyConflict: 55.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorCross,
+			BaseCarbonDeltaMt: -0.02,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 1.4,
+		},
+		LCRDeltaPerWeek:       0.03,
+		PopularityRiskPerWeek: -0.01,
+	},
+	{
+		ID:                  "fuel_poverty_emergency_fund",
+		Name:                "Fuel Poverty Emergency Fund",
+		Sector:              PolicySectorCross,
+		Description:         "Establish a standing fund that automatically pays targeted energy bill support to households in fuel poverty during high-price periods.",
+		APCost:              2,
+		BudgetCostToSubmit:  10.0,
+		TechUnlockGate:      "",
+		TechUnlockThreshold: 0.0,
+		ApprovalSteps: []ApprovalRequirement{
+			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},
+		},
+		WeeklyEffect: WeeklyEffectDef{
+			Sector:            PolicySectorCross,
+			BaseCarbonDeltaMt: 0.0,
+			CapacityDependent: false,
+			TechDependent:     false,
+			BudgetCostPerWeek: 1.8,
+		},
+		LCRDeltaPerWeek:       0.01,
+		PopularityRiskPerWeek: -0.03, // reduces popularity risk
+	},
+}

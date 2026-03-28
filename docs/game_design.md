@@ -1026,11 +1026,44 @@ When in opposition, they are shadows whose relationships still matter.
 
   --- Left (Taitan Labour equivalent) ---
 
-  Leader:      David Reeve
-    Pragmatic centrist. Pro-net-zero but cautious about pace and household costs.
+  Leader:      JJ Cameron
+    Long-serving backbencher, former supply teacher, trade union organiser, and
+    prolific pamphleteer. Elevated to the leadership late in his career by a
+    wave of grassroots membership enthusiasm that surprised everyone, including him.
+    Deeply ideological in a way that feels more like conviction than calculation --
+    which is both his greatest asset and his most reliable electoral liability.
+    A little old and visibly tired, but still capable of galvanising a crowd that
+    already agrees with him. Less effective at persuading anyone who does not.
+    Has a genuine, long-standing written record on climate and energy justice --
+    predating it being fashionable -- which gives the player real LCR opportunity
+    if they can channel it, but his framing (public ownership, anti-corporate) creates
+    friction with LCT industry stakeholders and private consultancies.
+    Gravitational pull toward FarLeft positions: if in power he will periodically
+    push policies that read as FarLeft coalition-pleasing, especially on renationalisation
+    and anti-corporate climate measures. Player must manage this tendency carefully.
+    ideologyScore: -75, netZeroSympathy: 85, riskTolerance: 40, populismScore: 70
+    Signals: "been saying this since before it was popular", "enormous membership
+    support, limited swing-voter appeal", "once wrote a pamphlet on energy commons"
+    Popularity mechanic: high polarisation modifier -- regional tiles with low income
+    and high FuelPoverty respond very positively; professional and suburban tiles
+    respond negatively. GovernmentPopularity variance is elevated while he leads.
+    Departure trigger: standard PM state machine applies, PLUS a special ELECTORAL_FATIGUE
+    trigger: after losing 2 or more general elections as leader, a party coup event
+    fires regardless of current popularity. The membership that loved him accepts
+    that the country will not -- he is replaced by a more centrist successor from the
+    Left bench (David Reeve, below, is that successor figure).
+    Rotation: anchor figure at start; departs via ELECTORAL_FATIGUE if Left loses twice
+
+  Leader (successor): David Reeve
+    Enters the Left leader pool only after JJ Cameron departs. Pragmatic centrist,
+    pro-net-zero but cautious about pace and household cost framing. The party's
+    attempt to broaden its electoral coalition after the Cameron years.
     ideologyScore: -25, netZeroSympathy: 65, riskTolerance: 45, populismScore: 40
     Signals: "modernising figure within the party", "backed the Climate Commitment Act",
     "known for consensus-building style"
+    Note: if Left never loses two elections under JJ Cameron, Reeve never leads -- he
+    remains a backbench figure the player can brief and cultivate but who never
+    reaches the top spot in that playthrough.
 
   Chancellor:  George Harmon
     Fiscal conservative in a left-of-centre mould. Supportive of green investment if

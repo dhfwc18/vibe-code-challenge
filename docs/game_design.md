@@ -585,70 +585,159 @@ no invalid minister states, carbon accumulation bounded.
 
 ---
 
-## G. Open Design Questions
+## G. Design Decisions (Resolved)
 
-1. Minister legibility: how much of a minister's ideology is inferable from party, name,
-   prior public record (free to read) vs. requiring player to probe via meetings?
+Q1  RESOLVED: Party membership and name give a broad ideological hint only. No free
+    biography. Hidden attributes require probing via meetings and observing responses.
 
-2. Election stochasticity: should the seeded stochastic term be derived from the last 10
-   player actions (making different strategies produce different outcomes), or purely random?
+Q2  RESOLVED: Election outcome is stochastic AND context-driven. The stochastic term is
+    seeded from local tile-level political opinion aggregated upward through regions.
+    Different regional compositions and different player actions in those regions produce
+    genuinely different election outcomes. See Popularity Aggregation below.
 
-3. Carbon sector granularity: track 6 separate emission sectors (power, transport, buildings,
-   industry, agriculture, land) or a single aggregated carbon number?
+Q3  RESOLVED: Four emission sectors tracked separately -- Power, Transport, Buildings,
+    Industry. Agriculture, land use, and waste grouped as Other (single aggregate).
+    Each sector has its own policy cards and carbon contribution.
 
-4. Consultancy cross-reference: can players directly compare two reports on the same topic
-   to detect low-quality or biased output?
+Q4  RESOLVED: Yes. Players can display multiple reports on the same topic side by side.
+    Spotting contradictions and triangulating truth is an intentional gameplay mechanic.
 
-5. Regional partial transparency: should some regional information be freely visible from
-   public data (qualitative level), with precise numbers requiring consultancy?
+Q5  RESOLVED: Tiered information access. Coarse qualitative information freely visible
+    (e.g. "North East: installer capacity low" as a public statistic). Precise numerical
+    values require paid consultancy. Higher-quality consultancy reveals more precise data.
 
-6. Minister AP costs: should AP cost to meet a minister be dynamic (higher for hostile ones)?
+Q6  RESOLVED: AP cost to meet a minister is dynamic. Hostile ministers cost more AP.
+    Cost formula: baseAPCost + max(0, floor(-relationshipScore / 20)).
 
-7. Average ministerial tenure target: real UK data ~2 years (104 weeks). Right for gameplay?
+Q7  RESOLVED: Tenure is stochastic, anchored around 104 weeks but personality-dependent.
+    Low-popularity ministers face sacking. Unexpectedly high-popularity ministers may be
+    promoted (removed from post positively) depending on PM personality and state.
+    See PM Character below.
 
-8. UI library: adopt ebitenui or build a bespoke minimal widget system?
+Q8  RESOLVED: ebitenui adopted as the UI widget library.
 
-9. Save file migration: refuse to load older saves, or write version migration functions?
+Q9  RESOLVED: Save files carry a version tag. Incompatible versions are refused with a
+    clear message. No migration functions.
 
-15. Tile count and granularity: ~60-80 tiles (local authority level) or coarser (~30 tiles,
-    roughly county-level)? Finer gives richer spatial variation but higher tuning cost.
+Q10 RESOLVED: Each minister is generated with 2-3 observable personality signals on
+    appointment (e.g. "known sceptic of large consultancy spend", "publicly backed
+    onshore wind in 2019", "reputation for tight budget discipline"). These are
+    qualitative hints to help the player form hypotheses about hidden attributes.
 
-16. Legacy retrofit gap repair: should a player be able to commission a re-inspection and
-    remediation programme that retroactively improves TrueRetrofitRate in existing stock
-    (expensive, slow), or is the quality gap permanent for work done before standards?
+Q11 RESOLVED: Climate events produce a small automatic LCR nudge (direction depends on
+    ClimateState severity -- more severe = stronger automatic nudge toward blaming fossil
+    fuels). The player response then determines the larger secondary effect. The exact
+    magnitude of the player response outcome is semi-unknown (outcome range shown, not
+    exact value) to preserve uncertainty.
 
-17. FuelPoverty political visibility: should high FuelPoverty in a tile eventually surface
-    in national press (event log entry) even without a consultancy -- modelling how fuel
-    poverty becomes a visible political crisis when severe enough?
+Q12 RESOLVED: FossilDependency is semi-readable. A rough qualitative band is freely
+    visible (e.g. "High / Medium / Low fossil dependency") but precise percentage
+    requires diverting analytical resource (a low-cost internal team action, not a full
+    consultancy commission). This makes it an attractive option to invest in.
 
-18. Observed vs true retrofit gap at launch: should the game start in 2010 with some
-    pre-existing quality gap in early retrofits (realistic -- pre-PAS 2030 era had
-    significant quality problems), or start from a clean slate?
+Q13 RESOLVED: Single tax revenue figure. Policies that affect tax raise or drop the
+    whole value. No breakdown by source for now.
 
-19. Energy price display: should GasPrice and ElectricityPrice be shown as a live ticker
-    on the HUD at all times, or displayed only on an energy dashboard screen the player
-    navigates to? The former makes price shocks more visceral; the latter reduces HUD clutter.
+Q14 RESOLVED: ShockResponseCards persist for 2-3 weeks (stochastic window drawn at
+    event time). Expiry shown as a countdown in the event log. Creates time pressure
+    without punishing the player for taking one deliberate turn to consider.
 
-20. Price unit convention: show prices in GBP/MWh (as DESNZ publishes, more educational)
-    or GBP per household per year (more immediately legible as a welfare indicator)?
-    Could show both: wholesale GBP/MWh on the energy dashboard, annual household cost
-    as part of the fuel poverty view.
+Q15 RESOLVED: 30 tiles at county level.
 
-10. Minister distinctiveness: procedurally generated observable personality signals
-    (catchphrases, known public positions) to help players infer hidden attributes?
+Q16 RESOLVED: Legacy quality gap is permanent for work done before standards policy.
+    Re-doing properties requires a new retrofit policy pass, which costs budget and
+    installer capacity. This is the intended long-tail consequence of early inaction.
 
-11. Climate event tone: when a climate event occurs (flooding, cold snap), should the
-    LowCarbonReputation delta be automatically positive (public blames fossil fuels) or
-    should it depend on whether the player successfully capitalises? I.e. is the event
-    itself neutral and only the player response determines the reputation outcome?
+Q17 RESOLVED: Yes. FuelPoverty above a national severity threshold triggers an automatic
+    press event and political crisis event in the event log, without player action.
+    This scales with severity: minor hardship stories at moderate levels, full political
+    crisis event at high levels.
 
-12. Fossil dependency visibility: should FossilDependency be directly readable from a
-    public statistics page (realistic -- DESNZ publishes this), or kept behind consultancy
-    fog of war to increase strategic uncertainty?
+Q18 RESOLVED: Game starts in 2010 with a pre-existing installer quality gap seeded into
+    early-era tiles. Historically accurate (pre-PAS 2030 UK retrofit quality problems).
 
-13. Tax revenue granularity: should the player see a breakdown of tax revenue by source
-    (income tax, fuel duty, VAT, business rates) or just a single GBP figure? A breakdown
-    would make the oil shock -> fuel duty loss link tangible and educational.
+Q19 RESOLVED: Dedicated energy and household dashboard screen. HUD shows a simple
+    colour-coded indicator (green/amber/red) for energy price state only. Full prices
+    and household-level breakdown on the dashboard.
 
-14. Shock response timing: should ShockResponseCards expire after 1 week (use them or
-    lose them) or persist until the player acts (simpler but less tense)?
+Q20 RESOLVED: Wholesale GBP/MWh shown on the energy dashboard (always visible there).
+    Annual household cost is NOT immediately available -- it requires commissioning an
+    energy survey or social research consultancy to estimate for specific tiles or regions.
+
+---
+
+## H. Structural Implications of Resolved Decisions
+
+### Popularity Aggregation (from Q2)
+
+Popularity is no longer a flat national number. It aggregates bottom-up:
+
+  TileLocalPoliticalOpinion (per tile, hidden, 0-100)
+      |  weighted average across tiles in region
+      v
+  RegionalOpinion (per region, hidden, 0-100)
+      |  weighted average across regions by population weight
+      v
+  GovernmentPopularity (national, hidden, 0-100)
+      |  noisy poll (sigma=3) every 8-12 weeks
+      v
+  LastPollResult (visible)
+
+Events and policies modify TileLocalPoliticalOpinion directly. National-level events
+(scandals, international agreements) apply a uniform delta across all tiles. Regional
+events (flooding, fuel poverty crisis) apply only to affected tiles. The aggregate
+propagates upward each week in Phase 12.
+
+MinisterPopularity also aggregates from tiles in the minister's primary region of
+responsibility, not from a national signal. A minister overseeing a heavily fuel-poor
+region accumulates local pressure that national polling may not capture until it spills
+into press events.
+
+### PM as Separate Character (from Q7)
+
+The Prime Minister is a distinct interactable character separate from the departmental
+minister pool. The PM has:
+  - Hidden attributes matching minister format (ideology, netZeroSympathy, riskTolerance,
+    populismScore)
+  - Observable signals on appointment (2-3 public positions per Q10)
+  - Their own popularity meter (PMPopularity, hidden, aggregated from tile opinion)
+  - A relationship score with the player (civil servants can cultivate PM access)
+
+PM state machine (separate from Government state machine):
+
+  States: INCUMBENT | UNDER_PRESSURE | LEADERSHIP_CHALLENGE | DEPARTED
+
+  INCUMBENT        -> UNDER_PRESSURE      : PMPopularity < 35 for 4+ weeks
+  UNDER_PRESSURE   -> INCUMBENT           : PMPopularity rises above 35
+  UNDER_PRESSURE   -> LEADERSHIP_CHALLENGE: PMPopularity < 25 for 3+ weeks
+                                            OR GovernmentPopularity < 25 for 4+ weeks
+  LEADERSHIP_CHALLENGE -> INCUMBENT       : Challenge fails (probabilistic, party loyalty)
+  LEADERSHIP_CHALLENGE -> DEPARTED        : Challenge succeeds; new PM drawn from party pool
+  INCUMBENT        -> DEPARTED            : Election loss (government changes party)
+
+PM personality affects minister management:
+  - High populismScore PM: sacks ministers who become more popular than the PM
+  - High riskTolerance PM: tolerates unpopular ministers longer before sacking
+  - High netZeroSympathy PM: promotes net-zero champion ministers regardless of popularity
+  - Low netZeroSympathy PM: blocks major climate policies regardless of player lobbying
+
+Player interaction with PM:
+  - Meet PM: costs 3-4 AP (most expensive interaction), requires RelationshipScore >= 20
+  - Brief PM on climate science: builds PM netZeroSympathy slowly over multiple meetings
+  - Request PM backing for major policy: requires RelationshipScore >= 50 + policy aligns
+    with PM ideology; success unlocks fast-track approval bypassing some ministers
+
+### Emission Sectors (from Q3)
+
+Four tracked sectors, each with separate weekly carbon contribution and policy cards:
+
+  Power:      baseline ~160 MtCO2e/yr in 2010; target near-zero by 2035
+  Transport:  baseline ~120 MtCO2e/yr in 2010; target ~10 MtCO2e/yr by 2050
+  Buildings:  baseline ~90 MtCO2e/yr in 2010; target ~5 MtCO2e/yr by 2050
+  Industry:   baseline ~90 MtCO2e/yr in 2010; target ~15 MtCO2e/yr by 2050
+  Other:      baseline ~130 MtCO2e/yr in 2010; target ~20 MtCO2e/yr by 2050
+              (agriculture, waste, land use -- hard to abate; residual offset by sinks)
+
+Total 2010 baseline: ~590 MtCO2e/yr (matches Green Book reference data).
+Policies belong to one or more sectors. A building retrofit policy reduces Buildings
+sector emissions. An EV mandate reduces Transport. A renewables auction reduces Power.

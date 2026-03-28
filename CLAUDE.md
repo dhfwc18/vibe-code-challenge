@@ -60,14 +60,14 @@ Never use copyrighted materials without a licence that permits use in this proje
 - Only use assets (fonts, images, audio, data, code libraries) that are explicitly
   released under a permissive licence (MIT, Apache 2.0, CC0, CC-BY, OFL, public domain).
   Copyleft licences (GPL, LGPL, CC-SA) are not permitted -- see engine stack rule above.
-- Every third-party asset or library used must have an entry in `records/CREDITS.md`
+- Every third-party asset or library used must have an entry in `CREDITS.md`
   before it is committed to the repo.
 - Format for each entry: name, source URL (if applicable), licence, and what it is used for.
 - If a free asset is obtained from a distribution site (itch.io, OpenGameArt, Google Fonts,
   etc.) record both the original author and the distribution source.
 - When in doubt about a licence, do not use the asset -- ask first.
 - This rule applies retroactively: all libraries and reference data already in use must
-  be recorded in `records/CREDITS.md`.
+  be recorded in `CREDITS.md`.
 
 ## Testing Convention
 

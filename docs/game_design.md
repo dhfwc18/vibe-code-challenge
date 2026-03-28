@@ -207,6 +207,18 @@ internal/
                 overshoot accounting, cumulative stock tracking, trajectory projection.
                 Outputs cumulativeStock used by climate package. Pure functions.
 
+  stakeholder/  All 16 political figures (4 parties x 4 roles) plus PM state machine.
+                Stakeholder struct shared by all figures. PartyPool keyed by Party and Role.
+                GoverningParty tracker. RelationshipManager per stakeholder.
+                Interaction cost calculator (dynamic AP based on relationship and seniority).
+                Opposition briefing value calculator (pre-election relationship investment).
+
+  industry/     LCT company roster (15 base companies + emergent). Company struct with
+                static seed and dynamic state. CompanyStateMachine. Weekly background work
+                computation (R&D -> TechMaturity delta, deployment -> InstallerCapacity delta).
+                Player intervention handlers (contract, grant, standard, investigation).
+                Company lobbying event generation. Shown in Industry tab in UI.
+
   energy/       EnergyMarket struct. GasPrice, ElectricityPrice, OilPrice, RenewableGridShare.
                 Weekly price update functions applying global market deltas, carbon levy,
                 renewable subsidy, and grid coupling model. Price history ring buffers for
@@ -372,6 +384,53 @@ Tile {
   // Fog-of-war tracking:
   revealedAttributes: map[string -> bool]
 }
+
+Party enum: FarLeft | Left | Right | FarRight
+
+PartyRole enum: Leader | Chancellor | DefenceSecy | EnergySecy
+
+Stakeholder {
+  id: UUID
+  name: string
+  party: Party
+  role: PartyRole
+  isGoverning: bool                     // true when their party holds power
+  state: MinisterState                  // reuses minister state machine
+  graceWeeksRemaining: int
+  // Hidden:
+  ideologyScore: float64               // -100 far-left to +100 far-right
+  netZeroSympathy: float64
+  riskTolerance: float64
+  populismScore: float64
+  popularity: float64                  // aggregated from tile opinion in political region
+  weeksUnderPressure: int
+  ideologyConflictAccumulator: float64
+  // Visible:
+  relationshipWithPlayer: float64      // -100 to +100
+  personalitySignals: []string         // 2-3 observable descriptors on appointment
+}
+
+Company {
+  id: UUID
+  name: string
+  techFocus: TechCategory
+  foreignOwned: bool
+  baseQuality: float64                 // seeded, static
+  baseWorkRate: float64               // seeded, static
+  // Dynamic:
+  currentSize: CompanySize            // STARTUP | SME | LARGE | MULTINATIONAL
+  quality: float64                    // drifts with standards policy
+  workRate: float64                   // boosted by contracts/grants
+  reputation: float64                 // 0-100, public trust
+  playerRelationship: float64         // -100 to +100
+  state: CompanyState                 // STARTUP|GROWING|ESTABLISHED|STRUGGLING|BANKRUPT
+  activeContracts: []ContractID
+  weeksStruggling: int
+}
+
+CompanySize enum: Startup | SME | Large | Multinational
+TechCategory enum: OffshoreWind | OnshoreWind | Solar | HeatPumps | EVs |
+                   Hydrogen | CCUS | GridRetail | Installation | LegacyTransition
 
 HeatingType enum: Gas | Oil | Electric | HeatPump | Mixed
 // Transitions: Gas -> HeatPump or Gas -> Electric driven by active heat pump / boiler policies.
@@ -565,19 +624,27 @@ ShockResponseCard {
 Layer 0 (no game dependencies):    config, save
 Layer 1 (pure domain models):      carbon, technology, region
 Layer 2 (derived world models):    energy, climate, economy, reputation
-Layer 3 (agent models):            minister, government, polling
+Layer 3 (agent models):            stakeholder, government, polling, industry
 Layer 4 (player-facing mechanics): policy, consultancy, event, player
 Layer 5 (orchestration):           simulation
 Layer 6 (presentation):            ui
 Layer 7 (entry point):             game
 
 Key dependencies:
-  energy     <- config (historical anchors), event (shock deltas)
-  climate    <- carbon (cumulativeStock), event (shock queue)
-  economy    <- climate (damage), energy (prices affect consumer spending), policy (bonuses)
-  region     <- energy (prices for tile FuelPoverty), climate (event damage)
-  reputation <- government (popularity chain), minister (chain), economy (budget modifier)
-  simulation <- all of the above, in 17-phase pipeline
+  energy      <- config (historical anchors), event (shock deltas)
+  climate     <- carbon (cumulativeStock), event (shock queue)
+  economy     <- climate (damage), energy (prices), policy (bonuses)
+  region      <- energy (prices for tile FuelPoverty), climate (event damage)
+  reputation  <- government (popularity chain), stakeholder (chain), economy (budget modifier)
+  stakeholder <- config (party/role/name pools), government (election triggers party change)
+  industry    <- technology (maturity inputs/outputs), region (deployment capacity),
+                 stakeholder (lobbying events), config (company definitions)
+  simulation  <- all of the above, in 17-phase pipeline
+
+Note: minister package is now stakeholder package. All 16 political figures and the PM
+share the same Stakeholder type and state machine. The minister-specific logic
+(approval pipeline, ideology conflict) still lives here but is driven by role=EnergySecy
+etc. rather than a separate minister concept.
 
 Build each layer with unit tests before moving to the next.
 Headless simulation test: advance 100 weeks, verify no negative budgets,
@@ -693,39 +760,162 @@ responsibility, not from a national signal. A minister overseeing a heavily fuel
 region accumulates local pressure that national polling may not capture until it spills
 into press events.
 
-### PM as Separate Character (from Q7)
+### Political Stakeholder Model (from Q7, clarified)
 
-The Prime Minister is a distinct interactable character separate from the departmental
-minister pool. The PM has:
-  - Hidden attributes matching minister format (ideology, netZeroSympathy, riskTolerance,
-    populismScore)
-  - Observable signals on appointment (2-3 public positions per Q10)
-  - Their own popularity meter (PMPopularity, hidden, aggregated from tile opinion)
-  - A relationship score with the player (civil servants can cultivate PM access)
+The PM and all party figures are STAKEHOLDERS the player manages -- not playable characters.
+The player is always the civil servant. The political layer is something to navigate.
 
-PM state machine (separate from Government state machine):
+#### Four Parties
+
+  FarLeft   -- strong state intervention, aggressive redistribution, strong climate action,
+               sceptical of market-led solutions and corporate LCT companies
+  Left      -- centre-left, Keynesian, pro-net-zero but cautious on costs to households,
+               supportive of regulated LCT market
+  Right     -- centre-right, pro-market, net-zero via technology and private sector,
+               resistant to mandates and spending
+  FarRight  -- nationalist, anti-net-zero framing, energy independence via fossil fuels,
+               hostile to LCT companies seen as foreign-owned
+
+Each party has four key figures. When the party governs, these become the real post-holders.
+When in opposition, they are shadows whose relationships still matter.
+
+  PartyLeader   -- becomes PM if party wins election
+  Chancellor    -- controls Treasury; determines tax policy and overall spending envelope
+  DefenceSecy   -- budget competitor; relevant during energy security events
+  EnergySecy    -- player's direct boss; approves or blocks player's major policy proposals
+
+#### Stakeholder Attributes (shared by all 16 figures)
+
+  Hidden:
+    ideologyScore: float64          // -100 far-left to +100 far-right
+    netZeroSympathy: float64        // 0 hostile to 100 champion
+    riskTolerance: float64          // 0 cautious to 100 reckless
+    populismScore: float64          // 0 technocratic to 100 populist
+  Observable on appointment:
+    2-3 personality signals (known public positions, reputation descriptors)
+  Tracked:
+    popularity: float64             // aggregated from tile opinion in their political region
+    relationshipWithPlayer: float64 // -100 to +100
+    weeksUnderPressure: int
+
+#### PM State Machine
 
   States: INCUMBENT | UNDER_PRESSURE | LEADERSHIP_CHALLENGE | DEPARTED
 
-  INCUMBENT        -> UNDER_PRESSURE      : PMPopularity < 35 for 4+ weeks
-  UNDER_PRESSURE   -> INCUMBENT           : PMPopularity rises above 35
-  UNDER_PRESSURE   -> LEADERSHIP_CHALLENGE: PMPopularity < 25 for 3+ weeks
-                                            OR GovernmentPopularity < 25 for 4+ weeks
-  LEADERSHIP_CHALLENGE -> INCUMBENT       : Challenge fails (probabilistic, party loyalty)
-  LEADERSHIP_CHALLENGE -> DEPARTED        : Challenge succeeds; new PM drawn from party pool
-  INCUMBENT        -> DEPARTED            : Election loss (government changes party)
+  INCUMBENT          -> UNDER_PRESSURE      : PMPopularity < 35 for 4+ weeks
+  UNDER_PRESSURE     -> INCUMBENT           : PMPopularity rises above 35
+  UNDER_PRESSURE     -> LEADERSHIP_CHALLENGE: PMPopularity < 25 for 3+ weeks
+                                              OR GovernmentPopularity < 25 for 4+ weeks
+  LEADERSHIP_CHALLENGE -> INCUMBENT         : Challenge fails (probabilistic, party loyalty)
+  LEADERSHIP_CHALLENGE -> DEPARTED          : Challenge succeeds; next party figure becomes PM
+  INCUMBENT          -> DEPARTED            : Election loss
 
-PM personality affects minister management:
-  - High populismScore PM: sacks ministers who become more popular than the PM
-  - High riskTolerance PM: tolerates unpopular ministers longer before sacking
-  - High netZeroSympathy PM: promotes net-zero champion ministers regardless of popularity
-  - Low netZeroSympathy PM: blocks major climate policies regardless of player lobbying
+PM personality effects on minister management:
+  High populismScore: sacks ministers who poll higher than the PM
+  High riskTolerance: tolerates unpopular ministers longer
+  High netZeroSympathy: promotes net-zero champion ministers regardless of popularity
+  Low netZeroSympathy: can unilaterally block major climate policies
 
-Player interaction with PM:
-  - Meet PM: costs 3-4 AP (most expensive interaction), requires RelationshipScore >= 20
-  - Brief PM on climate science: builds PM netZeroSympathy slowly over multiple meetings
-  - Request PM backing for major policy: requires RelationshipScore >= 50 + policy aligns
-    with PM ideology; success unlocks fast-track approval bypassing some ministers
+#### Player Interactions with Stakeholders
+
+  Meet (any stakeholder):    AP cost = 1-4 (scales with seniority and relationship)
+                             dynamic cost: hostile = +1 AP, ally = -1 AP (min 1)
+  Brief on climate science:  builds netZeroSympathy slowly; requires RelScore >= 0
+  Lobby for policy:          requires RelScore >= 30; outcome weighted by ideology fit
+  Request fast-track:        PM only, RelScore >= 50; bypasses some minister approvals
+  Opposition briefing:       brief shadow Energy/Chancellor now to pre-build relationship
+                             before a potential election win; low cost, low immediate return
+
+#### Governing vs Opposition Figures
+
+At any time 4 figures hold real power (governing party).
+12 figures are in opposition -- they can be briefed and relationship-built, but cannot
+approve policies. Their importance spikes 6 weeks before an election (purdah period --
+player should have already invested in key opposition relationships by then).
+
+### LCT Industry Stakeholders
+
+Low-carbon technology companies form a separate stakeholder layer displayed in the
+Industry tab. They operate in the background every week but respond to player decisions.
+
+#### Company Categories and Roster (fictional names, real-sector inspired)
+
+  Offshore Wind:     ArcLight Offshore, Albion Wind Power
+  Onshore/Solar:     Greenfield Power, Solarion UK
+  Heat Pumps:        ThermaCore Systems, HeatWave Technologies
+  EVs:               Volta Motors UK, BritDrive
+  Hydrogen:          HydroVolt Energy, GreenStream H2
+  CCUS:              CarbonSeal Group, DeepStore CCS
+  Grid/Retail:       GridNorth UK, CleanWatts Energy
+  Legacy Transition: Britannia Energy (large fossil-to-transition incumbent)
+  Installers:        RetroFit UK, HomeGreen Services
+
+15 companies at game start. New companies can emerge as tech matures or player
+funds startup grants. Companies can fail.
+
+#### Company Attributes
+
+  Static (seeded per playthrough):
+    techFocus: TechCategory
+    originSize: CompanySize       // STARTUP | SME | LARGE | MULTINATIONAL
+    baseQuality: float64          // 0-100
+    baseWorkRate: float64         // 0-100
+    foreignOwned: bool            // affects FarRight political risk if player partners them
+
+  Dynamic:
+    currentSize: CompanySize      // changes based on market conditions and player support
+    quality: float64              // improves with standards policy; degrades if rushed
+    workRate: float64             // improves with contracts and grants
+    reputation: float64           // public trust; affects LCR when associated with player
+    playerRelationship: float64   // -100 to +100
+    state: CompanyState           // STARTUP | GROWING | ESTABLISHED | STRUGGLING | BANKRUPT
+
+#### Background Work (automatic, weekly -- Phase 4 and 5)
+
+  R&D contribution:
+    Each company contributes to TechMaturity[techFocus] proportional to
+    workRate * quality * size factor. Larger, higher-quality, well-funded companies
+    advance tech faster.
+
+  Deployment contribution:
+    Each company contributes to RegionalInstallerCapacity[techFocus] in regions where
+    they are active. Activity depends on active procurement contracts and market conditions.
+
+#### Player Interventions (via Industry tab)
+
+  Offer procurement contract:   provides revenue guarantee; increases workRate and size;
+                                 costs DeptBudget; requires EnergySecy approval if large
+  Provide R&D grant:            accelerates TechMaturity contribution for target company;
+                                 costs DeptBudget; low political risk
+  Impose quality standard:      raises quality floor for all companies in a category;
+                                 some companies lobby against (LCR risk); slow to propagate
+  Regulatory change:            can advantage or disadvantage specific company types
+                                 (e.g. planning reform = advantage for onshore wind companies)
+  Support startup grant:        seeds a new STARTUP company in a target tech category;
+                                 cheap but uncertain -- quality and workRate initially low
+  Investigate company:          commission quality audit on a specific company;
+                                 reveals true quality vs. reported quality (similar to
+                                 the retrofit installer quality gap mechanic)
+
+#### Company Lobbying (automatic, reactive)
+
+  Companies can lobby AGAINST player policies that threaten their model:
+    Britannia Energy lobbies against carbon tax on gas
+    Legacy heating manufacturers lobby against heat pump mandates
+  Lobbying applies a LCR and GovernmentPopularity pressure event with magnitude
+  proportional to company size and reputation. Player can counter-lobby (AP cost).
+
+#### Company State Machine
+
+  STARTUP      -> GROWING      : playerRelationship > 40 OR market conditions favourable
+  GROWING      -> ESTABLISHED  : sustained workRate > 60 for 52+ weeks
+  ESTABLISHED  -> STRUGGLING   : market collapse OR player regulatory action
+  GROWING      -> STRUGGLING   : contract cancelled AND no alternative revenue
+  STRUGGLING   -> BANKRUPT     : no recovery in 26 weeks
+  STRUGGLING   -> GROWING      : emergency support grant from player
+  BANKRUPT     -> (removed)    : company archived; its tech pipeline lost unless another
+                                 company absorbs it (automatic if a LARGE company exists
+                                 in same category)
 
 ### Emission Sectors (from Q3)
 

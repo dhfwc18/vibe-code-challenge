@@ -21,11 +21,11 @@ func drawTabOverview(screen *ebiten.Image, world simulation.WorldState, face fon
 	drawLabel(screen, x, y,
 		fmt.Sprintf("Weekly net: %.3f MtCO2e", world.WeeklyNetCarbonMt),
 		ColourTextPrimary, face)
-	y += 16
+	y += 18
 	drawLabel(screen, x, y,
 		fmt.Sprintf("Cumulative stock: %.1f MtCO2e", world.Carbon.CumulativeStock),
 		ColourTextPrimary, face)
-	y += 16
+	y += 18
 
 	// Annual budget warning.
 	if world.Carbon.OvershootAccumulator > 0 {
@@ -34,7 +34,7 @@ func drawTabOverview(screen *ebiten.Image, world simulation.WorldState, face fon
 	} else {
 		drawLabel(screen, x, y, "Annual budget: on track", ColourClimateLow, face)
 	}
-	y += 24
+	y += 32
 
 	// Government section.
 	drawLabel(screen, x, y, "--- Government ---", ColourAccent, face)
@@ -50,7 +50,7 @@ func drawTabOverview(screen *ebiten.Image, world simulation.WorldState, face fon
 		ColourTextPrimary, face)
 	y += 4
 	drawBar(screen, x, y, 200, 10, world.LCR.LastPollResult, 100, ColourOrgThinkTank, ColourButtonNormal)
-	y += 24
+	y += 32
 
 	// Budget section.
 	drawLabel(screen, x, y, "--- Budget ---", ColourAccent, face)
@@ -58,11 +58,11 @@ func drawTabOverview(screen *ebiten.Image, world simulation.WorldState, face fon
 	drawLabel(screen, x, y,
 		fmt.Sprintf("Quarterly discretionary: GBP %.0f m", world.LastBudget.TotalGBPm),
 		ColourTextPrimary, face)
-	y += 16
+	y += 18
 	drawLabel(screen, x, y,
 		fmt.Sprintf("Tax revenue: GBP %.2f bn", world.LastTaxRevenue.GBPBillions),
 		ColourTextPrimary, face)
-	y += 24
+	y += 32
 
 	// Event log.
 	drawLabel(screen, x, y, "--- Recent Events ---", ColourAccent, face)
@@ -76,7 +76,7 @@ func drawTabOverview(screen *ebiten.Image, world simulation.WorldState, face fon
 	for _, e := range entries[start:] {
 		line := fmt.Sprintf("[Wk %4d] %s", e.Week, e.Name)
 		drawLabel(screen, x, y, line, ColourTextMuted, face)
-		y += 14
+		y += 18
 		if y > cy+ch-10 {
 			break
 		}

@@ -8,6 +8,25 @@ import (
 	"golang.org/x/image/font"
 )
 
+// isHovered returns true if the mouse cursor is currently inside the given rectangle.
+// Uses logical screen coordinates (matching ebiten.CursorPosition).
+func isHovered(x, y, w, h int) bool {
+	mx, my := ebiten.CursorPosition()
+	return mx >= x && mx < x+w && my >= y && my < y+h
+}
+
+// buttonColour returns the appropriate button background colour based on hover state.
+// canAct should be false when the button is disabled.
+func buttonColour(x, y, w, h int, canAct bool) color.RGBA {
+	if !canAct {
+		return ColourButtonDisabled
+	}
+	if isHovered(x, y, w, h) {
+		return ColourButtonHover
+	}
+	return ColourButtonNormal
+}
+
 // drawBar draws a horizontal filled progress bar.
 // value and max define the fill fraction (clamped to [0, max]).
 func drawBar(screen *ebiten.Image, x, y, w, h int, value, max float64, fill, bg color.RGBA) {

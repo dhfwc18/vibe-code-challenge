@@ -19,6 +19,14 @@ type evidenceTabState struct {
 	selectedInsight config.InsightType
 }
 
+// truncate returns s truncated to at most n characters.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n]
+}
+
 // drawTabEvidence renders the evidence tab.
 func drawTabEvidence(
 	screen *ebiten.Image,
@@ -37,9 +45,9 @@ func drawTabEvidence(
 	y += 18
 
 	drawLabel(screen, x, y, "Name", ColourTextMuted, face)
-	drawLabel(screen, x+200, y, "Type", ColourTextMuted, face)
-	drawLabel(screen, x+280, y, "Origin", ColourTextMuted, face)
-	drawLabel(screen, x+360, y, "Rel", ColourTextMuted, face)
+	drawLabel(screen, x+224, y, "Type", ColourTextMuted, face)
+	drawLabel(screen, x+320, y, "Origin", ColourTextMuted, face)
+	drawLabel(screen, x+380, y, "Rel", ColourTextMuted, face)
 	y += 14
 
 	for _, orgDef := range world.Cfg.Organisations {
@@ -53,29 +61,28 @@ func drawTabEvidence(
 			nameCol = ColourTextMuted
 		}
 
-		drawLabel(screen, x, y, orgDef.Name, nameCol, face)
-		drawBadge(screen, x+200, y-12, string(orgDef.OrgType), orgTypeColour(orgDef.OrgType), face)
-		drawLabel(screen, x+280, y, string(orgDef.Origin), ColourTextMuted, face)
-		drawBar(screen, x+360, y-11, 80, 10, orgState.RelationshipScore, 100, ColourAccent, ColourButtonNormal)
+		drawLabel(screen, x, y, truncate(orgDef.Name, 28), nameCol, face)
+		drawBadge(screen, x+224, y-12, string(orgDef.OrgType), orgTypeColour(orgDef.OrgType), face)
+		drawLabel(screen, x+320, y, string(orgDef.Origin), ColourTextMuted, face)
+		drawBar(screen, x+380, y-11, 80, 10, orgState.RelationshipScore, 100, ColourAccent, ColourButtonNormal)
 
 		// Cooling-off indicator.
 		if coolingOff {
-			drawLabel(screen, x+450, y, fmt.Sprintf("cool %d", orgState.CoolingOffUntil-world.Week), ColourClimateCritical, face)
+			drawLabel(screen, x+468, y, fmt.Sprintf("cool %d", orgState.CoolingOffUntil-world.Week), ColourClimateCritical, face)
 		}
 
 		// Commission button.
 		canCommission := !coolingOff && !locked
-		btnCol := ColourButtonNormal
+		btnCol := buttonColour(x+556, y-12, 70, 16, canCommission)
 		lblCol := ColourTextPrimary
 		if !canCommission {
-			btnCol = ColourButtonDisabled
 			lblCol = ColourTextMuted
 		}
-		solidRect(screen, x+520, y-12, 70, 16, btnCol)
-		drawLabel(screen, x+524, y, "Commission", lblCol, face)
+		solidRect(screen, x+556, y-12, 70, 16, btnCol)
+		drawLabel(screen, x+560, y, "Commission", lblCol, face)
 
 		_ = pendingActions // click detection in Update
-		y += 16
+		y += 24
 		if y > cy+ch/2 {
 			break
 		}
@@ -145,11 +152,11 @@ func drawCommissionModal(
 	drawLabel(screen, mx+12, my+56, "Insight: "+string(state.selectedInsight), ColourTextPrimary, face)
 
 	// Confirm button.
-	solidRect(screen, mx+50, my+90, 100, 24, ColourButtonNormal)
+	solidRect(screen, mx+50, my+90, 100, 24, buttonColour(mx+50, my+90, 100, 24, true))
 	drawLabel(screen, mx+70, my+106, "Confirm", ColourTextPrimary, face)
 
 	// Cancel button.
-	solidRect(screen, mx+200, my+90, 100, 24, ColourButtonNormal)
+	solidRect(screen, mx+200, my+90, 100, 24, buttonColour(mx+200, my+90, 100, 24, true))
 	drawLabel(screen, mx+220, my+106, "Cancel", ColourTextPrimary, face)
 
 	_ = pendingActions

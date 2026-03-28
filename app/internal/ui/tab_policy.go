@@ -20,7 +20,8 @@ var policyColumns = []policy.PolicyState{
 	policy.PolicyStateArchived,
 }
 
-const policyColW = 220
+const policyColW = 216
+const policyCardH = 72
 
 // drawTabPolicy renders the policy pipeline tab.
 func drawTabPolicy(
@@ -33,7 +34,7 @@ func drawTabPolicy(
 	drawPanel(screen, cx, cy, cw, ch)
 
 	for colIdx, state := range policyColumns {
-		colX := cx + colIdx*policyColW
+		colX := cx + 8 + colIdx*(policyColW+8)
 		if colX+policyColW > cx+cw {
 			break
 		}
@@ -48,11 +49,11 @@ func drawTabPolicy(
 			if pc.State != state {
 				continue
 			}
-			if rowY+60 > cy+ch {
+			if rowY+policyCardH > cy+ch {
 				break
 			}
 			drawPolicyCard(screen, pc, world, pendingActions, face, colX+4, rowY)
-			rowY += 64
+			rowY += policyCardH
 		}
 	}
 }
@@ -66,34 +67,34 @@ func drawPolicyCard(
 	face font.Face,
 	x, y int,
 ) {
-	solidRect(screen, x, y, policyColW-8, 60, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
+	solidRect(screen, x, y, policyColW-8, policyCardH-2, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
 
 	if pc.Def == nil {
 		return
 	}
 
-	drawLabel(screen, x+4, y+13, pc.Def.Name, ColourTextPrimary, face)
+	// Name on line y+14.
+	drawLabel(screen, x+4, y+14, pc.Def.Name, ColourTextPrimary, face)
 
-	// Sector badge.
-	drawBadge(screen, x+4, y+16, string(pc.Def.Sector), sectorColour(pc.Def.Sector), face)
+	// Sector badge at y+20.
+	drawBadge(screen, x+4, y+20, string(pc.Def.Sector), sectorColour(pc.Def.Sector), face)
 
-	// Significance badge.
-	drawBadge(screen, x+90, y+16, string(pc.Def.Significance), significanceColour(pc.Def.Significance), face)
+	// Significance badge at y+20.
+	drawBadge(screen, x+90, y+20, string(pc.Def.Significance), significanceColour(pc.Def.Significance), face)
 
-	// AP cost.
-	drawLabel(screen, x+4, y+36, fmt.Sprintf("AP: %d", pc.Def.APCost), ColourTextMuted, face)
+	// AP cost at y+38.
+	drawLabel(screen, x+4, y+38, fmt.Sprintf("AP: %d", pc.Def.APCost), ColourTextMuted, face)
 
-	// Submit button (DRAFT only).
+	// Submit button at y+50 (DRAFT only).
 	if pc.State == policy.PolicyStateDraft {
 		canSubmit := world.Player.APRemaining >= pc.Def.APCost
-		btnCol := ColourButtonNormal
+		btnCol := buttonColour(x+90, y+50, 50, 16, canSubmit)
 		lblCol := ColourTextPrimary
 		if !canSubmit {
-			btnCol = ColourButtonDisabled
 			lblCol = ColourTextMuted
 		}
-		solidRect(screen, x+90, y+32, 50, 16, btnCol)
-		drawLabel(screen, x+94, y+44, "Submit", lblCol, face)
+		solidRect(screen, x+90, y+50, 50, 16, btnCol)
+		drawLabel(screen, x+94, y+62, "Submit", lblCol, face)
 		_ = pendingActions // click detection in Update
 	}
 }

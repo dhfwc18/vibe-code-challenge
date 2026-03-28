@@ -10,7 +10,7 @@ import (
 	"golang.org/x/image/font"
 )
 
-const hudHeight = 40
+const hudHeight = 48
 
 // HUD renders the top bar of the game screen.
 type HUD struct {
@@ -60,15 +60,15 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 
 	// Left: Year, Week, Quarter.
 	timeStr := fmt.Sprintf("Year %d  Wk %d  Q%d", world.Year, world.Week, world.Quarter)
-	drawLabel(screen, 8, 26, timeStr, ColourTextPrimary, face)
+	drawLabel(screen, 8, 30, timeStr, ColourTextPrimary, face)
 
 	// Centre-left: AP remaining.
 	apStr := fmt.Sprintf("AP: %d", world.Player.APRemaining)
-	drawLabel(screen, 260, 26, apStr, ColourAccent, face)
+	drawLabel(screen, 260, 30, apStr, ColourAccent, face)
 
 	// Centre: LCR value.
 	lcrStr := fmt.Sprintf("LCR: %.0f", world.LCR.LastPollResult)
-	drawLabel(screen, 360, 26, lcrStr, ColourTextPrimary, face)
+	drawLabel(screen, 360, 30, lcrStr, ColourTextPrimary, face)
 
 	// Climate badge.
 	climateCol := climateColour(world.ClimateState.Level)
@@ -78,16 +78,16 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	// Event notification strip.
 	if h.lastEventName != "" {
 		evStr := "Event: " + h.lastEventName
-		drawLabel(screen, 600, 26, evStr, ColourClimateMedium, face)
+		drawLabel(screen, 600, 30, evStr, ColourClimateMedium, face)
 	}
 
-	// "Advance Week" button placeholder (drawn directly; click handled in Update).
-	btnX := w - 160
+	// "Advance Week" button (drawn directly; click handled in Update).
+	btnX := logicalW - 160
 	btnY := 6
-	btnW := 148
-	btnH := 28
-	solidRect(screen, btnX, btnY, btnW, btnH, ColourButtonNormal)
-	drawLabel(screen, btnX+20, btnY+19, "Advance Week", ColourTextPrimary, face)
+	btnW, btnH := 148, 28
+	bg := buttonColour(btnX, btnY, btnW, btnH, true)
+	solidRect(screen, btnX, btnY, btnW, btnH, bg)
+	drawLabel(screen, btnX+20, btnY+20, "Advance Week", ColourTextPrimary, face)
 }
 
 // climateColour returns the palette colour for a given climate level.

@@ -13,6 +13,13 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
+// logicalW and logicalH are the fixed logical screen dimensions returned by game.Layout.
+// All click-detection code must use these -- never ebiten.WindowSize().
+const (
+	logicalW = 1280
+	logicalH = 720
+)
+
 // contentX is the left edge of the main content area (after the sidebar).
 const contentX = tabBarWidth
 
@@ -105,12 +112,8 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 
 // handleHUDClick detects clicks on the HUD Advance Week button.
 func (u *UI) handleHUDClick(world *simulation.WorldState) {
-	sw, _ := ebiten.WindowSize()
-	if sw == 0 {
-		sw = 1280
-	}
 	mx, my := ebiten.CursorPosition()
-	btnX := sw - 160
+	btnX := logicalW - 160
 	btnY := 6
 	if mx >= btnX && mx <= btnX+148 && my >= btnY && my <= btnY+28 {
 		u.advanceWeekRequested = true
@@ -123,14 +126,7 @@ func (u *UI) handleTickyInput(world *simulation.WorldState) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
-	sw, sh := ebiten.WindowSize()
-	if sw == 0 {
-		sw = 1280
-	}
-	if sh == 0 {
-		sh = 720
-	}
-	b := computeTickyBounds(sw, sh)
+	b := computeTickyBounds(logicalW, logicalH)
 	mx, my := ebiten.CursorPosition()
 
 	// Accept button: x+20, y+90, w=130, h=28
@@ -169,16 +165,9 @@ func (u *UI) handleShockInput(world *simulation.WorldState) {
 	if len(world.PendingShockResponses) == 0 {
 		return
 	}
-	sw, sh := ebiten.WindowSize()
-	if sw == 0 {
-		sw = 1280
-	}
-	if sh == 0 {
-		sh = 720
-	}
 	mw, mh := 440, 180
-	bx := (sw - mw) / 2
-	by := (sh - mh) / 2
+	bx := (logicalW - mw) / 2
+	by := (logicalH - mh) / 2
 	mx, my := ebiten.CursorPosition()
 	shock := world.PendingShockResponses[0]
 
@@ -202,16 +191,9 @@ func (u *UI) handleEvidenceModalInput(world *simulation.WorldState) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
-	sw, sh := ebiten.WindowSize()
-	if sw == 0 {
-		sw = 1280
-	}
-	if sh == 0 {
-		sh = 720
-	}
 	mw, mh := 400, 200
-	mx2 := (sw - mw) / 2
-	my2 := (sh - mh) / 2
+	mx2 := (logicalW - mw) / 2
+	my2 := (logicalH - mh) / 2
 	x, y := ebiten.CursorPosition()
 
 	// Confirm button: mx+50, my+90, w=100, h=24
@@ -252,7 +234,7 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 	}
 	cy := hudHeight
 	for colIdx, party := range parties {
-		colX := contentX + colIdx*politicsColW
+		colX := contentX + 8 + colIdx*(politicsColW+8)
 		rowY := cy + 26
 		for i := range world.Stakeholders {
 			s := world.Stakeholders[i]
@@ -260,7 +242,7 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 				continue
 			}
 			btnX := colX + 4 + 145
-			btnY := rowY + 14
+			btnY := rowY + 54
 			if inRect(mx, my, btnX, btnY, 50, 18) {
 				if isInCabinet(s, *world) && world.Player.APRemaining >= 3 {
 					u.pendingActions = append(u.pendingActions, simulation.Action{
@@ -270,7 +252,7 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 				}
 				return
 			}
-			rowY += 72
+			rowY += ministerCardH
 		}
 	}
 }
@@ -279,7 +261,7 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 	cy := hudHeight
 	for colIdx, state := range policyColumns {
-		colX := contentX + colIdx*policyColW
+		colX := contentX + 8 + colIdx*(policyColW+8)
 		rowY := cy + 24
 		for i := range world.PolicyCards {
 			pc := world.PolicyCards[i]
@@ -288,7 +270,7 @@ func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 			}
 			if state == "DRAFT" {
 				btnX := colX + 4 + 90
-				btnY := rowY + 32
+				btnY := rowY + 50
 				if inRect(mx, my, btnX, btnY, 50, 16) {
 					if pc.Def != nil && world.Player.APRemaining >= pc.Def.APCost {
 						u.pendingActions = append(u.pendingActions, simulation.Action{
@@ -299,7 +281,7 @@ func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 					return
 				}
 			}
-			rowY += 64
+			rowY += policyCardH
 		}
 	}
 }
@@ -319,7 +301,7 @@ func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my int) {
 		locked := isMurican && !orgState.MuricanUnlocked
 		canCommission := !coolingOff && !locked
 
-		btnX := x + 520
+		btnX := x + 556
 		btnY := y - 12
 		if canCommission && inRect(mx, my, btnX, btnY, 70, 16) {
 			u.evidenceState.selectedOrgID = orgDef.ID
@@ -329,7 +311,7 @@ func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my int) {
 			u.evidenceState.showModal = true
 			return
 		}
-		y += 16
+		y += 24
 	}
 }
 

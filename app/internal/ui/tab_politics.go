@@ -10,7 +10,8 @@ import (
 	"golang.org/x/image/font"
 )
 
-const politicsColW = 280
+const politicsColW = 272
+const ministerCardH = 88
 
 // drawTabPolitics renders the politics tab.
 func drawTabPolitics(
@@ -30,7 +31,7 @@ func drawTabPolitics(
 	}
 
 	for colIdx, party := range parties {
-		colX := cx + colIdx*politicsColW
+		colX := cx + 8 + colIdx*(politicsColW+8)
 		if colX+politicsColW > cx+cw {
 			break
 		}
@@ -53,11 +54,11 @@ func drawTabPolitics(
 			if s.Party != party || !s.IsUnlocked {
 				continue
 			}
-			if rowY+70 > cy+ch {
+			if rowY+ministerCardH > cy+ch {
 				break
 			}
 			drawMinisterRow(screen, s, world, pendingActions, face, colX+4, rowY)
-			rowY += 72
+			rowY += ministerCardH
 		}
 	}
 }
@@ -72,37 +73,36 @@ func drawMinisterRow(
 	x, y int,
 ) {
 	// Background card.
-	solidRect(screen, x-2, y, politicsColW-6, 70, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
+	solidRect(screen, x-2, y, politicsColW-6, ministerCardH-2, color.RGBA{R: 0x18, G: 0x28, B: 0x1E, A: 0xFF})
 
-	// Name.
-	drawLabel(screen, x, y+12, s.Name, ColourTextPrimary, face)
+	// Name on line y+14.
+	drawLabel(screen, x, y+14, s.Name, ColourTextPrimary, face)
 
-	// Role badge.
-	drawBadge(screen, x, y+16, string(s.Role), ColourOrgThinkTank, face)
+	// Role badge at y+20.
+	drawBadge(screen, x, y+20, string(s.Role), ColourOrgThinkTank, face)
 
-	// State badge.
+	// State badge at y+20 offset right.
 	stateCol := ministerStateColour(s.State)
-	drawBadge(screen, x+110, y+16, string(s.State), stateCol, face)
+	drawBadge(screen, x+110, y+20, string(s.State), stateCol, face)
 
-	// Popularity bar.
-	drawLabel(screen, x, y+36, "Pop", ColourTextMuted, face)
-	drawBar(screen, x+30, y+28, 100, 8, s.Popularity, 100, ColourAccent, ColourButtonNormal)
+	// Popularity bar at y+38.
+	drawLabel(screen, x, y+38, "Pop", ColourTextMuted, face)
+	drawBar(screen, x+30, y+30, 100, 8, s.Popularity, 100, ColourAccent, ColourButtonNormal)
 
-	// Relationship bar.
-	drawLabel(screen, x, y+50, "Rel", ColourTextMuted, face)
-	drawBar(screen, x+30, y+42, 100, 8, s.RelationshipScore, 100, ColourOrgThinkTank, ColourButtonNormal)
+	// Relationship bar at y+52.
+	drawLabel(screen, x, y+52, "Rel", ColourTextMuted, face)
+	drawBar(screen, x+30, y+44, 100, 8, s.RelationshipScore, 100, ColourOrgThinkTank, ColourButtonNormal)
 
-	// Lobby button.
+	// Lobby button at y+62.
 	inCabinet := isInCabinet(s, world)
 	canLobby := inCabinet && world.Player.APRemaining >= 3
-	btnCol := ColourButtonNormal
+	btnCol := buttonColour(x+145, y+54, 50, 18, canLobby)
 	lblCol := ColourTextPrimary
 	if !canLobby {
-		btnCol = ColourButtonDisabled
 		lblCol = ColourTextMuted
 	}
-	solidRect(screen, x+145, y+14, 50, 18, btnCol)
-	drawLabel(screen, x+148, y+27, "Lobby", lblCol, face)
+	solidRect(screen, x+145, y+54, 50, 18, btnCol)
+	drawLabel(screen, x+148, y+66, "Lobby", lblCol, face)
 	_ = pendingActions // button click detection is handled in Update via HitTest
 }
 

@@ -69,6 +69,13 @@ func TestSeedTiles_FuelPovertyStartsZero(t *testing.T) {
 	assert.Equal(t, 0.0, tiles[0].FuelPoverty)
 }
 
+func TestSeedTiles_RetrofitRatesStartAtZero(t *testing.T) {
+	defs := []config.TileDef{{ID: "t1", RegionID: "r1"}}
+	tiles := SeedTiles(defs)
+	assert.Equal(t, 0.0, tiles[0].ObservedRetrofitRate)
+	assert.Equal(t, 0.0, tiles[0].TrueRetrofitRate)
+}
+
 // ---------------------------------------------------------------------------
 // RevealAttribute / IsRevealed
 // ---------------------------------------------------------------------------
@@ -250,6 +257,40 @@ func TestComputeFuelPoverty_MixedHeating_BetweenGasAndElectric(t *testing.T) {
 // ---------------------------------------------------------------------------
 // UpdateLocalPoliticalOpinion
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// ApplyClimateEventDamage
+// ---------------------------------------------------------------------------
+
+func TestApplyClimateEventDamage_PositiveDelta_IncreasesFuelPoverty(t *testing.T) {
+	tile := Tile{FuelPoverty: 30.0}
+	updated := ApplyClimateEventDamage(tile, 10.0)
+	assert.InDelta(t, 40.0, updated.FuelPoverty, 0.001)
+}
+
+func TestApplyClimateEventDamage_NegativeDelta_DecreasesFuelPoverty(t *testing.T) {
+	tile := Tile{FuelPoverty: 50.0}
+	updated := ApplyClimateEventDamage(tile, -20.0)
+	assert.InDelta(t, 30.0, updated.FuelPoverty, 0.001)
+}
+
+func TestApplyClimateEventDamage_LargeDelta_ClampsAt100(t *testing.T) {
+	tile := Tile{FuelPoverty: 90.0}
+	updated := ApplyClimateEventDamage(tile, 999.0)
+	assert.Equal(t, 100.0, updated.FuelPoverty)
+}
+
+func TestApplyClimateEventDamage_LargeNegativeDelta_ClampsAt0(t *testing.T) {
+	tile := Tile{FuelPoverty: 10.0}
+	updated := ApplyClimateEventDamage(tile, -999.0)
+	assert.Equal(t, 0.0, updated.FuelPoverty)
+}
+
+func TestApplyClimateEventDamage_DoesNotMutateInput(t *testing.T) {
+	tile := Tile{FuelPoverty: 50.0}
+	ApplyClimateEventDamage(tile, 20.0)
+	assert.Equal(t, 50.0, tile.FuelPoverty, "original tile must not be mutated")
+}
 
 func TestUpdateLocalPoliticalOpinion_FuelPovertyIncrease_ShiftsRight(t *testing.T) {
 	tile := Tile{PoliticalOpinion: 50.0}

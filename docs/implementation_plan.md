@@ -322,17 +322,34 @@ term if not triggered early, election result is monotone in popularity gap.
 
 ### polling
 
+Regional political polling using a Gaussian proximity kernel. Built richer than
+the original plan; the full regional model is preferred because it makes tile
+opinion changes visible in the polls and gives the player meaningful feedback on
+local policy impacts.
+
 Key types:
-  PollResult    -- resource, trueValue (never stored), reportedValue, week, sigma
-  PollScheduler -- tracks last poll week per resource, minimum interval
+  RegionPoll    -- regionID, partyShares map[Party]float64 (sums to ~100), swing float64
+  PollSnapshot  -- week, regionPolls map[string]RegionPoll, nationalPolls map[Party]float64
+
+Algorithm (AggregateRegionPoll):
+  1. Filter tiles to regionID; compute HeatingCapacity-weighted mean PoliticalOpinion.
+  2. Map opinion (0-100) to party shares via Gaussian proximity kernel (bandwidth=25).
+     Party axis positions: FarLeft=10, Left=35, Right=65, FarRight=90.
+  3. Add per-party Gaussian noise (sigma=3) and renormalise to 100.
+  4. Apply minimum share floor (0.5%) and renormalise again.
+
+National poll: InstallerCapacity-weighted average of all region polls.
 
 Key functions:
-  Poll(trueValue, sigma, rng) float64
-  ShouldPoll(scheduler, resource, week) bool
-  RecordPoll(scheduler, resource, week) PollScheduler
+  AggregateRegionPoll(tiles, regionID, rng) RegionPoll
+  AggregateNationalPoll(regionPolls, regions) map[Party]float64
+  TakePollSnapshot(week, tiles, regions, rng) PollSnapshot
+  LeadingParty(snap) Party              -- deterministic tie-break by party ID sort
+  SwingFromLast(current, previous) map[string]float64
 
-Tests: poll output has correct noise distribution (run 1000 samples, check
-mean ~ trueValue, stddev ~ sigma), scheduler gates polling frequency correctly.
+Tests: leading party is the one with highest share, swing sign is correct,
+national poll is weighted average of regions, noise is bounded, minimum share
+floor prevents any party vanishing, empty-region fallback returns neutral 50.
 
 ### industry
 

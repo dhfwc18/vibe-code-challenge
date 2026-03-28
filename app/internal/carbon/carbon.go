@@ -28,6 +28,8 @@ type CarbonBudgetState struct {
 	CumulativeStock      float64 // total net emissions above the 2010 baseline since game start
 	OvershootAccumulator float64 // total MtCO2e over CCC annual limits (never decreases)
 	CurrentBudgetLimit   float64 // annual limit for the current year from the CCC table
+	Trajectory           float64 // projected annual total at current weekly pace; set by simulation
+	                             // each tick via ProjectTrajectory(state, weeksElapsedThisYear)
 }
 
 // BudgetCheckResult is the outcome of a year-end carbon budget check.

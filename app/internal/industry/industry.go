@@ -8,10 +8,24 @@ import (
 	"twenty-fifty/internal/technology"
 )
 
+// CompanyStatus represents the lifecycle state of an LCT company.
+// Transition logic is deferred to the simulation layer (Layer 5).
+type CompanyStatus string
+
+const (
+	CompanyStatusInactive   CompanyStatus = "INACTIVE"
+	CompanyStatusActive     CompanyStatus = "ACTIVE"
+	CompanyStatusStruggling CompanyStatus = "STRUGGLING"
+	CompanyStatusBankrupt   CompanyStatus = "BANKRUPT"
+	CompanyStatusAbsorbed   CompanyStatus = "ABSORBED"
+	CompanyStatusStartup    CompanyStatus = "STARTUP"
+)
+
 // CompanyState holds the runtime state for one LCT company during a playthrough.
 type CompanyState struct {
 	DefID              string
 	IsActive           bool
+	Status             CompanyStatus
 	ContractedTech     config.Technology // empty string when inactive
 	WeeksOnContract    int
 	AccumulatedQuality float64 // resets to zero on DeliverTech
@@ -57,6 +71,7 @@ func SeedIndustry(defs []config.CompanyDef) IndustryState {
 		m[d.ID] = CompanyState{
 			DefID:    d.ID,
 			IsActive: false,
+			Status:   CompanyStatusInactive,
 		}
 	}
 	return IndustryState{Companies: m}
@@ -78,6 +93,7 @@ func ActivateCompany(
 	m[defID] = CompanyState{
 		DefID:              defID,
 		IsActive:           true,
+		Status:             CompanyStatusActive,
 		ContractedTech:     tech,
 		WeeksOnContract:    0,
 		AccumulatedQuality: 0,
@@ -93,7 +109,7 @@ func DeactivateCompany(state IndustryState, defID string) IndustryState {
 		return state
 	}
 	m := copyCompanies(state.Companies)
-	m[defID] = CompanyState{DefID: defID, IsActive: false}
+	m[defID] = CompanyState{DefID: defID, IsActive: false, Status: CompanyStatusInactive}
 	return IndustryState{Companies: m}
 }
 

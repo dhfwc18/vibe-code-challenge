@@ -74,6 +74,12 @@ func TestSeedStakeholders_CountMatchesDefs(t *testing.T) {
 	assert.Equal(t, 3, len(out))
 }
 
+func TestSeedStakeholders_StateIsActive(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.Equal(t, MinisterStateActive, out[0].State)
+}
+
 func TestSeedStakeholders_IdentityFieldsCopied(t *testing.T) {
 	d := makeSeed("my_id", config.TimingStart, 0)
 	d.IdeologyScore = 42.0

@@ -42,6 +42,18 @@ func TestNewGovernment_ElectionDueWeekSet(t *testing.T) {
 	assert.Equal(t, 260, g.ElectionDueWeek)
 }
 
+func TestNewGovernment_PhaseIsStable(t *testing.T) {
+	g := NewGovernment(config.PartyLeft, 260)
+	assert.Equal(t, GovernmentPhaseStable, g.Phase)
+}
+
+func TestTriggerElection_PhaseResetsToStable(t *testing.T) {
+	g := NewGovernment(config.PartyLeft, 260)
+	g.Phase = GovernmentPhaseElectionCampaign
+	g2 := TriggerElection(g, config.PartyRight, 520)
+	assert.Equal(t, GovernmentPhaseStable, g2.Phase)
+}
+
 // ---------------------------------------------------------------------------
 // AssignMinister
 // ---------------------------------------------------------------------------

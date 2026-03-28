@@ -8,6 +8,19 @@ import (
 	"twenty-fifty/internal/mathutil"
 )
 
+// MinisterState represents the lifecycle of a political figure in the game.
+// Transition logic is deferred to the simulation layer (Layer 5).
+type MinisterState string
+
+const (
+	MinisterStateActive              MinisterState = "ACTIVE"
+	MinisterStateUnderPressure       MinisterState = "UNDER_PRESSURE"
+	MinisterStateLeadershipChallenge MinisterState = "LEADERSHIP_CHALLENGE"
+	MinisterStateDeparted            MinisterState = "DEPARTED"
+	MinisterStateBackbench           MinisterState = "BACKBENCH"
+	MinisterStateOppositionShadow    MinisterState = "OPPOSITION_SHADOW"
+)
+
 // Stakeholder holds all runtime state for one political NPC.
 // Identity fields are copied from the seed at game start and never change.
 // Live fields are updated each tick.
@@ -38,6 +51,9 @@ type Stakeholder struct {
 
 	// Signal queue (appended externally by simulation layer)
 	PendingSignals []string
+
+	// Lifecycle state (transition logic in simulation layer)
+	State MinisterState
 
 	// Special mechanic counters
 	TickyPressureCounter  int  // increments under ClimateLevelElevated+
@@ -108,6 +124,7 @@ func SeedStakeholders(defs []config.StakeholderSeed) []Stakeholder {
 			SpecialMechanic:     d.SpecialMechanic,
 			RelationshipScore:   startingRelationship,
 			IsUnlocked:          d.EntryTiming == config.TimingStart,
+			State:               MinisterStateActive,
 			PendingSignals:      []string{},
 		}
 		out = append(out, s)

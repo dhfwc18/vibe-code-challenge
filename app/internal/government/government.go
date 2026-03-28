@@ -6,6 +6,19 @@ import (
 	"twenty-fifty/internal/stakeholder"
 )
 
+// GovernmentPhase represents the electoral cycle state of the government.
+// Transition logic is deferred to the simulation layer (Layer 5).
+type GovernmentPhase string
+
+const (
+	GovernmentPhaseStable           GovernmentPhase = "STABLE"
+	GovernmentPhaseUnderPressure    GovernmentPhase = "UNDER_PRESSURE"
+	GovernmentPhaseConfidenceVote   GovernmentPhase = "CONFIDENCE_VOTE"
+	GovernmentPhaseSnapElection     GovernmentPhase = "SNAP_ELECTION"
+	GovernmentPhaseCaretaker        GovernmentPhase = "CARETAKER"
+	GovernmentPhaseElectionCampaign GovernmentPhase = "ELECTION_CAMPAIGN"
+)
+
 // GovernmentState tracks which party holds power, cabinet composition,
 // and the electoral cycle.
 type GovernmentState struct {
@@ -13,6 +26,7 @@ type GovernmentState struct {
 	CabinetByRole   map[config.Role]string // role -> stakeholder ID; absent key = vacant
 	ElectionDueWeek int
 	TermNumber      int
+	Phase           GovernmentPhase
 }
 
 // MinisterStats is the derived political-economy profile of a minister in post.
@@ -61,6 +75,7 @@ func NewGovernment(rulingParty config.Party, electionDueWeek int) GovernmentStat
 		CabinetByRole:   make(map[config.Role]string),
 		ElectionDueWeek: electionDueWeek,
 		TermNumber:      1,
+		Phase:           GovernmentPhaseStable,
 	}
 }
 
@@ -137,6 +152,7 @@ func TriggerElection(g GovernmentState, winner config.Party, newElectionDueWeek 
 		CabinetByRole:   make(map[config.Role]string),
 		ElectionDueWeek: newElectionDueWeek,
 		TermNumber:      g.TermNumber + 1,
+		Phase:           GovernmentPhaseStable,
 	}
 }
 

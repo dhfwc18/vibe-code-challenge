@@ -32,6 +32,24 @@ func TestSeedIndustry_AllCompaniesInactive(t *testing.T) {
 	}
 }
 
+func TestSeedIndustry_StatusIsInactive(t *testing.T) {
+	state := seedWith(makeDef("co_a", 80, 70))
+	assert.Equal(t, CompanyStatusInactive, state.Companies["co_a"].Status)
+}
+
+func TestActivateCompany_StatusIsActive(t *testing.T) {
+	state := seedWith(makeDef("co_a", 80, 70))
+	state2 := ActivateCompany(state, "co_a", config.TechOffshoreWind, 70)
+	assert.Equal(t, CompanyStatusActive, state2.Companies["co_a"].Status)
+}
+
+func TestDeactivateCompany_StatusIsInactive(t *testing.T) {
+	state := seedWith(makeDef("co_a", 80, 70))
+	state = ActivateCompany(state, "co_a", config.TechOffshoreWind, 70)
+	state2 := DeactivateCompany(state, "co_a")
+	assert.Equal(t, CompanyStatusInactive, state2.Companies["co_a"].Status)
+}
+
 func TestSeedIndustry_AllCompaniesHaveZeroAccumulatedQuality(t *testing.T) {
 	state := seedWith(makeDef("co_a", 80, 70))
 	assert.Equal(t, 0.0, state.Companies["co_a"].AccumulatedQuality)

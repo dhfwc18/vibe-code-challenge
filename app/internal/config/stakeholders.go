@@ -102,7 +102,6 @@ var stakeholderSeeds = []StakeholderSeed{
 			"promptly to all correspondence.",
 		IdeologyScore: -78, NetZeroSympathy: 87, RiskTolerance: 38, PopulismScore: 72,
 		DiplomaticSkill: 30,
-		ConsultancyAffinity: []string{"northern_climate_research", "institute_energy_transition"},
 		Signals: []string{
 			"been saying this since 2001",
 			"enormous membership support, limited swing-voter appeal",
@@ -166,12 +165,10 @@ var stakeholderSeeds = []StakeholderSeed{
 			"getting things done within the system. Good starting relationship with player.",
 		IdeologyScore: -30, NetZeroSympathy: 70, RiskTolerance: 40, PopulismScore: 30,
 		DiplomaticSkill: 42,
-		ConsultancyAffinity: []string{"green_futures_forum"},
 		Signals: []string{
 			"backed the Renewable Obligation scheme",
 			"known for careful stakeholder management",
 			"willing to consider nuclear as part of the mix",
-			"close working relationship with green research organisations",
 		},
 	},
 	{

@@ -986,6 +986,12 @@ When in opposition, they are shadows whose relationships still matter.
 
 #### Named Cast (Seed Pool -- figures rotate in over time as earlier ones depart)
 
+  Note: Taitan is an ethnically and culturally diverse country. This must be reflected
+  in the cast at all times -- across parties, generations, and roles. The FarRight party
+  cast is intentionally less diverse as a thematic and satirical choice; all other parties
+  should reflect the country they claim to represent. New figures added to the seed pool
+  in future must maintain this standard.
+
   Note: all figures listed are TAITAN citizens. Murica is the global state; Murican
   characters are foreign nationals and cannot hold Taitan government office, but they
   influence the game through companies, think tanks, and pressure on Taitan politicians.
@@ -1075,18 +1081,26 @@ When in opposition, they are shadows whose relationships still matter.
     "known for consensus-building style"
     Note: if Left never loses two elections under JJ Cameron, Reeve never leads.
 
-  Chancellor:  George Harmon
-    Fiscal background. Broadly supportive of green investment when the numbers work.
-    Will push back on uncosted policies. Has a plan, details available on request.
-    ideologyScore: -15, netZeroSympathy: 55, riskTolerance: 30, populismScore: 25
-    Signals: "former public sector economist", "authored the Green Investment Framework",
-    "reputation for asking where the money is coming from"
+  Chancellor:  Nia Okafor
+    Second-generation Taitan, parents from West Afria. Grew up in a post-industrial
+    northern constituency that has been on the wrong end of every energy price spike
+    since 1990. This shapes her fiscal instincts: she supports green investment
+    because she has seen what the alternative looks like from the inside, not because
+    it is fashionable. Unsentimental about uncosted policies.
+    ideologyScore: -18, netZeroSympathy: 62, riskTolerance: 28, populismScore: 30
+    Signals: "former regional development economist", "co-authored the Green Investment
+    Framework", "reputation for asking where the money is coming from and why"
 
-  Foreign Secretary: John Ashworth
-    Experienced. Reliable. Has strong feelings about correct procedure.
-    ideologyScore: -20, netZeroSympathy: 45, riskTolerance: 50, populismScore: 35
+  Foreign Secretary: Tariq Rashid
+    Third-generation Taitan, heritage from South Azaria. Former diplomat, returned to
+    politics through the party's community organising wing. Procedurally careful,
+    coalition-minded, effective at managing multilateral processes without much noise.
+    Comfortable operating in international rooms that do not look like him.
+    ideologyScore: -22, netZeroSympathy: 48, riskTolerance: 48, populismScore: 33
     International crisis weight: cautious multilateralist; favours international
-    agreements and coalition responses; mild positive modifier on green diplomacy outcomes
+    agreements and coalition responses; mild positive modifier on green diplomacy outcomes;
+    personal credibility in Commonwealth and South Azarian bloc forums gives minor
+    bonus on those specific diplomatic tracks
 
   Energy:      Claire Blackwell
     Player's first boss (Left governs at game start 2010). Committed to getting
@@ -1125,9 +1139,12 @@ When in opposition, they are shadows whose relationships still matter.
       transitioning PM state to DEPARTED. Player must manage the fallout.
 
   Foreign Secretary: Noris Jackson
-    Laddish, loud, and socially well-connected in the way that old-school networking
-    achieves. Turns up at the right events, knows everyone at the bar, and somehow
-    gets things done between the drinking. Not obviously serious, but effective.
+    Mixed heritage -- Taitan mother, father from the Caribbean Islands bloc. Grew up
+    between two worlds and learned early that being the person everyone is comfortable
+    talking to is a genuine skill. Laddish, loud, and socially well-connected in the
+    way that old-school networking achieves. Turns up at the right events, knows
+    everyone at the bar, and somehow gets things done between the drinking. Not
+    obviously serious, but effective.
     Enters the game slightly later than the rest of the Right bench (joins cabinet
     mid-game, roughly weeks 60-80 into the first Right government term, as a rising
     backbencher given his first senior post).
@@ -1145,12 +1162,17 @@ When in opposition, they are shadows whose relationships still matter.
     first Right government; if Right is in opposition, enters shadow cabinet at same
     threshold and can be briefed from that point.
 
-  Energy:      Rupert Holm
-    Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home retrofit.
-    Will approve technology-led policies readily; resists behaviour-change policies.
-    ideologyScore: +45, netZeroSympathy: 60, riskTolerance: 55, populismScore: 35
+  Energy:      Ajay Mehta
+    Second-generation Taitan, parents from East Azaria, grew up in a nuclear
+    engineering household. The family dinner table consensus was that fission is
+    the answer and everything else is sentiment. He has not fundamentally revised
+    this position. Tech-optimist, strongly pro-nuclear, lukewarm on mandates and
+    home retrofit. Will approve technology-led policies readily; resists anything
+    that looks like telling people what to do in their own homes.
+    ideologyScore: +45, netZeroSympathy: 62, riskTolerance: 55, populismScore: 35
     Signals: "backed the new nuclear programme", "sceptical of heat pump mandates",
-    "wants to cut planning red tape for renewables"
+    "wants to cut planning red tape for renewables", "publicly dismissive of
+    behaviour-change campaigns"
     Consultancy affinity: ClearPath Advisory, Tacute Energy Solutions
       When governing: +10 passive relationship bonus with both firms.
 

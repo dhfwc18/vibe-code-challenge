@@ -98,6 +98,25 @@ func TestSeedStakeholders_IdeologyConflictScoreStartsAtZero(t *testing.T) {
 	assert.Equal(t, 0.0, out[0].IdeologyConflictScore)
 }
 
+func TestSeedStakeholders_GraceWeeksRemainingStartsAtZero(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.Equal(t, 0, out[0].GraceWeeksRemaining)
+}
+
+func TestSeedStakeholders_ConsultancyAversionCopied(t *testing.T) {
+	d := makeSeed("aversion_minister", config.TimingStart, 0)
+	d.ConsultancyAversion = true
+	out := SeedStakeholders([]config.StakeholderSeed{d})
+	assert.True(t, out[0].ConsultancyAversion)
+}
+
+func TestSeedStakeholders_ConsultancyAversionFalseByDefault(t *testing.T) {
+	defs := []config.StakeholderSeed{makeSeed("a", config.TimingStart, 0)}
+	out := SeedStakeholders(defs)
+	assert.False(t, out[0].ConsultancyAversion)
+}
+
 func TestSeedStakeholders_IdentityFieldsCopied(t *testing.T) {
 	d := makeSeed("my_id", config.TimingStart, 0)
 	d.IdeologyScore = 42.0

@@ -34,6 +34,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.08,
 		PopularityRiskPerWeek: 0.02,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "onshore_wind_planning_reform",
@@ -57,6 +58,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.06,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "solar_pv_subsidy",
@@ -79,6 +81,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMinor,
 	},
 	{
 		ID:                  "nuclear_new_build_cfd",
@@ -103,6 +106,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.04,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "grid_modernisation_fund",
@@ -126,6 +130,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMinor,
 	},
 
 	// ------------------------------------------------------------------
@@ -154,6 +159,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.07,
 		PopularityRiskPerWeek: 0.04,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "ev_charging_infrastructure",
@@ -176,6 +182,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMinor,
 	},
 	{
 		ID:                  "public_transport_electrification",
@@ -199,6 +206,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.02,
+		Significance:          PolicySignificanceModerate,
 	},
 
 	// ------------------------------------------------------------------
@@ -228,6 +236,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.02,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "national_retrofit_programme",
@@ -252,6 +261,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "minimum_energy_efficiency_standard",
@@ -276,6 +286,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.04,
 		PopularityRiskPerWeek: 0.05,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "boiler_upgrade_scheme",
@@ -298,6 +309,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.03,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMinor,
 	},
 	{
 		ID:                  "social_housing_decarbonisation",
@@ -321,6 +333,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.05,
 		PopularityRiskPerWeek: -0.01, // net positive to popularity
+		Significance:          PolicySignificanceModerate,
 	},
 
 	// ------------------------------------------------------------------
@@ -351,6 +364,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.10,
 		PopularityRiskPerWeek: 0.06,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "hydrogen_industrial_cluster",
@@ -374,6 +388,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.08,
 		PopularityRiskPerWeek: 0.02,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "industrial_ccs_investment",
@@ -397,6 +412,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.07,
 		PopularityRiskPerWeek: 0.02,
+		Significance:          PolicySignificanceModerate,
 	},
 
 	// ------------------------------------------------------------------
@@ -426,6 +442,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.12,
 		PopularityRiskPerWeek: 0.08,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "green_investment_bank",
@@ -449,6 +466,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.06,
 		PopularityRiskPerWeek: 0.01,
+		Significance:          PolicySignificanceMajor,
 	},
 	{
 		ID:                  "green_skills_fund",
@@ -471,6 +489,7 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.03,
 		PopularityRiskPerWeek: -0.01,
+		Significance:          PolicySignificanceModerate,
 	},
 	{
 		ID:                  "fuel_poverty_emergency_fund",
@@ -493,5 +512,6 @@ var policyCardDefs = []PolicyCardDef{
 		},
 		LCRDeltaPerWeek:       0.01,
 		PopularityRiskPerWeek: -0.03, // reduces popularity risk
+		Significance:          PolicySignificanceMinor,
 	},
 }

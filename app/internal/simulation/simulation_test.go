@@ -406,3 +406,74 @@ func TestAdvanceWeek_SubmitPolicyLockedByTech_IsRejectedByGate(t *testing.T) {
 	}
 	t.Fatalf("policy %q not found", lockedID)
 }
+
+// ---------------------------------------------------------------------------
+// D1: SACKED/RESIGNED -> BACKBENCH state machine
+// ---------------------------------------------------------------------------
+
+func TestAdvanceWeek_SackedMinister_BecomesBackbench(t *testing.T) {
+	w := loadWorld(t)
+	// Find an unlocked cabinet minister and drive them to SACKED by forcing
+	// UNDER_PRESSURE for ministerSackingWeeks weeks.
+	var targetID string
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked && isInCabinet(w.Government, s.ID) {
+			targetID = s.ID
+			break
+		}
+	}
+	require.NotEmpty(t, targetID, "need at least one cabinet minister")
+
+	// Force the minister to UNDER_PRESSURE and then advance enough weeks.
+	for i := range w.Stakeholders {
+		if w.Stakeholders[i].ID == targetID {
+			w.Stakeholders[i].State = stakeholder.MinisterStateUnderPressure
+			w.Stakeholders[i].Popularity = 5.0 // well below sacking threshold
+		}
+	}
+
+	// Advance ministerSackingWeeks+2 weeks to trigger SACKED then BACKBENCH.
+	w = advanceN(w, ministerSackingWeeks+2)
+
+	for _, s := range w.Stakeholders {
+		if s.ID == targetID {
+			assert.NotEqual(t, stakeholder.MinisterStateSacked, s.State,
+				"minister %q should not remain SACKED after sacking transition", targetID)
+			assert.NotEqual(t, stakeholder.MinisterStateResigned, s.State,
+				"minister %q should not remain RESIGNED after resignation transition", targetID)
+			return
+		}
+	}
+	t.Fatalf("stakeholder %q not found", targetID)
+}
+
+// ---------------------------------------------------------------------------
+// D2: Grace period -- GraceWeeksRemaining starts at zero
+// ---------------------------------------------------------------------------
+
+func TestNewWorld_AllMinistersGraceWeeksZero(t *testing.T) {
+	w := loadWorld(t)
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked {
+			assert.Equal(t, 0, s.GraceWeeksRemaining,
+				"stakeholder %q should have GraceWeeksRemaining=0 at game start", s.ID)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// D1: No minister stuck in SACKED or RESIGNED after 100 weeks
+// ---------------------------------------------------------------------------
+
+func TestHeadlessRun_100Weeks_NoMinisterStuckInSacked(t *testing.T) {
+	w := loadWorld(t)
+	w, _ = HeadlessRun(w, 100)
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked {
+			assert.NotEqual(t, stakeholder.MinisterStateSacked, s.State,
+				"stakeholder %q should not be in SACKED state after 100 weeks", s.ID)
+			assert.NotEqual(t, stakeholder.MinisterStateResigned, s.State,
+				"stakeholder %q should not be in RESIGNED state after 100 weeks", s.ID)
+		}
+	}
+}

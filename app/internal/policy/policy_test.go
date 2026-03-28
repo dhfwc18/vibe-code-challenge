@@ -137,7 +137,9 @@ func TestEvaluateApprovalStep_AllMet_ReturnsApproved(t *testing.T) {
 		MinRelationshipScore: 50.0,
 		MaxIdeologyConflict:  60.0,
 	}
-	approved, hardReject := EvaluateApprovalStep(config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
+	card := makeCard(config.PolicySectorPower, nil)
+	card.State = PolicyStateUnderReview
+	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
 	assert.True(t, approved)
 	assert.False(t, hardReject)
 }
@@ -150,7 +152,9 @@ func TestEvaluateApprovalStep_HighIdeologyConflict_HardReject(t *testing.T) {
 		MinRelationshipScore: 50.0,
 		MaxIdeologyConflict:  60.0,
 	}
-	approved, hardReject := EvaluateApprovalStep(config.PolicyCardDef{Sector: config.PolicySectorIndustry}, s, req)
+	card := makeCard(config.PolicySectorIndustry, nil)
+	card.State = PolicyStateUnderReview
+	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorIndustry}, s, req)
 	assert.False(t, approved)
 	assert.True(t, hardReject)
 }
@@ -162,8 +166,67 @@ func TestEvaluateApprovalStep_LowRelationship_PendingNotReject(t *testing.T) {
 		MinRelationshipScore: 60.0,
 		MaxIdeologyConflict:  80.0,
 	}
-	approved, hardReject := EvaluateApprovalStep(config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
+	card := makeCard(config.PolicySectorPower, nil)
+	card.State = PolicyStateUnderReview
+	approved, hardReject := EvaluateApprovalStep(card, config.PolicyCardDef{Sector: config.PolicySectorPower}, s, req)
 	assert.False(t, approved)
+	assert.False(t, hardReject)
+}
+
+// ---------------------------------------------------------------------------
+// EvaluateApprovalStep -- significance-based refusal (D3)
+// ---------------------------------------------------------------------------
+
+func TestEvaluateApprovalStep_MajorSignificance_HighConflictAndStalledWeeks_HardRejects(t *testing.T) {
+	// Far-right stakeholder (-80 from cross-cutting 0.0 = 80 conflict) > 75 threshold
+	// WeeksUnderReview = 8 >= majorSignificanceRefuseWeeks
+	s := makeStakeholder(config.RoleLeader, -80.0, 70.0, true)
+	req := config.ApprovalRequirement{
+		Role:                 config.RoleLeader,
+		MinRelationshipScore: 40.0,
+		MaxIdeologyConflict:  200.0, // high threshold so per-step check does not fire
+	}
+	def := config.PolicyCardDef{
+		Sector:       config.PolicySectorCross,
+		Significance: config.PolicySignificanceMajor,
+	}
+	card := PolicyCard{Def: def, State: PolicyStateUnderReview, WeeksUnderReview: 8}
+	approved, hardReject := EvaluateApprovalStep(card, def, s, req)
+	assert.False(t, approved)
+	assert.True(t, hardReject)
+}
+
+func TestEvaluateApprovalStep_MajorSignificance_HighConflictButNotStalled_DoesNotHardReject(t *testing.T) {
+	// Same setup as above but WeeksUnderReview = 7 (below threshold)
+	s := makeStakeholder(config.RoleLeader, -80.0, 70.0, true)
+	req := config.ApprovalRequirement{
+		Role:                 config.RoleLeader,
+		MinRelationshipScore: 40.0,
+		MaxIdeologyConflict:  200.0,
+	}
+	def := config.PolicyCardDef{
+		Sector:       config.PolicySectorCross,
+		Significance: config.PolicySignificanceMajor,
+	}
+	card := PolicyCard{Def: def, State: PolicyStateUnderReview, WeeksUnderReview: 7}
+	_, hardReject := EvaluateApprovalStep(card, def, s, req)
+	assert.False(t, hardReject)
+}
+
+func TestEvaluateApprovalStep_MinorSignificance_HighConflictAndStalledWeeks_NoSignificanceRefuse(t *testing.T) {
+	// MINOR significance: significance-based refusal does not apply regardless of conflict/weeks
+	s := makeStakeholder(config.RoleLeader, -80.0, 70.0, true)
+	req := config.ApprovalRequirement{
+		Role:                 config.RoleLeader,
+		MinRelationshipScore: 40.0,
+		MaxIdeologyConflict:  200.0,
+	}
+	def := config.PolicyCardDef{
+		Sector:       config.PolicySectorCross,
+		Significance: config.PolicySignificanceMinor,
+	}
+	card := PolicyCard{Def: def, State: PolicyStateUnderReview, WeeksUnderReview: 20}
+	_, hardReject := EvaluateApprovalStep(card, def, s, req)
 	assert.False(t, hardReject)
 }
 

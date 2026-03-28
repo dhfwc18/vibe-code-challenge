@@ -42,6 +42,7 @@ type Stakeholder struct {
 	PopulismScore       float64 // 0-100
 	DiplomaticSkill     float64 // 0-100; relevant for ForeignSecretary role
 	ConsultancyAffinity []string // org IDs; drives passive relationship bonus
+	ConsultancyAversion bool     // true = hostile to private consultancy spend
 	Signals             []string // observable personality signals shown on appointment
 	EntryWeekMin        int
 	EntryWeekMax        int
@@ -54,9 +55,10 @@ type Stakeholder struct {
 	IsUnlocked        bool
 
 	// Minister popularity (distinct from GovernmentPopularity)
-	Popularity           float64 // 0-100 hidden true value; polled with sigma=5
-	WeeksUnderPressure   int     // increments while State==UNDER_PRESSURE; resets on recovery
-	IdeologyConflictScore float64 // accumulates when minister approves ideologically-opposed policies
+	Popularity             float64 // 0-100 hidden true value; polled with sigma=5
+	WeeksUnderPressure     int     // increments while State==UNDER_PRESSURE; resets on recovery
+	GraceWeeksRemaining    int     // countdown after appointment; minister not held accountable during grace
+	IdeologyConflictScore  float64 // accumulates when minister approves ideologically-opposed policies
 
 	// Signal queue (appended externally by simulation layer)
 	PendingSignals []string
@@ -137,6 +139,7 @@ func SeedStakeholders(defs []config.StakeholderSeed) []Stakeholder {
 			PopulismScore:       d.PopulismScore,
 			DiplomaticSkill:     d.DiplomaticSkill,
 			ConsultancyAffinity: d.ConsultancyAffinity,
+			ConsultancyAversion: d.ConsultancyAversion,
 			Signals:             d.Signals,
 			EntryWeekMin:        d.EntryWeekMin,
 			EntryWeekMax:        d.EntryWeekMax,

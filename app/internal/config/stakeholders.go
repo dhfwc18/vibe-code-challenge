@@ -18,6 +18,7 @@ var stakeholderSeeds = []StakeholderSeed{
 			"versus foreign interference.",
 		IdeologyScore: 95, NetZeroSympathy: 5, RiskTolerance: 85, PopulismScore: 98,
 		DiplomaticSkill: 20,
+		ConsultancyAffinity: []string{"frontier_energy_institute"},
 		Signals: []string{
 			"Murica-born, naturalised Taiton",
 			"questions the net zero cost to ordinary Taitons",
@@ -31,6 +32,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		Biography: "Old money, former City trader. Sees green spending as economic self-harm.",
 		IdeologyScore: 80, NetZeroSympathy: 15, RiskTolerance: 40, PopulismScore: 50,
 		DiplomaticSkill: 30,
+		ConsultancyAffinity: []string{"albion_institute", "heritage_uk"},
 		Signals: []string{
 			"advocate for lower business regulation",
 			"opposed the carbon levy bill",
@@ -100,11 +102,13 @@ var stakeholderSeeds = []StakeholderSeed{
 			"promptly to all correspondence.",
 		IdeologyScore: -78, NetZeroSympathy: 87, RiskTolerance: 38, PopulismScore: 72,
 		DiplomaticSkill: 30,
+		ConsultancyAffinity: []string{"northern_climate_research", "institute_energy_transition"},
 		Signals: []string{
 			"been saying this since 2001",
 			"enormous membership support, limited swing-voter appeal",
 			"famously neutral on the Murican defence alliance question",
 			"allotment open to the public every second Sunday",
+			"prefers academic evidence to consultancy reports",
 		},
 		SpecialMechanic: MechanicElectoralFatigue,
 	},
@@ -132,10 +136,12 @@ var stakeholderSeeds = []StakeholderSeed{
 			"investment when the numbers work. Will push back on uncosted policies.",
 		IdeologyScore: -15, NetZeroSympathy: 55, RiskTolerance: 30, PopulismScore: 25,
 		DiplomaticSkill: 40,
+		ConsultancyAffinity: []string{"progress_policy_centre"},
 		Signals: []string{
 			"former public sector economist",
 			"authored the Green Investment Framework",
 			"reputation for asking where the money is coming from",
+			"respects centre-left policy research",
 		},
 	},
 	{
@@ -160,10 +166,12 @@ var stakeholderSeeds = []StakeholderSeed{
 			"getting things done within the system. Good starting relationship with player.",
 		IdeologyScore: -30, NetZeroSympathy: 70, RiskTolerance: 40, PopulismScore: 30,
 		DiplomaticSkill: 42,
+		ConsultancyAffinity: []string{"green_futures_forum"},
 		Signals: []string{
 			"backed the Renewable Obligation scheme",
 			"known for careful stakeholder management",
 			"willing to consider nuclear as part of the mix",
+			"close working relationship with green research organisations",
 		},
 	},
 	{
@@ -228,10 +236,12 @@ var stakeholderSeeds = []StakeholderSeed{
 			"is a mystery: associates deflect when asked, and he simply smiles.",
 		IdeologyScore: 35, NetZeroSympathy: 60, RiskTolerance: 30, PopulismScore: 25,
 		DiplomaticSkill: 50,
+		ConsultancyAffinity: []string{"meridian_strategy"},
 		Signals: []string{
 			"educated at Briarfield and Oxbridge",
 			"considered a safe pair of hands by the establishment",
 			"occasionally says the right thing for unclear reasons",
+			"known for expensive consultancy commissions",
 		},
 	},
 	{
@@ -242,6 +252,7 @@ var stakeholderSeeds = []StakeholderSeed{
 			"Describes every subsidy as market distortion and means it.",
 		IdeologyScore: 55, NetZeroSympathy: 35, RiskTolerance: 35, PopulismScore: 30,
 		DiplomaticSkill: 38,
+		ConsultancyAffinity: []string{"albion_institute", "energy_realists_network"},
 		Signals: []string{
 			"authored free market think tank papers on energy",
 			"opposed the windfall tax",
@@ -272,10 +283,12 @@ var stakeholderSeeds = []StakeholderSeed{
 			"policies.",
 		IdeologyScore: 45, NetZeroSympathy: 60, RiskTolerance: 55, PopulismScore: 35,
 		DiplomaticSkill: 35,
+		ConsultancyAffinity: []string{"clearpath_advisory", "tacute_energy"},
 		Signals: []string{
 			"backed the new nuclear programme",
 			"sceptical of heat pump mandates",
 			"wants to cut planning red tape for renewables",
+			"strong working relationships with established energy consultancies",
 		},
 	},
 	{
@@ -359,10 +372,12 @@ var stakeholderSeeds = []StakeholderSeed{
 			"ownership. Hostile to corporate LCT companies and market mechanisms.",
 		IdeologyScore: -90, NetZeroSympathy: 80, RiskTolerance: 55, PopulismScore: 70,
 		DiplomaticSkill: 35,
+		ConsultancyAversion: true,
 		Signals: []string{
 			"advocate for nationalised energy",
 			"opposes carbon trading as greenwash",
 			"strong trade union backing",
+			"hostile to private consultancy spend",
 		},
 	},
 	{
@@ -373,6 +388,7 @@ var stakeholderSeeds = []StakeholderSeed{
 			"transition without fiscal constraints. Opposed to austerity framing.",
 		IdeologyScore: -80, NetZeroSympathy: 75, RiskTolerance: 65, PopulismScore: 50,
 		DiplomaticSkill: 48,
+		ConsultancyAversion: true,
 		Signals: []string{
 			"authored The Green New Deal for Taitan",
 			"favours debt-funded transition",
@@ -402,6 +418,7 @@ var stakeholderSeeds = []StakeholderSeed{
 			"consultancies.",
 		IdeologyScore: -85, NetZeroSympathy: 95, RiskTolerance: 70, PopulismScore: 65,
 		DiplomaticSkill: 40,
+		ConsultancyAversion: true,
 		Signals: []string{
 			"co-authored the Zero Carbon Cities bill",
 			"publicly attacked Meridian Strategy for profiteering from climate action",

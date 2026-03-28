@@ -179,6 +179,17 @@ const (
 	SeverityMajor    EventSeverity = "MAJOR"
 )
 
+// PolicySignificance classifies the political weight and transformative impact
+// of a policy card. Used to scale ideology conflict accumulation and to gate
+// minister hard-refusals on sustained opposition.
+type PolicySignificance string
+
+const (
+	PolicySignificanceMinor    PolicySignificance = "MINOR"
+	PolicySignificanceModerate PolicySignificance = "MODERATE"
+	PolicySignificanceMajor    PolicySignificance = "MAJOR"
+)
+
 // PolicySector classifies which emission sector a policy card targets.
 type PolicySector string
 
@@ -228,7 +239,8 @@ type StakeholderSeed struct {
 	RiskTolerance       float64 // 0 (cautious) to 100 (reckless)
 	PopulismScore       float64 // 0 (technocratic) to 100 (populist)
 	DiplomaticSkill     float64 // 0-100; used only for Foreign Secretary role
-	ConsultancyAffinity []string // org IDs; Right party only; drives passive relationship bonus
+	ConsultancyAffinity []string // org IDs; drives passive relationship bonus
+	ConsultancyAversion bool     // true = hostile to private consultancy spend; commissioning while governing costs minister relationship
 	Signals             []string // 2-3 observable personality signals shown on appointment
 	SpecialMechanic     SpecialMechanic
 }
@@ -338,8 +350,9 @@ type PolicyCardDef struct {
 	TechUnlockThreshold float64    // minimum TechMaturity to unlock card
 	ApprovalSteps       []ApprovalRequirement
 	WeeklyEffect        WeeklyEffectDef
-	LCRDeltaPerWeek     float64 // weekly change to LowCarbonReputation when active
-	PopularityRiskPerWeek float64 // weekly GovernmentPopularity delta when active
+	LCRDeltaPerWeek       float64            // weekly change to LowCarbonReputation when active
+	PopularityRiskPerWeek float64            // weekly GovernmentPopularity delta when active
+	Significance          PolicySignificance // political weight: MINOR, MODERATE, or MAJOR
 }
 
 // EventEffect describes the quantitative impact of a global event when it fires.

@@ -7,6 +7,14 @@ import (
 	"twenty-fifty/internal/stakeholder"
 )
 
+// significanceRefuseConflict is the ideology conflict threshold above which a
+// minister issues a formal hard refusal for policies of the given significance,
+// provided the card has also been stalled for the corresponding number of weeks.
+const majorSignificanceRefuseConflict    = 75.0
+const majorSignificanceRefuseWeeks      = 8
+const moderateSignificanceRefuseConflict = 110.0
+const moderateSignificanceRefuseWeeks   = 16
+
 // PolicyState tracks where a policy card sits in the approval and lifecycle pipeline.
 // Transition logic runs in the simulation layer; this package provides pure functions
 // that return updated PolicyCard values.
@@ -106,16 +114,32 @@ func IdeologyConflict(def config.PolicyCardDef, s stakeholder.Stakeholder) float
 // EvaluateApprovalStep tests one approval requirement against the matching stakeholder.
 // Returns (approved, hardReject):
 //   - hardReject=true if ideology conflict exceeds MaxIdeologyConflict (permanent block).
+//   - hardReject=true if significance-based refusal threshold is crossed after sustained stalling.
 //   - approved=true if relationship meets MinRelationshipScore and no hard reject.
 //   - approved=false, hardReject=false means the step is not yet cleared (relationship
 //     shortfall); the card stays UNDER_REVIEW.
 func EvaluateApprovalStep(
+	card PolicyCard,
 	def config.PolicyCardDef,
 	s stakeholder.Stakeholder,
 	req config.ApprovalRequirement,
 ) (approved bool, hardReject bool) {
 	if IdeologyConflict(def, s) > req.MaxIdeologyConflict {
 		return false, true
+	}
+	// Significance-based formal refusal: a minister who strongly disagrees with a
+	// high-significance policy will issue a hard refusal after sustained review,
+	// even if the per-step ideology threshold was not crossed.
+	conflict := IdeologyConflict(def, s)
+	switch def.Significance {
+	case config.PolicySignificanceMajor:
+		if conflict > majorSignificanceRefuseConflict && card.WeeksUnderReview >= majorSignificanceRefuseWeeks {
+			return false, true
+		}
+	case config.PolicySignificanceModerate:
+		if conflict > moderateSignificanceRefuseConflict && card.WeeksUnderReview >= moderateSignificanceRefuseWeeks {
+			return false, true
+		}
 	}
 	if s.RelationshipScore < req.MinRelationshipScore {
 		return false, false
@@ -157,7 +181,7 @@ func EvaluateApproval(card PolicyCard, stakeholders []stakeholder.Stakeholder) P
 			// No unlocked minister in this role; cannot clear or reject the step yet.
 			break
 		}
-		approved, hardReject := EvaluateApprovalStep(card.Def, s, req)
+		approved, hardReject := EvaluateApprovalStep(card, card.Def, s, req)
 		if hardReject {
 			card.State = PolicyStateRejected
 			return card

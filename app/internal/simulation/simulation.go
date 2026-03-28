@@ -27,6 +27,24 @@ import (
 // lobbyAPCost is the action point cost for the LobbyMinister action.
 const lobbyAPCost = 3
 
+// ministerGraceWeeks is the number of weeks after appointment during which a
+// minister is not held accountable for popularity (grace period).
+const ministerGraceWeeks = 4
+
+// signWeightMinor/Moderate/Major are multipliers applied to ideology conflict
+// accumulation based on the policy card's Significance classification.
+const signWeightMinor    = 1.0
+const signWeightModerate = 2.0
+const signWeightMajor    = 4.0
+
+// consultancyAffinityBonusPerWeek is the weekly relationship bonus applied to
+// affiliated orgs when a minister with ConsultancyAffinity is governing.
+const consultancyAffinityBonusPerWeek = 0.3
+
+// consultancyAversionPenaltyPerWeek is the weekly relationship hit the player
+// takes with an averse minister for each active Consultancy-type commission.
+const consultancyAversionPenaltyPerWeek = 0.8
+
 // ministerSackingThreshold is the Popularity level below which a cabinet
 // minister enters UNDER_PRESSURE. Reduced when GovernmentPopularity is high.
 const ministerSackingThreshold = 25.0
@@ -414,7 +432,8 @@ func phaseClockAdvance(w WorldState) WorldState {
 		w.Government = government.TriggerElection(w.Government, winner, w.Week+260)
 
 		// Rebuild cabinet from winning party's unlocked non-terminal ministers.
-		// All other unlocked ministers move to OPPOSITION_SHADOW.
+		// Losing party ministers in ACTIVE/APPOINTED/UNDER_PRESSURE/OPPOSITION_SHADOW
+		// move to OPPOSITION_SHADOW. Those already on BACKBENCH stay BACKBENCH.
 		for i := range w.Stakeholders {
 			s := w.Stakeholders[i]
 			if !s.IsUnlocked || isTerminalState(s.State) {
@@ -422,10 +441,14 @@ func phaseClockAdvance(w WorldState) WorldState {
 			}
 			if s.Party == winner {
 				w.Government = government.AssignMinister(w.Government, s.Role, s.ID)
+				w.Stakeholders[i].GraceWeeksRemaining = ministerGraceWeeks
 				w.Stakeholders[i].State = stakeholder.MinisterStateAppointed
 				w.Stakeholders[i].WeeksUnderPressure = 0
 			} else {
-				w.Stakeholders[i].State = stakeholder.MinisterStateOppositionShadow
+				// Backbench ministers of the losing party stay on backbench.
+				if s.State != stakeholder.MinisterStateBackbench {
+					w.Stakeholders[i].State = stakeholder.MinisterStateOppositionShadow
+				}
 			}
 		}
 	}
@@ -520,6 +543,50 @@ func phaseGlobalEventRoll(w WorldState) (WorldState, []event.EventEntry) {
 
 	entry := event.EventEntry{DefID: def.ID, Name: def.Name, Week: w.Week, Effects: resolved}
 	w.EventLog = event.AppendEventLog(w.EventLog, entry)
+
+	// Design: at most 2 events per week. Attempt a second draw at CRITICAL/EMERGENCY climate.
+	if w.ClimateState.Level >= carbon.ClimateLevelCritical {
+		def2, fired2 := event.DrawEvent(w.Cfg.Events, w.ClimateState.Level, w.FossilDependency, w.RNG)
+		if fired2 {
+			resolved2 := event.ResolveEffect(
+				def2.BaseEffects, w.Cfg.Regions, w.Stakeholders,
+				companyStateSlice(w.Industry), companyDefMap(w.Cfg),
+			)
+			w.EnergyMarket = energy.ApplyShock(w.EnergyMarket, def2.BaseEffects)
+			w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity+resolved2.GovtPopularityDelta, 0, 100)
+			w.Economy.Value = mathutil.Clamp(w.Economy.Value+resolved2.EconomyDelta, 0, 100)
+			w.WeeklyEventLCRDelta += resolved2.LCRDelta
+			w.LCR.Value = mathutil.Clamp(w.LCR.Value+resolved2.LCRDelta, 0, 100)
+			for i, r := range w.Regions {
+				if d, ok := resolved2.RegionDeltas[r.ID]; ok {
+					w.Regions[i].InstallerCapacity = mathutil.Clamp(r.InstallerCapacity+d.InstallerCapacityDelta, 0, 10000)
+					w.Regions[i].SkillsNetwork = mathutil.Clamp(r.SkillsNetwork+d.SkillsNetworkDelta, 0, 100)
+				}
+			}
+			for i, t := range w.Tiles {
+				if d, ok := resolved2.TileDeltas[t.ID]; ok {
+					w.Tiles[i] = region.ApplyClimateEventDamage(t, d.FuelPovertyDelta)
+					w.Tiles[i].InsulationLevel = mathutil.Clamp(w.Tiles[i].InsulationLevel-d.InsulationDamage, 0, 100)
+				}
+			}
+			for i, s := range w.Stakeholders {
+				if d, ok := resolved2.StakeholderDeltas[s.ID]; ok {
+					w.Stakeholders[i] = stakeholder.TickRelationship(s, 0, d.RelDelta)
+				}
+			}
+			w = applyCompanyDeltas(w, resolved2.CompanyDeltas)
+			if def2.OffersShockResponse {
+				w.PendingShockResponses = append(w.PendingShockResponses, event.PendingShockResponse{
+					EventDefID: def2.ID,
+					Week:       w.Week,
+				})
+			}
+			entry2 := event.EventEntry{DefID: def2.ID, Name: def2.Name, Week: w.Week, Effects: resolved2}
+			w.EventLog = event.AppendEventLog(w.EventLog, entry2)
+			return w, []event.EventEntry{entry, entry2}
+		}
+	}
+
 	return w, []event.EventEntry{entry}
 }
 
@@ -958,6 +1025,29 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 			updated = w.Stakeholders[i]
 		}
 
+		// Consultancy affinity: governing ministers with org ties boost those orgs' relationships.
+		if isInCabinet(w.Government, updated.ID) && len(updated.ConsultancyAffinity) > 0 {
+			for _, orgID := range updated.ConsultancyAffinity {
+				for j, os := range w.OrgStates {
+					if os.OrgID == orgID {
+						w.OrgStates[j].RelationshipScore = mathutil.Clamp(
+							w.OrgStates[j].RelationshipScore+consultancyAffinityBonusPerWeek, 0, 100)
+						break
+					}
+				}
+			}
+		}
+
+		// Consultancy aversion: averse governing ministers lose relationship with player
+		// for each active Consultancy-type commission.
+		if updated.ConsultancyAversion && isInCabinet(w.Government, updated.ID) {
+			activeConsOrgs := activeConsultancyOrgIDs(w.Commissions, w.Cfg.Organisations)
+			for range activeConsOrgs {
+				w.Stakeholders[i] = stakeholder.TickRelationship(w.Stakeholders[i], 0, -consultancyAversionPenaltyPerWeek)
+			}
+			updated = w.Stakeholders[i]
+		}
+
 		// Ideology conflict resignation: cabinet ministers only.
 		if !isTerminalState(updated.State) &&
 			updated.State != stakeholder.MinisterStateAppointed &&
@@ -970,6 +1060,13 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 					break
 				}
 			}
+			continue
+		}
+
+		// Grace period: newly appointed ministers are not held accountable for
+		// popularity for ministerGraceWeeks weeks after appointment.
+		if updated.GraceWeeksRemaining > 0 {
+			w.Stakeholders[i].GraceWeeksRemaining--
 			continue
 		}
 
@@ -1006,10 +1103,12 @@ func phaseMinisterTransitions(w WorldState) WorldState {
 		if !s.IsUnlocked {
 			continue
 		}
+		updated := w.Stakeholders[i]
 		switch s.State {
 		case stakeholder.MinisterStateAppointed:
-			// APPOINTED -> ACTIVE: 4-week grace period deferred to simulation tuning;
-			// immediate transition ensures valid states from week 1 onward.
+			// APPOINTED -> ACTIVE: set grace period so the minister is not held
+			// accountable for popularity for ministerGraceWeeks weeks.
+			w.Stakeholders[i].GraceWeeksRemaining = ministerGraceWeeks
 			w.Stakeholders[i].State = stakeholder.MinisterStateActive
 
 		case stakeholder.MinisterStateUnderPressure:
@@ -1025,6 +1124,27 @@ func phaseMinisterTransitions(w WorldState) WorldState {
 						break
 					}
 				}
+			}
+
+		case stakeholder.MinisterStateSacked:
+			// SACKED is a transient state: move to BACKBENCH.
+			w.Stakeholders[i].State = stakeholder.MinisterStateBackbench
+
+		case stakeholder.MinisterStateResigned:
+			// RESIGNED is a transient state: move to BACKBENCH.
+			w.Stakeholders[i].State = stakeholder.MinisterStateBackbench
+
+		case stakeholder.MinisterStateBackbench:
+			// Low-popularity backbenchers eventually retire.
+			// Reuse WeeksUnderPressure as a backbench accountability counter.
+			if updated.Popularity < 15.0 {
+				w.Stakeholders[i].WeeksUnderPressure++
+				if w.Stakeholders[i].WeeksUnderPressure >= 12 {
+					w.Stakeholders[i].State = stakeholder.MinisterStateDeparted
+					w.Stakeholders[i].WeeksUnderPressure = 0
+				}
+			} else {
+				w.Stakeholders[i].WeeksUnderPressure = 0
 			}
 		}
 	}
@@ -1066,7 +1186,7 @@ func phaseConsequenceResolution(w WorldState) WorldState {
 				if !ok {
 					continue
 				}
-				conflict := policy.IdeologyConflict(card.Def, s) * ideologyConflictWeight
+				conflict := policy.IdeologyConflict(card.Def, s) * ideologyConflictWeight * significanceMultiplier(card.Def.Significance)
 				for j := range w.Stakeholders {
 					if w.Stakeholders[j].ID == s.ID {
 						w.Stakeholders[j].IdeologyConflictScore = mathutil.Clamp(
@@ -1318,11 +1438,11 @@ func isValidMinisterState(s stakeholder.MinisterState) bool {
 }
 
 // isTerminalState returns true for states where no further simulation actions apply.
+// SACKED and RESIGNED are transient states that transition to BACKBENCH; they are
+// not terminal. BACKBENCH and OPPOSITION_SHADOW are live states.
 func isTerminalState(s stakeholder.MinisterState) bool {
 	return s == stakeholder.MinisterStateDeparted ||
-		s == stakeholder.MinisterStateSacked ||
-		s == stakeholder.MinisterStateElectionOut ||
-		s == stakeholder.MinisterStateResigned
+		s == stakeholder.MinisterStateElectionOut
 }
 
 // rawValueForInsight returns the true world-state value (0-100) for the given
@@ -1471,6 +1591,37 @@ func activeCompanyFraction(ind industry.IndustryState) float64 {
 		}
 	}
 	return float64(active) / float64(len(ind.Companies))
+}
+
+// significanceMultiplier returns the ideology conflict accumulation multiplier
+// for a given policy significance level.
+func significanceMultiplier(s config.PolicySignificance) float64 {
+	switch s {
+	case config.PolicySignificanceMajor:
+		return signWeightMajor
+	case config.PolicySignificanceModerate:
+		return signWeightModerate
+	default:
+		return signWeightMinor
+	}
+}
+
+// activeConsultancyOrgIDs returns the set of org IDs that have active (PENDING)
+// commissions AND are of OrgType Consultancy.
+func activeConsultancyOrgIDs(commissions []evidence.Commission, orgDefs []config.OrgDefinition) map[string]bool {
+	defMap := make(map[string]config.OrgDefinition, len(orgDefs))
+	for _, d := range orgDefs {
+		defMap[d.ID] = d
+	}
+	out := make(map[string]bool)
+	for _, c := range commissions {
+		if !c.Delivered && !c.Failed {
+			if def, ok := defMap[c.OrgID]; ok && def.OrgType == config.OrgConsultancy {
+				out[c.OrgID] = true
+			}
+		}
+	}
+	return out
 }
 
 // activePolicyFraction returns the fraction of policy cards currently ACTIVE,

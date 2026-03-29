@@ -310,6 +310,37 @@ func TestHeadlessRun_Crossroads_1248Weeks(t *testing.T) {
 	assert.GreaterOrEqual(t, report.FinalGovtPop, 0.0)
 }
 
+// Full-campaign 2080-week (40-year) playtests verifying simulation stability
+// across the entire 2010-2050 window.
+
+func TestHeadlessRun_HumbleBeginnings_2080Weeks_FullCampaign(t *testing.T) {
+	// 2080 weeks = 40 years; HumbleBeginnings 2010 -> 2050 full run.
+	w := loadScenario(t, config.ScenarioHumbleBeginnings)
+	_, report := HeadlessRun(w, 2080)
+	assert.Empty(t, report.StakeholderIssues)
+	assert.GreaterOrEqual(t, report.FinalGovtPop, 0.0)
+	assert.LessOrEqual(t, report.FinalGovtPop, 100.0)
+	assert.Equal(t, 2080, report.WeeksRun)
+}
+
+func TestHeadlessRun_RisingStorm_1612Weeks_FullCampaign(t *testing.T) {
+	// 1612 weeks = 31 years; RisingStorm 2019 -> 2050 full run.
+	w := loadScenario(t, config.ScenarioRisingStorm)
+	_, report := HeadlessRun(w, 1612)
+	assert.Empty(t, report.StakeholderIssues)
+	assert.GreaterOrEqual(t, report.FinalGovtPop, 0.0)
+	assert.Equal(t, 1612, report.WeeksRun)
+}
+
+func TestHeadlessRun_Crossroads_1248Weeks_FullCampaign(t *testing.T) {
+	// 1248 weeks = 24 years; Crossroads 2026 -> 2050 full run.
+	w := loadScenario(t, config.ScenarioCrossroads)
+	_, report := HeadlessRun(w, 1248)
+	assert.Empty(t, report.StakeholderIssues)
+	assert.GreaterOrEqual(t, report.FinalGovtPop, 0.0)
+	assert.Equal(t, 1248, report.WeeksRun)
+}
+
 // ---------------------------------------------------------------------------
 // BaseWeeklyMt is scenario-calibrated
 // ---------------------------------------------------------------------------

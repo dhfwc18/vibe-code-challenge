@@ -1,6 +1,6 @@
 # 20-50 -- Implementation Plan
 
-Last updated: 2026-03-28
+Last updated: 2026-03-29
 
 This document is the authoritative build plan. It derives from the design in
 game_design.md. Read that document first if anything here is unclear.
@@ -9,13 +9,31 @@ game_design.md. Read that document first if anything here is unclear.
 
 ## Current State
 
-Four Go files exist:
-  app/cmd/app/main.go               -- opens a 1280x720 Ebitengine window
-  app/internal/game/game.go         -- Game struct, Update/Draw/Layout stubs
-  app/internal/game/colours.go      -- background colour constant
-  app/internal/game/game_test.go    -- 3 passing tests
+Last updated: 2026-03-29
 
-Nothing else exists. All game logic is to be built.
+Layers 0-5 are substantially built. The following features are complete and tested:
+
+  Layer 0 (config, save):        all static definitions, EventDef with Headline/TriggerAtYear/
+                                  DecayingShockConfig; all event seeds in config/events.go
+  Layer 1 (carbon, technology,   all packages implemented and tested
+           region):
+  Layer 2 (energy, climate,      all packages implemented and tested
+           economy, reputation):
+  Layer 3 (stakeholder,          all packages implemented and tested
+           government, polling,
+           industry):
+  Layer 4 (policy, evidence,     all packages implemented and tested; player.go includes
+           event, player):       ActionTypeRespondRiskyTicky, ActionTypeRespondTrickyTicky,
+                                  ActionTypeDamageTickyReputation, ActionTypeGreatSneezeLobby
+  Layer 5 (simulation):          WorldState with extended Ticky fields
+                                  (PendingRiskyTicky, PendingTrickyTicky, AngryTickyActive,
+                                  AngryTickyWimpy), ActiveDecayingShock struct,
+                                  GreatSneezeActive/GreatSneezeWeekEnd/GreatSneezeFired,
+                                  FiredOnceEvents; pipeline phases 3b, 3c, 11b implemented;
+                                  extended Ticky mechanics (Risky, Tricky, Angry, Wimpy)
+                                  implemented in phaseExtendedTickyMechanics
+
+Layer 6 (ui) and Layer 7 (entry point) are not yet built.
 
 ---
 
@@ -55,8 +73,9 @@ Structs to define:
                            diplomaticSkill, consultancyAffinity, signals, specialMechanic
   CompanyDef            -- id, name, techCategory, originSize, baseQuality,
                            baseWorkRate, taitonHq
-  EventDef              -- id, eventType, severity, baseProbability, climateMultiplier,
-                           fossilMultiplier, effects
+  EventDef              -- id, name, headline, eventType, severity, baseProbability,
+                           climateMultiplier, fossilMultiplier, triggerAtYear,
+                           baseEffects, decayingShock, narrative, offersShockResponse
   TechCurveDef          -- id, name, sector, logisticMidpoint, logisticSteepness,
                            baseAdoptionRate, costAnchors
   CarbonBudgetDef       -- year, annualLimitMtCO2e (from CCC targets)
@@ -70,7 +89,8 @@ Data to seed:
   - 18 organisation definitions (15 local + 3 Murican)
   - 15 base LCT company definitions
   - 40-60 policy card definitions across 4 sectors
-  - 40-60 event definitions across 6 event types
+  - 40-60 event definitions across 6 event types (including decaying-shock war events and
+    the time-gated Great Sneeze)
   - 8 technology curve definitions
   - Carbon budget table 2010-2050 (from green_book_reference.md)
   - 12 region definitions with 60-80 tile definitions total
@@ -489,6 +509,15 @@ Key functions:
   ReputationGrade(playerRep float64) string   -- maps to civil service grade labels
   ProcessShockResponse(player, card, choice, worldSnapshot) ActionRecord
 
+ActionType constants (COMPLETED -- all defined in player.go):
+  ActionTypeSubmitPolicy, ActionTypeCommissionReport, ActionTypeLobbyMinister,
+  ActionTypeHireStaff, ActionTypeFireStaff, ActionTypeShockResponse,
+  ActionTypeRespondTickyPressure,
+  ActionTypeRespondRiskyTicky    -- ENDORSE or DECLINE the Risky Ticky prompt
+  ActionTypeRespondTrickyTicky   -- ACCEPT or DECLINE the Tricky Ticky contract offer
+  ActionTypeDamageTickyReputation -- 3 AP counter-move when Angry Ticky is active
+  ActionTypeGreatSneezeLobby     -- 0 AP free lobby available while Great Sneeze active
+
 Tests: AP pool starts at correct value including staff bonus, overspend
 returns error, reputation grade boundaries map correctly.
 
@@ -498,7 +527,7 @@ returns error, reputation grade boundaries map correctly.
 
 Package: simulation
 
-This is the most important package. It owns WorldState and runs the 17-phase
+This is the most important package. It owns WorldState and runs the simulation
 pipeline. It imports all Layer 0-4 packages.
 
 Key types:
@@ -506,25 +535,29 @@ Key types:
   TurnEngine   -- owns WorldState, exposes AdvanceWeek() and PlayerAction()
   EventBus     -- lightweight pub/sub for cross-package event delivery
 
-18-phase pipeline (must execute in this exact order):
-  Phase  1: ClockAdvance
-  Phase  2: ClimateAndFossilUpdate
-  Phase  3: GlobalEventRoll
-  Phase  4: ScandalAndPressureRoll
-  Phase  5: TechnologyProgressTick
-  Phase  6: RegionalWorldTick
-  Phase  7: TileLocalTick
-  Phase  8: ClimateEventImpactOnTiles
-  Phase  9: PolicyResolution
-  Phase 10: CarbonBudgetAccounting
-  Phase 11: EconomyAndTaxRevenueTick
-  Phase 12: PollingCheck
-  Phase 13: PlayerActionPhase  (blocks; waits for UI input or headless input)
-  Phase 14: MinisterHealthCheck
-  Phase 15: MinisterTransitions
-  Phase 16: ConsequenceResolution
-  Phase 17: ConsultancyDeliveryCheck
-  Phase 18: EndOfWeekRender (UI only; no-op in headless mode)
+Pipeline (must execute in this exact order):
+  Phase  1:  ClockAdvance
+  Phase  2:  ClimateAndFossilUpdate
+  Phase  3:  GlobalEventRoll
+  Phase  3b: TimeGatedEvents (Great Sneeze; TriggerAtYear events)
+  Phase  3c: DecayingShockTick (apply and decay ActiveDecayingShock entries)
+  Phase  4:  ScandalAndPressureRoll (includes Ticky pressure tick and extended
+             Ticky mechanics: Risky Ticky, Tricky Ticky)
+  Phase  5:  TechnologyProgressTick
+  Phase  6:  RegionalWorldTick
+  Phase  7:  TileLocalTick
+  Phase  8:  ClimateEventImpactOnTiles
+  Phase  9:  PolicyResolution
+  Phase 10:  CarbonBudgetAccounting
+  Phase 11:  EconomyAndTaxRevenueTick
+  Phase 11b: GreatSneezeTick (weekly popularity drain while active)
+  Phase 12:  PollingCheck
+  Phase 13:  ConsequenceResolution (policy approval evaluation)
+  Phase 14:  PlayerActionPhase  (blocks; waits for UI input or headless input)
+  Phase 15:  MinisterHealthCheck (includes Angry Ticky trigger detection)
+  Phase 16:  MinisterTransitions
+  Phase 17:  ConsultancyDeliveryCheck
+  Phase 18:  EndOfWeekRender (UI only; no-op in headless mode)
 
 Key functions:
   NewWorld(config, masterSeed) WorldState
@@ -680,7 +713,8 @@ Go structs, to allow future content editing without recompilation.
 
 ## Known Risks
 
-1. Simulation correctness: 18-phase pipeline has many interdependencies.
+1. Simulation correctness: the multi-phase pipeline (18 numbered phases plus sub-phases
+   3b, 3c, and 11b) has many interdependencies.
    The headless integration test is the main guard. Run it frequently.
 
 2. Config data volume: 40-60 policy cards, 40-60 events, 30+ stakeholder

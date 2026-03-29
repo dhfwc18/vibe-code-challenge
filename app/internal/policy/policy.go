@@ -66,6 +66,52 @@ type CarbonDelta struct {
 	BudgetCostPerWeek float64 // GBP millions this week
 }
 
+// PolicyCardSave is the JSON-serializable form of a PolicyCard (stores Def.ID, not the pointer).
+type PolicyCardSave struct {
+	DefID            string        `json:"def_id"`
+	State            PolicyState   `json:"state"`
+	WeeksActive      int           `json:"weeks_active"`
+	WeeksUnderReview int           `json:"weeks_under_review"`
+	StepsCleared     int           `json:"steps_cleared"`
+	ArchiveReason    ArchiveReason `json:"archive_reason,omitempty"`
+}
+
+// SavePolicyCard converts a PolicyCard to its serializable form.
+func SavePolicyCard(pc PolicyCard) PolicyCardSave {
+	id := ""
+	if pc.Def != nil {
+		id = pc.Def.ID
+	}
+	return PolicyCardSave{
+		DefID:            id,
+		State:            pc.State,
+		WeeksActive:      pc.WeeksActive,
+		WeeksUnderReview: pc.WeeksUnderReview,
+		StepsCleared:     pc.StepsCleared,
+		ArchiveReason:    pc.ArchiveReason,
+	}
+}
+
+// RestorePolicyCard reconstructs a PolicyCard from its save form, looking up the
+// definition in defs. Returns a card with Def==nil if the ID is not found.
+func RestorePolicyCard(s PolicyCardSave, defs []config.PolicyCardDef) PolicyCard {
+	var def *config.PolicyCardDef
+	for i := range defs {
+		if defs[i].ID == s.DefID {
+			def = &defs[i]
+			break
+		}
+	}
+	return PolicyCard{
+		Def:              def,
+		State:            s.State,
+		WeeksActive:      s.WeeksActive,
+		WeeksUnderReview: s.WeeksUnderReview,
+		StepsCleared:     s.StepsCleared,
+		ArchiveReason:    s.ArchiveReason,
+	}
+}
+
 // SeedPolicyCards creates one PolicyCard per definition, all starting in DRAFT.
 func SeedPolicyCards(defs []config.PolicyCardDef) []PolicyCard {
 	cards := make([]PolicyCard, len(defs))

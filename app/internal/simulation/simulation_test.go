@@ -75,7 +75,8 @@ func TestNewWorld_CarbonZero(t *testing.T) {
 
 func TestNewWorld_RulingPartyAssigned(t *testing.T) {
 	w := loadWorld(t)
-	assert.Equal(t, config.PartyLeft, w.Government.RulingParty)
+	// Game starts with center-right in power (analogous to 2010 Taitan election).
+	assert.Equal(t, config.PartyRight, w.Government.RulingParty)
 	assert.NotEmpty(t, w.Government.CabinetByRole,
 		"initial cabinet must have at least one minister assigned")
 }

@@ -645,20 +645,22 @@ func TestPolicy_SubmitAndApprove_ConflictMechanismWired(t *testing.T) {
 	}
 	require.NotEmpty(t, leader.ID, "jj_cameron must exist in stakeholders")
 
-	rawConflict := policy.IdeologyConflict(targetDef, leader)
-	expectedDelta := rawConflict * ideologyConflictWeight * significanceMultiplier(targetDef.Significance)
+	// IdeologyConflict now returns effective conflict (NZS modifier applied).
+	// JJ Cameron (ideology=-78, NZS=87): raw=|-78-(-20)|=58,
+	// effective = 58 * (1 - 87*0.6/100) = 58 * 0.478 = 27.724.
+	// Significance = MAJOR -> multiplier = 4.0.
+	// expectedDelta = 27.724 * 0.015 * 4.0 = 1.663.
+	effConflict := policy.IdeologyConflict(targetDef, leader)
+	expectedDelta := effConflict * ideologyConflictWeight * significanceMultiplier(targetDef.Significance)
 
-	// Significance = MAJOR -> multiplier = 4.0
-	// rawConflict = 58, weight = 0.015, multiplier = 4.0
-	// expectedDelta = 58 * 0.015 * 4.0 = 3.48
 	assert.Greater(t, expectedDelta, 0.0,
 		"expected ideology conflict delta must be > 0 for JJ Cameron approving national_retrofit_programme")
 
-	// Verify formula values match known constants.
-	assert.InDelta(t, 58.0, rawConflict, 0.1,
-		"JJ Cameron's ideology conflict with Buildings sector policy should be 58")
-	assert.InDelta(t, 3.48, expectedDelta, 0.01,
-		"expected ideology conflict delta for MAJOR Buildings policy = 58 * 0.015 * 4.0 = 3.48")
+	// Verify effective conflict matches NZS-reduced formula.
+	assert.InDelta(t, 27.724, effConflict, 0.1,
+		"JJ Cameron's effective ideology conflict with Buildings sector = raw 58 * NZS reduction factor 0.478 = 27.72")
+	assert.InDelta(t, 1.663, expectedDelta, 0.01,
+		"expected ideology conflict delta for MAJOR Buildings = 27.724 * 0.015 * 4.0 = 1.663")
 }
 
 // ---------------------------------------------------------------------------

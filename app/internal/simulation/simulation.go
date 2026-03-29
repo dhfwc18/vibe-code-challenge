@@ -212,9 +212,10 @@ type WorldState struct {
 	TechDeliveryLog []string // one entry per company delivery event, e.g. "company_id delivered tech boost for OFFSHORE_WIND"
 
 	// Weekly transient accumulators -- reset at the top of each AdvanceWeek call.
-	WeeklyNetCarbonMt        float64 // net carbon emitted this week (base minus reductions)
-	WeeklyPolicyReductionMt  float64 // total carbon removed by active policies
-	WeeklyEventLCRDelta      float64 // LCR delta from fired events
+	WeeklyNetCarbonMt         float64 // net carbon emitted this week (base minus reductions)
+	WeeklyPolicyReductionMt   float64 // total carbon removed by active policies
+	WeeklyEventLCRDelta       float64 // LCR delta from fired events
+	WeeklyPolicyLCRDelta      float64 // direct LCR delta from active policy LCRDeltaPerWeek fields
 	WeeklyPolicyBudgetCostGBP float64 // total budget draw from active policies this week
 }
 
@@ -270,8 +271,8 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 		TechDeliveryLog:         []string{},
 	}
 
-	// Government: Common Wealth rules from 2010; first election ~2015.
-	w.Government = government.NewGovernment(config.PartyLeft, initialElectionDueWeek)
+	// Government: center-right wins the 2010 election; first election ~2015.
+	w.Government = government.NewGovernment(config.PartyRight, initialElectionDueWeek)
 
 	// Stakeholders: seed all; unlock START-timing figures; assign ruling party cabinet.
 	w.Stakeholders = stakeholder.SeedStakeholders(cfg.Stakeholders)
@@ -281,7 +282,7 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 		}
 		w.Stakeholders[i] = stakeholder.UnlockStakeholder(s, 0)
 		w.Stakeholders[i].State = stakeholder.MinisterStateAppointed
-		if s.Party == config.PartyLeft {
+		if s.Party == config.PartyRight {
 			w.Government = government.AssignMinister(w.Government, s.Role, s.ID)
 		}
 	}
@@ -349,6 +350,7 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 	w.WeeklyNetCarbonMt = baseWeeklyMt
 	w.WeeklyPolicyReductionMt = 0
 	w.WeeklyEventLCRDelta = 0
+	w.WeeklyPolicyLCRDelta = 0
 	w.WeeklyPolicyBudgetCostGBP = 0
 
 	// Phase 1: Clock Advance.
@@ -779,6 +781,9 @@ func phasePolicyResolution(w WorldState) WorldState {
 		// the net reduction as a positive number (reduction = removed carbon).
 		w.WeeklyPolicyReductionMt -= delta.DeltaMt
 		w.WeeklyPolicyBudgetCostGBP += delta.BudgetCostPerWeek
+		// Direct LCR bonus from the policy config (e.g. wind planning reform gives
+		// +0.06/week as a credibility signal beyond carbon tonnage alone).
+		w.WeeklyPolicyLCRDelta += card.Def.LCRDeltaPerWeek
 	}
 
 	// Net carbon: base emissions minus policy reductions (reductions stored as
@@ -823,7 +828,7 @@ func phaseEconomyTick(w WorldState) WorldState {
 
 	// LCR tick: capture delta for downstream popularity chains.
 	prevLCR := w.LCR.Value
-	w.LCR = reputation.TickReputation(w.LCR, w.WeeklyPolicyReductionMt, w.WeeklyEventLCRDelta)
+	w.LCR = reputation.TickReputation(w.LCR, w.WeeklyPolicyReductionMt, w.WeeklyEventLCRDelta+w.WeeklyPolicyLCRDelta)
 	lcrDelta := w.LCR.Value - prevLCR
 
 	// Government popularity chain from LCR movement.

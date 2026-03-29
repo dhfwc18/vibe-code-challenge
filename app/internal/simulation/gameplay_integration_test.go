@@ -129,12 +129,6 @@ func TestStrategy_CarbonBaseline_NoPolicy_CumulativeGrows(t *testing.T) {
 // TestStrategy_CarbonBaseline_NoPolicy_OvershootAccumulates verifies that the
 // overshoot accumulator grows over a passive 5-year run, since baseline
 // emissions exceed CCC budget targets.
-//
-// DESIGN FLAG D2: year-end carbon check at week 52 uses w.Year=2011 but the
-// 52 weeks of emissions accumulated were for game-year 2010. The budget
-// limit for 2011 is applied to 2010's emissions. In practice the 2011 limit
-// is similar to 2010 so the quantitative impact is small, but semantically
-// the check is off by one year. This should be reviewed.
 func TestStrategy_CarbonBaseline_NoPolicy_OvershootAccumulates(t *testing.T) {
 	w := loadWorld(t)
 	w = advanceN(w, 5*52) // 5 years
@@ -271,7 +265,8 @@ func TestStrategy_PowerSector_FullPipeline_GridModFund_ActivatesAndReducesCarbon
 	// Step 2: Advance until approved or rejected (max 10 weeks).
 	// Approval requires: Chancellor (Rel>=40, IdeConflict<50) and Energy (Rel>=30, IdeConflict<60).
 	// Starting Rel=50 satisfies both MinRelationshipScore requirements.
-	// Chancellor (Harmon, -15): conflict=15 < 50; Energy (Blackwell, -30): conflict=30 < 60.
+	// Chancellor Drake (ideology=55, NZS=35): effective conflict=55*(1-0.21)=43.5 < 50.
+	// Energy Holm (ideology=45, NZS=60): effective conflict=45*(1-0.36)=28.8 < 60.
 	// All steps should clear immediately.
 	for i := 0; i < 10; i++ {
 		w, _ = AdvanceWeek(w, nil)
@@ -308,75 +303,131 @@ active:
 }
 
 // ---------------------------------------------------------------------------
-// Strategy 3: Leader ideology block -- design flag D1
+// Strategy 3: Leader NZS hybrid -- D1 resolved
 // ---------------------------------------------------------------------------
+// D1 resolution: IdeologyConflict now multiplies raw conflict by
+// (1 - NZS * 0.6 / 100). Right government governs at game start (center-right
+// Cavendish, NZS=60), making onshore wind and nuclear approvable early.
+// JJ Cameron (Left, NZS=87) enters as PM only after a Left election win; his
+// high NZS reduces effective conflict to ~37 on Power policies -- below the
+// onshore wind threshold (40) but above nuclear (35), keeping him stubborn on
+// the hardest targets and rewarding the player for relationship building.
 
-// TestStrategy_LeaderIdeologyBlock_OnshoreWind_HardRejectedUnderJJCameron
-// verifies that onshore_wind_planning_reform is hard-rejected when JJ Cameron
-// is PM, because his ideology (-78) conflicts with the Power sector position
-// (0.0) by 78 points, exceeding the Leader step's MaxIdeologyConflict of 40.
-//
-// DESIGN FLAG D1: JJ Cameron (ideology=-78, netZeroSympathy=87) hard-rejects
-// all policies that require Leader approval because the ideology conflict
-// calculation uses IdeologyScore only, not NetZeroSympathy. This means the
-// player's strongest net-zero advocate PM blocks most cross-cutting and power
-// policies. The following policies are permanently hard-rejected under Left
-// government at game start (all require Leader approval):
-//   - onshore_wind_planning_reform   (Power,     Leader conflict=78 > MaxConflict=40)
-//   - nuclear_new_build_cfd          (Power,     Leader conflict=78 > MaxConflict=35)
-//   - green_investment_bank          (Cross,     Leader conflict=78 > MaxConflict=40)
-//   - carbon_price_floor             (Cross,     Leader conflict=78 > MaxConflict=35)
-//   - emissions_trading_scheme       (Industry,  Leader conflict=98 > MaxConflict=40)
-//   - public_transport_electrification (Transport, Leader conflict=63 > MaxConflict=55)
-//
-// This should be reviewed. Options: (a) adjust Power/Cross sector ideology
-// positions to be more left-leaning (e.g. Power=-20), (b) incorporate
-// NetZeroSympathy as a modifier that reduces effective ideology conflict,
-// (c) remove Leader from approval steps for Power/Cross policies.
-func TestStrategy_LeaderIdeologyBlock_OnshoreWind_HardRejectedUnderJJCameron(t *testing.T) {
+// TestStrategy_RightGovernment_OnshoreWind_ApprovableUnderCavendish verifies
+// that onshore_wind_planning_reform reaches APPROVED when the Right party
+// governs at game start. Cavendish (ideology=35, NZS=60) has effective Leader
+// conflict of 35*(1-0.36)=22.4 < MaxConflict=40.
+func TestStrategy_RightGovernment_OnshoreWind_ApprovableUnderCavendish(t *testing.T) {
 	w := loadWorld(t)
 
-	// Verify JJ Cameron is PM (Left governs at start).
-	require.Equal(t, config.PartyLeft, w.Government.RulingParty,
-		"Left party must govern at game start")
-	var jjCameron stakeholder.Stakeholder
-	for _, s := range w.Stakeholders {
-		if s.ID == "jj_cameron" {
-			jjCameron = s
-			break
-		}
-	}
-	require.True(t, jjCameron.IsUnlocked, "JJ Cameron must be unlocked at game start")
+	require.Equal(t, config.PartyRight, w.Government.RulingParty,
+		"Right party must govern at game start")
 
-	// Compute expected conflict for onshore_wind_planning_reform Leader step.
-	// Power sector policyIdeologyPosition = 0.0; JJ Cameron ideology = -78.
-	expectedConflict := 78.0 // |-78 - 0|
-	leaderStepMaxConflict := 40.0 // onshore_wind Leader step MaxIdeologyConflict
-
-	assert.Greater(t, expectedConflict, leaderStepMaxConflict,
-		"DESIGN FLAG D1: JJ Cameron ideology conflict (%.0f) exceeds MaxIdeologyConflict (%.0f) on Leader step",
-		expectedConflict, leaderStepMaxConflict)
-
-	// Submit onshore_wind_planning_reform and advance 3 weeks -- it should be hard-rejected.
+	// Submit onshore_wind_planning_reform (APCost=3).
 	w, _ = AdvanceWeek(w, []Action{
 		{Type: player.ActionTypeSubmitPolicy, Target: "onshore_wind_planning_reform"},
 	})
-	w = advanceN(w, 3)
 
+	var submitted bool
 	for _, card := range w.PolicyCards {
 		if card.Def.ID == "onshore_wind_planning_reform" {
+			submitted = card.State == policy.PolicyStateUnderReview
+			break
+		}
+	}
+	require.True(t, submitted, "onshore_wind_planning_reform must move to UNDER_REVIEW")
+
+	// Advance up to 10 weeks; must reach APPROVED without rejection.
+	for i := 0; i < 10; i++ {
+		w, _ = AdvanceWeek(w, nil)
+		for _, card := range w.PolicyCards {
+			if card.Def.ID == "onshore_wind_planning_reform" {
+				if card.State == policy.PolicyStateApproved || card.State == policy.PolicyStateActive {
+					return // success
+				}
+				if card.State == policy.PolicyStateRejected {
+					t.Fatalf("onshore_wind_planning_reform was REJECTED under Right government (week %d) -- NZS modifier may not be applied", i+1)
+				}
+			}
+		}
+	}
+	t.Fatal("onshore_wind_planning_reform did not reach APPROVED within 10 weeks under Right government")
+}
+
+// forceLeftGovernment switches the world to a Left government with JJ Cameron
+// as Leader. Used to test D1 NZS hybrid behavior under a Left administration.
+// All Left TimingStart stakeholders are already unlocked (IsUnlocked=true) in
+// the world returned by loadWorld; this just reassigns the cabinet.
+func forceLeftGovernment(w WorldState) WorldState {
+	w.Government = government.NewGovernment(config.PartyLeft, w.Government.ElectionDueWeek)
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked && s.Party == config.PartyLeft {
+			w.Government = government.AssignMinister(w.Government, s.Role, s.ID)
+		}
+	}
+	return w
+}
+
+// TestStrategy_NZSHybrid_JJCameron_PassesOnshoreBlocksNuclear verifies the D1
+// hybrid: JJ Cameron's NZS=87 reduces effective Power conflict from 78 to 37.3,
+// which is below onshore_wind MaxConflict=40 (pass) but above nuclear
+// MaxConflict=35 (block). Player must use a different route for nuclear.
+func TestStrategy_NZSHybrid_JJCameron_PassesOnshoreBlocksNuclear(t *testing.T) {
+	w := loadWorld(t)
+	w = forceLeftGovernment(w)
+
+	require.Equal(t, config.PartyLeft, w.Government.RulingParty,
+		"Left government required for JJ Cameron NZS test")
+
+	// Verify JJ Cameron is in cabinet as Leader.
+	leaderID := w.Government.CabinetByRole[config.RoleLeader]
+	require.Equal(t, "jj_cameron", leaderID,
+		"jj_cameron must be Leader under forced Left government")
+
+	// onshore_wind: effective conflict = 78*(1-0.522) = 37.3 < MaxConflict=40 -> PASS
+	// Submit and verify it approves within 10 weeks.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "onshore_wind_planning_reform"},
+	})
+	for i := 0; i < 10; i++ {
+		w, _ = AdvanceWeek(w, nil)
+		for _, card := range w.PolicyCards {
+			if card.Def.ID == "onshore_wind_planning_reform" {
+				if card.State == policy.PolicyStateApproved || card.State == policy.PolicyStateActive {
+					goto onshoreApproved
+				}
+				if card.State == policy.PolicyStateRejected {
+					t.Fatalf("onshore_wind_planning_reform was REJECTED under JJ Cameron -- NZS hybrid broken (week %d)", i+1)
+				}
+			}
+		}
+	}
+	t.Fatal("onshore_wind_planning_reform did not approve within 10 weeks under JJ Cameron")
+
+onshoreApproved:
+	// nuclear_new_build_cfd: effective conflict = 78*(1-0.522) = 37.3 > MaxConflict=35 -> BLOCKED
+	// Need fresh world with Left government for nuclear test.
+	w2 := loadWorld(t)
+	w2 = forceLeftGovernment(w2)
+	w2, _ = AdvanceWeek(w2, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "nuclear_new_build_cfd"},
+	})
+	w2 = advanceN(w2, 3)
+
+	for _, card := range w2.PolicyCards {
+		if card.Def.ID == "nuclear_new_build_cfd" {
 			assert.Equal(t, policy.PolicyStateRejected, card.State,
-				"onshore_wind_planning_reform must be REJECTED under JJ Cameron (DESIGN FLAG D1: ideology conflict blocks Leader approval)")
+				"nuclear_new_build_cfd must be REJECTED under JJ Cameron (effective conflict 37.3 > MaxConflict=35 -- JJ Cameron stubborn on nuclear)")
 			return
 		}
 	}
-	t.Fatal("onshore_wind_planning_reform not found after submission")
+	t.Fatal("nuclear_new_build_cfd not found after submission")
 }
 
 // TestStrategy_LeaderIdeologyBlock_GridModFund_NotAffected verifies that
-// grid_modernisation_fund is NOT blocked by the JJ Cameron Leader ideology
-// issue, because it has no Leader approval step (only Chancellor + Energy).
-// This is the first approvable power policy under Left government at start.
+// grid_modernisation_fund is approvable at game start (Right government).
+// It has no Leader approval step (only Chancellor + Energy), so it is
+// unaffected by any Leader ideology issues.
 func TestStrategy_LeaderIdeologyBlock_GridModFund_NotAffected(t *testing.T) {
 	w := loadWorld(t)
 
@@ -393,8 +444,8 @@ func TestStrategy_LeaderIdeologyBlock_GridModFund_NotAffected(t *testing.T) {
 	}
 
 	// Submit and verify it reaches APPROVED/ACTIVE within 5 weeks.
-	// Chancellor (Harmon, ideology=-15): conflict=15 < MaxConflict=50 -> pass.
-	// Energy (Blackwell, ideology=-30): conflict=30 < MaxConflict=60 -> pass.
+	// Chancellor Drake (ideology=55, NZS=35): effective=43.5 < MaxConflict=50 -> pass.
+	// Energy Holm (ideology=45, NZS=60): effective=28.8 < MaxConflict=60 -> pass.
 	w, _ = AdvanceWeek(w, []Action{
 		{Type: player.ActionTypeSubmitPolicy, Target: "grid_modernisation_fund"},
 	})
@@ -408,61 +459,81 @@ func TestStrategy_LeaderIdeologyBlock_GridModFund_NotAffected(t *testing.T) {
 			}
 		}
 	}
-	t.Fatal("grid_modernisation_fund should reach APPROVED without Leader approval; not reached within 5 weeks")
+	t.Fatal("grid_modernisation_fund should reach APPROVED; not reached within 5 weeks")
 }
 
-// TestStrategy_LeaderIdeologyBlock_CountAffectedPolicies documents how many
-// policies are blocked by the Leader ideology issue at game start. This gives
-// the user a complete picture of scope before deciding how to address D1.
-func TestStrategy_LeaderIdeologyBlock_CountAffectedPolicies(t *testing.T) {
+// TestStrategy_NZSHybrid_JJCameron_StillBlocksSomePolicies documents which
+// policies remain permanently hard-rejected under JJ Cameron after the NZS
+// modifier. Effective conflict = rawConflict * (1 - NZS*0.6/100).
+// With JJ Cameron (ideology=-78, NZS=87): reduction factor = 0.522,
+// effective conflict = rawConflict * 0.478.
+// Expected still-blocked: nuclear (effective=37.3>35), carbon_price_floor
+// (effective=37.3>35), emissions_trading_scheme (Industry pos=20, effective=46.8>40).
+func TestStrategy_NZSHybrid_JJCameron_StillBlocksSomePolicies(t *testing.T) {
 	w := loadWorld(t)
 
 	// Find JJ Cameron.
-	var jjIdeology float64
+	var jjCameron stakeholder.Stakeholder
 	for _, s := range w.Stakeholders {
 		if s.ID == "jj_cameron" {
-			jjIdeology = s.IdeologyScore
+			jjCameron = s
 			break
 		}
 	}
+	require.NotZero(t, jjCameron.IdeologyScore, "jj_cameron must be found in stakeholders")
 
-	type blockedPolicy struct {
+	const nzsSympathyWeight = 0.6
+	type policyResult struct {
 		ID       string
-		Conflict float64
+		RawConflict float64
+		EffConflict float64
 		MaxAllow float64
+		Blocked  bool
 	}
-	var blocked []blockedPolicy
+	var results []policyResult
 
 	for _, card := range w.PolicyCards {
 		for _, step := range card.Def.ApprovalSteps {
 			if step.Role != config.RoleLeader {
 				continue
 			}
-			// Compute ideology conflict for JJ Cameron vs this policy sector.
 			sectorPos := stakeholder.PolicyIdeologyPosition(card.Def.Sector)
-			conflict := jjIdeology - sectorPos
-			if conflict < 0 {
-				conflict = -conflict
+			raw := jjCameron.IdeologyScore - sectorPos
+			if raw < 0 {
+				raw = -raw
 			}
-			if conflict > step.MaxIdeologyConflict {
-				blocked = append(blocked, blockedPolicy{
-					ID:       card.Def.ID,
-					Conflict: conflict,
-					MaxAllow: step.MaxIdeologyConflict,
-				})
-			}
+			reduction := jjCameron.NetZeroSympathy * nzsSympathyWeight / 100.0
+			eff := raw * (1.0 - reduction)
+			results = append(results, policyResult{
+				ID:          card.Def.ID,
+				RawConflict: raw,
+				EffConflict: eff,
+				MaxAllow:    step.MaxIdeologyConflict,
+				Blocked:     eff > step.MaxIdeologyConflict,
+			})
 		}
 	}
 
-	// Log the full list for the user.
-	t.Logf("DESIGN FLAG D1: %d policies hard-rejected under JJ Cameron (Leader ideology=-78):", len(blocked))
-	for _, b := range blocked {
-		t.Logf("  %s: conflict=%.0f > MaxIdeologyConflict=%.0f", b.ID, b.Conflict, b.MaxAllow)
+	var blocked, passable int
+	t.Logf("JJ Cameron Leader conflicts after NZS modifier (NZS=87, reduction=%.1f%%):", 87*nzsSympathyWeight)
+	for _, r := range results {
+		status := "PASS"
+		if r.Blocked {
+			status = "BLOCKED"
+			blocked++
+		} else {
+			passable++
+		}
+		t.Logf("  %-40s raw=%.0f eff=%.1f max=%.0f %s", r.ID, r.RawConflict, r.EffConflict, r.MaxAllow, status)
 	}
 
-	// There must be at least 3 affected policies to flag as a systemic issue.
-	assert.GreaterOrEqual(t, len(blocked), 3,
-		"DESIGN FLAG D1: at least 3 policies should be hard-blocked by JJ Cameron's ideology -- see log for full list")
+	// NZS hybrid: most policies are now workable, but nuclear and the hardest
+	// fiscal measures remain blocked (MaxConflict=35). The player still has
+	// meaningful constraints under JJ Cameron.
+	assert.Greater(t, passable, blocked,
+		"NZS hybrid must make more policies passable than blocked under JJ Cameron")
+	assert.GreaterOrEqual(t, blocked, 1,
+		"at least one policy must remain hard-blocked under JJ Cameron (nuclear / CPF) -- JJ Cameron must stay stubborn")
 }
 
 // ---------------------------------------------------------------------------
@@ -570,10 +641,10 @@ func TestStrategy_AP_Exhausted_SubmitFails(t *testing.T) {
 func TestStrategy_Lobby_IncreasesRelationship(t *testing.T) {
 	w := loadWorld(t)
 
-	// Find the Energy Secretary (Claire Blackwell at game start).
+	// Find the Energy Secretary (Rupert Holm at game start under Right government).
 	var energySecID string
 	for _, s := range w.Stakeholders {
-		if s.IsUnlocked && s.Role == config.RoleEnergy && s.Party == config.PartyLeft {
+		if s.IsUnlocked && s.Role == config.RoleEnergy && s.Party == config.PartyRight {
 			energySecID = s.ID
 			break
 		}
@@ -616,7 +687,7 @@ func TestStrategy_Lobby_LobbyEffect_BoostsBudgetAtQuarterEnd(t *testing.T) {
 	wA := w
 	var energySecID string
 	for _, s := range wA.Stakeholders {
-		if s.IsUnlocked && s.Role == config.RoleEnergy && s.Party == config.PartyLeft {
+		if s.IsUnlocked && s.Role == config.RoleEnergy && s.Party == config.PartyRight {
 			energySecID = s.ID
 			break
 		}
@@ -910,11 +981,11 @@ func TestStrategy_FiveYearArc_PowerFocus_CarbonBelowBaseline(t *testing.T) {
 	wBase = advanceN(wBase, 260)
 	baseStock := wBase.Carbon.CumulativeStock
 
-	// Active strategy: submit onshore wind in week 1, then nuclear (already
-	// tech-unlocked) in week 2. Both bypass leader check (no leader step on onshore;
-	// nuclear requires leader but test uses forced-active to isolate carbon).
+	// Active strategy: force onshore wind to ACTIVE immediately (bypasses
+	// approval pipeline to isolate the carbon accounting mechanic).
+	// Under Right government the approval pipeline also works, but force-active
+	// gives a deterministic baseline for carbon comparison.
 	wActive := loadWorld(t)
-	// Force the approvable policies to ACTIVE immediately.
 	for i, card := range wActive.PolicyCards {
 		switch card.Def.ID {
 		case "onshore_wind_planning_reform":
@@ -987,4 +1058,208 @@ func TestStrategy_FiveYearArc_EvidenceDelivery_ReportAvailableBy2013(t *testing.
 	}
 	assert.NotEmpty(t, w.Reports,
 		"clearpath_advisory commission must deliver within 26 weeks (max delivery=9w + buffer)")
+}
+
+// ---------------------------------------------------------------------------
+// Strategy 12: Right early game -- real approval pipeline, no force-active
+// ---------------------------------------------------------------------------
+
+// TestStrategy_RightEarlyGame_OnshoreApproves_NuclearBlockedByDrake verifies
+// that under Right government, onshore_wind_planning_reform is approved by
+// Cavendish (Leader, NZS=60, effective=22.4<40), but nuclear_new_build_cfd is
+// blocked by Drake (Chancellor, ideology=55, NZS=35, effective=43.45>35).
+// Drake's fiscal conservatism blocks guaranteed-return nuclear contracts even
+// though Cavendish as Leader would allow it. Nuclear requires lobbying Drake
+// to build relationship or waiting for a different Chancellor.
+func TestStrategy_RightEarlyGame_OnshoreApproves_NuclearBlockedByDrake(t *testing.T) {
+	w := loadWorld(t)
+
+	require.Equal(t, config.PartyRight, w.Government.RulingParty,
+		"Right party must govern at start")
+
+	// Submit onshore wind. Should approve via Cavendish (Leader) + Holm (Energy).
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "onshore_wind_planning_reform"},
+	})
+	// Submit nuclear next week. Drake (Chancellor) effective conflict=43.45 > MaxConflict=35.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "nuclear_new_build_cfd"},
+	})
+
+	onshoreApproved := false
+	nuclearRejected := false
+	for i := 0; i < 20; i++ {
+		w, _ = AdvanceWeek(w, nil)
+		for _, card := range w.PolicyCards {
+			switch card.Def.ID {
+			case "onshore_wind_planning_reform":
+				if card.State == policy.PolicyStateApproved || card.State == policy.PolicyStateActive {
+					onshoreApproved = true
+				}
+			case "nuclear_new_build_cfd":
+				if card.State == policy.PolicyStateRejected {
+					nuclearRejected = true
+				}
+			}
+		}
+		if onshoreApproved && nuclearRejected {
+			break
+		}
+	}
+
+	assert.True(t, onshoreApproved,
+		"onshore_wind_planning_reform must approve under Right government (Cavendish NZS effective=22.4 < MaxConflict=40)")
+	assert.True(t, nuclearRejected,
+		"nuclear_new_build_cfd must be rejected by Drake (Chancellor ideology=55, NZS=35, effective=43.45 > MaxConflict=35 -- Drake blocks nuclear CfD)")
+}
+
+// TestStrategy_RightEarlyGame_LCRGrowsFromApprovedPolicies verifies that
+// a Right-government player who approves power policies sees LCR grow over
+// the first two years (policy carbon reduction + direct LCRDeltaPerWeek).
+func TestStrategy_RightEarlyGame_LCRGrowsFromApprovedPolicies(t *testing.T) {
+	// Baseline: passive play (no policies forced).
+	wBase := loadWorld(t)
+	wBase = advanceN(wBase, 104) // 2 years
+	baseLCR := wBase.LCR.Value
+
+	// Active: force onshore wind ACTIVE from week 1 (includes LCRDeltaPerWeek).
+	wActive := loadWorld(t)
+	for i, card := range wActive.PolicyCards {
+		if card.Def.ID == "onshore_wind_planning_reform" {
+			wActive.PolicyCards[i].State = policy.PolicyStateActive
+		}
+	}
+	wActive = advanceN(wActive, 104)
+
+	assert.GreaterOrEqual(t, wActive.LCR.Value, baseLCR,
+		"LCR with onshore wind active (%.1f) must be >= passive baseline (%.1f) over 2 years",
+		wActive.LCR.Value, baseLCR)
+}
+
+// ---------------------------------------------------------------------------
+// Strategy 13: LCR direct delta from wired LCRDeltaPerWeek
+// ---------------------------------------------------------------------------
+
+// TestStrategy_LCRDelta_ActivePolicy_DirectWeeklyGain verifies that the
+// WeeklyPolicyLCRDelta accumulator is populated when policies with
+// LCRDeltaPerWeek > 0 are ACTIVE.
+func TestStrategy_LCRDelta_ActivePolicy_DirectWeeklyGain(t *testing.T) {
+	w := loadWorld(t)
+
+	// Find a policy with LCRDeltaPerWeek > 0 and force it ACTIVE.
+	var activePolicyID string
+	var expectedDelta float64
+	for i, card := range w.PolicyCards {
+		if card.Def.LCRDeltaPerWeek > 0 {
+			w.PolicyCards[i].State = policy.PolicyStateActive
+			activePolicyID = card.Def.ID
+			expectedDelta += card.Def.LCRDeltaPerWeek
+			break // one is enough for this test
+		}
+	}
+	require.NotEmpty(t, activePolicyID, "at least one policy must have LCRDeltaPerWeek > 0")
+
+	w, _ = AdvanceWeek(w, nil)
+
+	assert.InDelta(t, expectedDelta, w.WeeklyPolicyLCRDelta, 0.001,
+		"WeeklyPolicyLCRDelta must equal the sum of LCRDeltaPerWeek for active policies (policy=%s, expected=%.4f)",
+		activePolicyID, expectedDelta)
+}
+
+// TestStrategy_LCRDelta_MultiplePolicies_Cumulative verifies that stacking
+// multiple active policies with LCRDeltaPerWeek > 0 accumulates the full sum.
+func TestStrategy_LCRDelta_MultiplePolicies_Cumulative(t *testing.T) {
+	w := loadWorld(t)
+
+	var totalDelta float64
+	for i, card := range w.PolicyCards {
+		if card.Def.LCRDeltaPerWeek > 0 {
+			w.PolicyCards[i].State = policy.PolicyStateActive
+			totalDelta += card.Def.LCRDeltaPerWeek
+		}
+	}
+	require.Greater(t, totalDelta, 0.0, "at least one policy with LCRDeltaPerWeek > 0 required")
+
+	w, _ = AdvanceWeek(w, nil)
+
+	assert.InDelta(t, totalDelta, w.WeeklyPolicyLCRDelta, 0.001,
+		"WeeklyPolicyLCRDelta must equal the sum of all active policy LCRDeltaPerWeek values (expected=%.4f)",
+		totalDelta)
+}
+
+// ---------------------------------------------------------------------------
+// Strategy 14: Left administration arc -- JJ Cameron as PM after election
+// ---------------------------------------------------------------------------
+
+// TestStrategy_LeftArc_OnshoreWindPipeline_NuclearBlocked simulates the Left
+// administration arc using forceLeftGovernment: the player can push onshore
+// wind through the approval pipeline (JJ Cameron NZS hybrid), but nuclear
+// is blocked regardless of lobbying. Carbon trajectory stays positive from
+// onshore wind alone, demonstrating the constrained play path.
+func TestStrategy_LeftArc_OnshoreWindPipeline_NuclearBlocked(t *testing.T) {
+	w := loadWorld(t)
+	w = forceLeftGovernment(w)
+
+	require.Equal(t, config.PartyLeft, w.Government.RulingParty)
+
+	// Submit onshore wind and advance; should approve via JJ Cameron NZS.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "onshore_wind_planning_reform"},
+	})
+	// Also submit nuclear immediately; expect rejection.
+	w, _ = AdvanceWeek(w, []Action{
+		{Type: player.ActionTypeSubmitPolicy, Target: "nuclear_new_build_cfd"},
+	})
+
+	onshoreApproved := false
+	nuclearRejected := false
+	for i := 0; i < 20; i++ {
+		w, _ = AdvanceWeek(w, nil)
+		for _, card := range w.PolicyCards {
+			switch card.Def.ID {
+			case "onshore_wind_planning_reform":
+				if card.State == policy.PolicyStateApproved || card.State == policy.PolicyStateActive {
+					onshoreApproved = true
+				}
+			case "nuclear_new_build_cfd":
+				if card.State == policy.PolicyStateRejected {
+					nuclearRejected = true
+				}
+			}
+		}
+		if onshoreApproved && nuclearRejected {
+			break
+		}
+	}
+
+	assert.True(t, onshoreApproved,
+		"onshore_wind_planning_reform must approve under JJ Cameron (NZS hybrid: effective conflict < MaxConflict=40)")
+	assert.True(t, nuclearRejected,
+		"nuclear_new_build_cfd must be rejected under JJ Cameron (effective conflict > MaxConflict=35 -- stubborn on nuclear)")
+}
+
+// TestStrategy_LeftArc_CarbonFromOnshoreWind_BelowBaseline verifies that a
+// Left-government player who relies solely on onshore wind (blocked from
+// nuclear) still achieves measurable carbon reduction vs passive baseline
+// over a 5-year term.
+func TestStrategy_LeftArc_CarbonFromOnshoreWind_BelowBaseline(t *testing.T) {
+	// Passive baseline.
+	wBase := loadWorld(t)
+	wBase = forceLeftGovernment(wBase)
+	wBase = advanceN(wBase, 260)
+	baseStock := wBase.Carbon.CumulativeStock
+
+	// Active: onshore wind forced ACTIVE from the start.
+	wActive := loadWorld(t)
+	wActive = forceLeftGovernment(wActive)
+	for i, card := range wActive.PolicyCards {
+		if card.Def.ID == "onshore_wind_planning_reform" {
+			wActive.PolicyCards[i].State = policy.PolicyStateActive
+		}
+	}
+	wActive = advanceN(wActive, 260)
+
+	assert.Less(t, wActive.Carbon.CumulativeStock, baseStock,
+		"Left arc with onshore wind (%.1f Mt) must undercut Left passive baseline (%.1f Mt)",
+		wActive.Carbon.CumulativeStock, baseStock)
 }

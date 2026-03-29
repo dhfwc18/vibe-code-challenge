@@ -98,15 +98,24 @@ func SubmitPolicy(card PolicyCard) PolicyCard {
 	return card
 }
 
-// IdeologyConflict returns the absolute difference between a stakeholder's ideology
-// and the policy sector's ideology position. Range: [0, 200].
+// nzsSympathyWeight is the fraction of ideology conflict that NetZeroSympathy
+// can cancel. At NZS=100 and weight=0.6, effective conflict = rawConflict * 0.4.
+// JJ Cameron (NZS=87) reduces conflict by 52%, making him workable on moderate
+// policies but still stubborn on the hardest (high MaxIdeologyConflict) gates.
+const nzsSympathyWeight = 0.6
+
+// IdeologyConflict returns the effective ideology conflict between a stakeholder
+// and a policy sector, modulated by the stakeholder's NetZeroSympathy score.
+// Raw conflict is |ideologyScore - sectorPosition|; effective conflict is
+// multiplied by (1 - NZS * nzsSympathyWeight / 100). Range: [0, 200].
 func IdeologyConflict(def config.PolicyCardDef, s stakeholder.Stakeholder) float64 {
 	policyPos := stakeholder.PolicyIdeologyPosition(def.Sector)
 	diff := s.IdeologyScore - policyPos
 	if diff < 0 {
 		diff = -diff
 	}
-	return diff
+	reduction := s.NetZeroSympathy * nzsSympathyWeight / 100.0
+	return diff * (1.0 - reduction)
 }
 
 // EvaluateApprovalStep tests one approval requirement against the matching stakeholder.

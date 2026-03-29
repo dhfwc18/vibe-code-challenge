@@ -120,10 +120,11 @@ func TestIdeologyConflict_AlignedStakeholder_LowConflict(t *testing.T) {
 }
 
 func TestIdeologyConflict_OpposedStakeholder_HighConflict(t *testing.T) {
-	// Industry policy sits at +20; a far-left stakeholder at -80 has conflict 100
+	// Industry policy sits at +20; a far-left stakeholder at -80 has raw conflict 100.
+	// makeStakeholder sets NZS=50; effective = 100 * (1 - 50*0.6/100) = 100 * 0.70 = 70.
 	s := makeStakeholder(config.RoleEnergy, -80.0, 50.0, true)
 	conflict := IdeologyConflict(config.PolicyCardDef{Sector: config.PolicySectorIndustry}, s)
-	assert.InDelta(t, 100.0, conflict, 0.01)
+	assert.InDelta(t, 70.0, conflict, 0.01)
 }
 
 // ---------------------------------------------------------------------------
@@ -178,9 +179,19 @@ func TestEvaluateApprovalStep_LowRelationship_PendingNotReject(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEvaluateApprovalStep_MajorSignificance_HighConflictAndStalledWeeks_HardRejects(t *testing.T) {
-	// Far-right stakeholder (-80 from cross-cutting 0.0 = 80 conflict) > 75 threshold
-	// WeeksUnderReview = 8 >= majorSignificanceRefuseWeeks
-	s := makeStakeholder(config.RoleLeader, -80.0, 70.0, true)
+	// Far-left stakeholder (ideology=-80, NZS=0): Cross sector pos=0 -> raw=80.
+	// effective = 80 * (1 - 0*0.6/100) = 80 > majorSignificanceRefuseConflict=75.
+	// WeeksUnderReview = 8 >= majorSignificanceRefuseWeeks -> hard rejects.
+	// NZS=0 is used here to ensure effective conflict equals raw conflict.
+	s := stakeholder.Stakeholder{
+		ID:              "s1",
+		Role:            config.RoleLeader,
+		IdeologyScore:   -80.0,
+		RelationshipScore: 70.0,
+		NetZeroSympathy: 0.0, // zero sympathy: no NZS reduction
+		IsUnlocked:      true,
+		State:           stakeholder.MinisterStateActive,
+	}
 	req := config.ApprovalRequirement{
 		Role:                 config.RoleLeader,
 		MinRelationshipScore: 40.0,

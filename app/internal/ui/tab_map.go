@@ -50,6 +50,9 @@ func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTab
 	my := cy + 36
 	mw := mapPanelW - 16
 	mh := ch - 44
+	if maxH := mw * 14 / 10; mh > maxH {
+		mh = maxH
+	}
 
 	// Sea background (dark teal).
 	solidRect(screen, mx, my, mw, mh, colour(0x0E, 0x1E, 0x2A))

@@ -447,6 +447,9 @@ func (u *UI) handleMapClick(mx, my int) {
 	pmy := cy + 36
 	pmw := mapPanelW - 16
 	pmh := ch - 44
+	if maxH := pmw * 14 / 10; pmh > maxH {
+		pmh = maxH
+	}
 	if !inRect(mx, my, pmx, pmy, pmw, pmh) {
 		return
 	}

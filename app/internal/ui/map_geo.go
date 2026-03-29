@@ -51,28 +51,30 @@ var regionPolygons = map[string][][2]float32{
 		{0.72, 0.53}, {1.00, 0.53}, {1.00, 0.82},
 		{0.88, 0.82}, {0.78, 0.79}, {0.72, 0.74}, {0.72, 0.67},
 	},
-	// Western Coast: west protrusion (Wales analogue).
+	// Western Coast: simple west-side strip (Wales analogue).
+	// Clean rectangle sharing x=0.20 with capital_region and y=0.84 with south_west.
 	"western_coast": {
-		{0.00, 0.67}, {0.20, 0.67}, {0.20, 0.82},
-		{0.10, 0.88}, {0.03, 0.86}, {0.00, 0.82},
+		{0.00, 0.67}, {0.20, 0.67}, {0.20, 0.84}, {0.00, 0.84},
 	},
-	// Capital Region: central lower area including suburbs and commuter zone.
+	// Capital Region: inner city, suburbs, outer commuter zone.
+	// South boundary: (0.20,0.84)->(0.40,0.88)->(0.72,0.84) shared with SW/SE.
+	// Right boundary: (0.72,0.74)->(0.78,0.79)->(0.88,0.82) shared with eastern_counties.
 	"capital_region": {
 		{0.20, 0.67}, {0.72, 0.67}, {0.72, 0.74},
-		{0.78, 0.79}, {0.75, 0.88}, {0.60, 0.91},
-		{0.46, 0.90}, {0.32, 0.88}, {0.20, 0.84}, {0.20, 0.82},
+		{0.78, 0.79}, {0.88, 0.82}, {0.72, 0.84},
+		{0.40, 0.88}, {0.20, 0.84},
 	},
-	// South East: lower-right coast.
+	// South East: lower-right, butts against capital_region and eastern_counties.
+	// Top boundary: (0.72,0.84)->(0.88,0.82)->(1.00,0.82) shared with cap/counties.
 	"south_east": {
-		{0.72, 0.74}, {0.78, 0.79}, {0.88, 0.82}, {1.00, 0.82},
-		{1.00, 1.00}, {0.75, 1.00}, {0.60, 0.97},
-		{0.52, 0.93}, {0.60, 0.91}, {0.75, 0.88},
+		{0.72, 0.84}, {0.88, 0.82}, {1.00, 0.82},
+		{1.00, 1.00}, {0.40, 1.00}, {0.40, 0.88},
 	},
-	// South West: lower-left peninsula.
+	// South West: lower-left peninsula, shares y=0.84 with western_coast and
+	// the diagonal (0.40,0.88) boundary with capital_region and south_east.
 	"south_west": {
-		{0.00, 0.82}, {0.03, 0.86}, {0.10, 0.88}, {0.20, 0.82},
-		{0.20, 0.84}, {0.32, 0.88}, {0.46, 0.90}, {0.52, 0.93},
-		{0.52, 1.00}, {0.00, 1.00},
+		{0.00, 0.84}, {0.20, 0.84}, {0.40, 0.88},
+		{0.40, 1.00}, {0.00, 1.00},
 	},
 }
 

@@ -775,12 +775,14 @@ func phasePolicyResolution(w WorldState) WorldState {
 				w.Regions, w.Cfg.Regions, card.Def.WeeklyEffect.Sector),
 		}
 		delta := policy.ResolveWeeklyEffect(card, capRegion, techFrac, avgRetrofit)
-		w.WeeklyPolicyReductionMt += delta.DeltaMt
+		// DeltaMt convention: negative = reduction. WeeklyPolicyReductionMt stores
+		// the net reduction as a positive number (reduction = removed carbon).
+		w.WeeklyPolicyReductionMt -= delta.DeltaMt
 		w.WeeklyPolicyBudgetCostGBP += delta.BudgetCostPerWeek
 	}
 
-	// Net carbon: base emissions minus policy reductions. Clamped to prevent
-	// negative values (policies cannot emit more carbon than the baseline).
+	// Net carbon: base emissions minus policy reductions (reductions stored as
+	// positive). Clamped to prevent negative values.
 	w.WeeklyNetCarbonMt = mathutil.Clamp(
 		baseWeeklyMt-w.WeeklyPolicyReductionMt, 0, baseWeeklyMt*2)
 	return w
@@ -840,9 +842,8 @@ func phaseEconomyTick(w WorldState) WorldState {
 		w.Stakeholders[i].Popularity = mathutil.Clamp(s.Popularity+minPopDelta, 0, 100)
 	}
 
-	// Quarter-end: clear lobby effects, recompute tax revenue and budget allocation.
+	// Quarter-end: allocate budget using accumulated lobby effects, then clear them.
 	if w.Week%13 == 0 {
-		w.Economy = economy.ClearLobbyEffectsAtQuarterEnd(w.Economy)
 		w.TickyPressureAcceptedThisQuarter = false
 		w.LastTaxRevenue = economy.ComputeTaxRevenue(w.Economy, w.Quarter, w.Year)
 		w.LastBudget = economy.AllocateBudget(
@@ -852,6 +853,8 @@ func phaseEconomyTick(w WorldState) WorldState {
 			reputation.ChainToBudgetModifier(w.LCR.Value),
 			w.Economy.LobbyEffects,
 		)
+		// Clear lobby effects after they have been applied to this quarter's budget.
+		w.Economy = economy.ClearLobbyEffectsAtQuarterEnd(w.Economy)
 	}
 	return w
 }
@@ -1319,7 +1322,8 @@ func phaseMinisterTransitions(w WorldState) WorldState {
 func phaseConsequenceResolution(w WorldState) WorldState {
 	// Evaluate approval steps for UNDER_REVIEW policies.
 	// Runs before player actions so submissions this tick are not evaluated until next tick.
-	active := unlockedStakeholders(w.Stakeholders)
+	// Only cabinet ministers (governing party) participate in policy approval.
+	active := cabinetStakeholders(w.Government, w.Stakeholders)
 
 	// Build role -> stakeholder map for ideology conflict tracking.
 	byRole := make(map[config.Role]stakeholder.Stakeholder)
@@ -1505,6 +1509,23 @@ func unlockedStakeholders(stakeholders []stakeholder.Stakeholder) []stakeholder.
 	out := make([]stakeholder.Stakeholder, 0)
 	for _, s := range stakeholders {
 		if s.IsUnlocked {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// cabinetStakeholders returns only the stakeholders currently assigned to the
+// governing cabinet (via CabinetByRole). Used for policy approval evaluation so
+// that opposition-party ministers do not participate in the approval pipeline.
+func cabinetStakeholders(gov government.GovernmentState, stakeholders []stakeholder.Stakeholder) []stakeholder.Stakeholder {
+	cabinetIDs := make(map[string]bool, len(gov.CabinetByRole))
+	for _, sid := range gov.CabinetByRole {
+		cabinetIDs[sid] = true
+	}
+	out := make([]stakeholder.Stakeholder, 0, len(cabinetIDs))
+	for _, s := range stakeholders {
+		if cabinetIDs[s.ID] && s.IsUnlocked && !isTerminalState(s.State) {
 			out = append(out, s)
 		}
 	}

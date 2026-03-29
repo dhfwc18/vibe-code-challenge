@@ -44,7 +44,7 @@ func (s *ScenarioScreen) Update(scenarios []config.ScenarioConfig) ScenarioResul
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return ScenarioResultNone
 	}
-	sw, sh := ebiten.WindowSize()
+	sw, sh := logicalW, logicalH
 	mx, my := ebiten.CursorPosition()
 
 	// Continue button (top-right of screen).

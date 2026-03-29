@@ -50,16 +50,15 @@ func (tb *TabBar) Update() {
 		return
 	}
 	mx, my := ebiten.CursorPosition()
-	sw, sh := ebiten.WindowSize()
-	barY := sh - panelBarH
-	if my < barY || my >= sh {
+	barY := logicalH - panelBarH
+	if my < barY || my >= logicalH {
 		return
 	}
 	n := len(tabNames)
 	if n == 0 {
 		return
 	}
-	btnW := sw / n
+	btnW := logicalW / n
 	for i := range tabNames {
 		bx := i * btnW
 		if mx >= bx && mx < bx+btnW {

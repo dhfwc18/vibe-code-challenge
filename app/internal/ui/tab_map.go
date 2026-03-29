@@ -90,8 +90,12 @@ func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTab
 	omh := float32(mh)
 	selectedCol := colour(0xF0, 0xE0, 0x60)
 
-	// Draw filled polygons.
-	for regID, pts := range regionPolygons {
+	borderCol := colour(0x0A, 0x16, 0x0C)
+	selectedBorderCol := colour(0xFF, 0xFF, 0x80)
+
+	// Draw filled polygons in fixed order so rendering is stable.
+	for _, regID := range regionDrawOrder {
+		pts := regionPolygons[regID]
 		var val float64
 		if a := agg[regID]; a != nil && a.count > 0 {
 			val = a.sum / float64(a.count)
@@ -103,8 +107,19 @@ func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTab
 		fillMapPolygon(screen, pts, fill, omx, omy, omw, omh)
 	}
 
+	// Draw polygon borders on top of all fills so edges are always visible.
+	for _, regID := range regionDrawOrder {
+		pts := regionPolygons[regID]
+		bc := borderCol
+		if regID == state.selectedRegion {
+			bc = selectedBorderCol
+		}
+		strokeMapPolygon(screen, pts, bc, omx, omy, omw, omh)
+	}
+
 	// Region short-name labels at polygon centroids.
-	for regID, pts := range regionPolygons {
+	for _, regID := range regionDrawOrder {
+		pts := regionPolygons[regID]
 		lbl := regionShortName[regID]
 		if lbl == "" {
 			continue
@@ -138,10 +153,10 @@ func drawMapDetailPanel(screen *ebiten.Image, world simulation.WorldState, state
 		c := overlayColour(state.overlay, val)
 		solidRect(screen, x+i*stepW, y, stepW, legendH, c)
 	}
-	y += legendH + 4
-	drawLabel(screen, x, y, "Low", ColourTextMuted, face)
-	drawLabel(screen, x+legendW-20, y, "High", ColourTextMuted, face)
-	y += 22
+	y += legendH + 14
+	drawLabel(screen, x, y, "Low", ColourTextPrimary, face)
+	drawLabel(screen, x+legendW-20, y, "High", ColourTextPrimary, face)
+	y += 26
 
 	if state.selectedRegion == "" {
 		drawLabel(screen, x, y, "Click a region to view details.", ColourTextMuted, face)

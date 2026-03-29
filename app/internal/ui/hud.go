@@ -43,6 +43,10 @@ func (h *HUD) setLastEvent(name string) {
 	h.lastEventName = name
 }
 
+// hudItemW is the fixed width budget per HUD slot (proportional layout).
+const hudBtnW = 148
+const hudBtnH = 28
+
 // Draw renders the HUD top bar onto screen.
 func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.Face, effectiveAP int, feedbackMsg string) {
 	w := screen.Bounds().Dx()
@@ -59,7 +63,23 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	op.GeoM.Translate(0, float64(hudHeight-1))
 	screen.DrawImage(borderImg, op)
 
-	// Left: Month, Year, Week, Quarter.
+	// "Advance Week" button anchored at the right edge.
+	btnX := w - hudBtnW - 8
+	btnY := (hudHeight - hudBtnH) / 2
+	bg := buttonColour(btnX, btnY, hudBtnW, hudBtnH, true)
+	solidRect(screen, btnX, btnY, hudBtnW, hudBtnH, bg)
+	lbl := "Advance Week"
+	drawLabel(screen, btnX+(hudBtnW-len(lbl)*7)/2, btnY+hudBtnH-8, lbl, ColourTextPrimary, face)
+
+	// Usable content width between left edge and advance-week button.
+	usable := btnX - 8
+
+	// Slot layout: divide usable width into 5 equal slots.
+	// [0] date/time  [1] AP  [2] Rep+grade  [3] climate badge  [4] boss/event
+	slotW := usable / 5
+	textY := 30 // baseline for all text labels
+
+	// Slot 0: Month Year Wk Q
 	mn := world.Month
 	if mn < 1 || mn > 12 {
 		mn = 1
@@ -67,44 +87,36 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	monthStr := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}[mn-1]
 	timeStr := fmt.Sprintf("%s %d  Wk %d  Q%d", monthStr, world.Year, world.Week, world.Quarter)
-	drawLabel(screen, 8, 30, timeStr, ColourTextPrimary, face)
+	drawLabel(screen, 8, textY, timeStr, ColourTextPrimary, face)
 
-	// Centre-left: AP remaining (effective, accounting for queued spend).
+	// Slot 1: AP
 	apStr := fmt.Sprintf("AP: %d", effectiveAP)
-	drawLabel(screen, 280, 30, apStr, ColourAccent, face)
+	drawLabel(screen, slotW+8, textY, apStr, ColourAccent, face)
 
-	// Player reputation grade derived from LCR poll result.
+	// Slot 2: Rep grade
 	grade, gradeCol := lcrGrade(world.LCR.LastPollResult)
 	gradeStr := fmt.Sprintf("Rep: %s (%.0f)", grade, world.LCR.LastPollResult)
-	drawLabel(screen, 360, 30, gradeStr, gradeCol, face)
+	drawLabel(screen, slotW*2+8, textY, gradeStr, gradeCol, face)
 
-	// Energy Minister name (player's boss).
-	bossName := energyMinisterName(world)
-	if bossName != "" {
-		bossStr := "Boss: " + bossName
-		drawLabel(screen, 530, 30, bossStr, colour(0xF0, 0xC0, 0x40), face)
-	}
-
-	// Climate badge.
+	// Slot 3: Climate badge (vertically centred in bar).
 	climateCol := climateColour(world.ClimateState.Level)
 	climateLabel := climateLevelName(world.ClimateState.Level)
-	drawBadge(screen, 460, 12, climateLabel, climateCol, face)
+	badgeX := slotW*3 + 8
+	badgeY := (hudHeight - 15) / 2
+	drawBadge(screen, badgeX, badgeY, climateLabel, climateCol, face)
 
-	// Event notification strip: feedback message takes priority over event name.
+	// Slot 4: Boss name OR feedback/event (whichever is active).
+	slot4X := slotW*4 + 8
 	if feedbackMsg != "" {
-		drawLabel(screen, 600, 30, feedbackMsg, colour(0xE7, 0x4C, 0x3C), face)
-	} else if h.lastEventName != "" {
-		evStr := "Event: " + h.lastEventName
-		drawLabel(screen, 600, 30, evStr, ColourClimateMedium, face)
+		drawLabel(screen, slot4X, textY, feedbackMsg, colour(0xE7, 0x4C, 0x3C), face)
+	} else {
+		bossName := energyMinisterName(world)
+		if bossName != "" {
+			drawLabel(screen, slot4X, textY, "Boss: "+bossName, colour(0xF0, 0xC0, 0x40), face)
+		} else if h.lastEventName != "" {
+			drawLabel(screen, slot4X, textY, "Ev: "+h.lastEventName, ColourClimateMedium, face)
+		}
 	}
-
-	// "Advance Week" button (drawn directly; click handled in Update).
-	btnX := w - 160
-	btnY := 6
-	btnW, btnH := 148, 28
-	bg := buttonColour(btnX, btnY, btnW, btnH, true)
-	solidRect(screen, btnX, btnY, btnW, btnH, bg)
-	drawLabel(screen, btnX+20, btnY+20, "Advance Week", ColourTextPrimary, face)
 }
 
 // climateColour returns the palette colour for a given climate level.

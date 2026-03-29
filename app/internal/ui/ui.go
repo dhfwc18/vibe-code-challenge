@@ -15,7 +15,8 @@ import (
 )
 
 // logicalW and logicalH are the fixed logical screen dimensions returned by game.Layout.
-// All click-detection code must use these -- never ebiten.WindowSize().
+// All click-detection code MUST use these -- never ebiten.WindowSize(), which returns the
+// physical window size and breaks on DPI-scaled displays.
 const (
 	logicalW = 1280
 	logicalH = 720
@@ -35,6 +36,7 @@ type UI struct {
 
 	// Tab-specific state.
 	mapState      mapTabState
+	politicsState politicsTabState
 	industryState industryTabState
 	evidenceState evidenceTabState
 
@@ -113,9 +115,8 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 
 	u.pendingActions = u.pendingActions[:0]
 
-	// Current logical screen dimensions (equals window size because Layout passes
-	// through the outside dimensions for native-resolution rendering).
-	sw, sh := ebiten.WindowSize()
+	// Use fixed logical dimensions -- never ebiten.WindowSize() which varies with DPI.
+	sw, sh := logicalW, logicalH
 
 	// Newspaper modal blocks all other input until dismissed.
 	if u.newspaper.HasPending() {
@@ -164,9 +165,9 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 // handleHUDClick detects clicks on the HUD Advance Week button.
 func (u *UI) handleHUDClick(world *simulation.WorldState, sw int) {
 	mx, my := ebiten.CursorPosition()
-	btnX := sw - 160
-	btnY := 6
-	if mx >= btnX && mx <= btnX+148 && my >= btnY && my <= btnY+28 {
+	btnX := sw - hudBtnW - 8
+	btnY := (hudHeight - hudBtnH) / 2
+	if inRect(mx, my, btnX, btnY, hudBtnW, hudBtnH) {
 		u.advanceWeekRequested = true
 		u.hud.setLastEvent("") // clear notification on new week
 	}
@@ -269,7 +270,7 @@ func (u *UI) handleEvidenceModalInput(world *simulation.WorldState, sw, sh int) 
 
 // handleTabContentClick handles clicks within the tab content area.
 func (u *UI) handleTabContentClick(world *simulation.WorldState) {
-	sw, sh := ebiten.WindowSize()
+	sw, sh := logicalW, logicalH
 	mx, my := ebiten.CursorPosition()
 
 	activeTab := u.tabs.ActiveTab()
@@ -306,39 +307,80 @@ func (u *UI) handleIndustryClick(mx, my, panelX int) {
 	}
 }
 
-// handlePoliticsClick detects Lobby button clicks in the politics tab.
+// handlePoliticsClick routes clicks in the politics panel to grid cards or
+// the profile lobby button, depending on whether a profile is open.
 func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my, panelX int) {
-	parties := []config.Party{
-		config.PartyLeft,
-		config.PartyRight,
-		config.PartyFarLeft,
-		config.PartyFarRight,
-	}
 	cy := hudHeight
-	for colIdx, party := range parties {
-		colX := panelX + 8 + colIdx*(politicsColW+8)
-		rowY := cy + 26
+
+	if u.politicsState.selectedID != "" {
+		// Profile view: check Back link, Lobby button.
+		// Back link: x+16, cy+16, ~120px wide, 12px tall.
+		if inRect(mx, my, panelX+16, cy+16, 140, 16) {
+			u.politicsState.selectedID = ""
+			return
+		}
+		// Lobby button: x+16, cy+ch-44, 120x28.
+		ch := logicalH - hudHeight - panelBarH
+		btnX := panelX + 16
+		btnY := cy + ch - 44
+		if inRect(mx, my, btnX, btnY, 120, 28) {
+			for i := range world.Stakeholders {
+				s := world.Stakeholders[i]
+				if s.ID == u.politicsState.selectedID {
+					if isInCabinet(s, *world) && u.effectiveAP(world) >= 3 {
+						u.pendingActions = append(u.pendingActions, simulation.Action{
+							Type:   player.ActionTypeLobbyMinister,
+							Target: s.ID,
+						})
+						u.pendingAPSpend += 3
+					} else {
+						u.feedbackMsg = "Not enough AP or not in cabinet"
+						u.feedbackFrames = 150
+					}
+					return
+				}
+			}
+		}
+		return
+	}
+
+	// Grid view: detect clicks on politician cards.
+	partyOrder := []config.Party{
+		config.PartyLeft, config.PartyRight,
+		config.PartyFarLeft, config.PartyFarRight,
+	}
+	cw := panelOverlayW
+	cols := (cw - politicsCardGap) / (politicsCardW + politicsCardGap)
+	if cols < 1 {
+		cols = 1
+	}
+	gridX := panelX + politicsCardGap
+	gridY := cy + 24 + 12
+
+	col := 0
+	row := 0
+	ch := logicalH - hudHeight - panelBarH
+
+	for _, party := range partyOrder {
 		for i := range world.Stakeholders {
 			s := world.Stakeholders[i]
-			if s.Party != party || !s.IsUnlocked {
+			if s.Party != party {
 				continue
 			}
-			btnX := colX + 4 + 145
-			btnY := rowY + 54
-			if inRect(mx, my, btnX, btnY, 50, 18) {
-				if isInCabinet(s, *world) && u.effectiveAP(world) >= 3 {
-					u.pendingActions = append(u.pendingActions, simulation.Action{
-						Type:   player.ActionTypeLobbyMinister,
-						Target: s.ID,
-					})
-					u.pendingAPSpend += 3
-				} else {
-					u.feedbackMsg = "Not enough AP or not in cabinet"
-					u.feedbackFrames = 150
-				}
+			cardX := gridX + col*(politicsCardW+politicsCardGap)
+			cardY := gridY + row*(politicsCardH+politicsCardGap)
+			if cardY+politicsCardH > cy+ch-4 {
+				break
+			}
+			if inRect(mx, my, cardX, cardY, politicsCardW, politicsCardH) {
+				u.politicsState.selectedID = s.ID
 				return
 			}
-			rowY += ministerCardH
+			col++
+			if col >= cols {
+				col = 0
+				row++
+			}
 		}
 	}
 }
@@ -425,7 +467,7 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 		case 0:
 			drawTabOverview(screen, world, u.face, ovX, cy, panelOverlayW, ch)
 		case 2:
-			drawTabPolitics(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
+			drawTabPolitics(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP, &u.politicsState)
 		case 3:
 			drawTabPolicy(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
 		case 4:

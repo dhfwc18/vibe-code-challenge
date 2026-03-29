@@ -1746,3 +1746,395 @@ Four tracked sectors, each with separate weekly carbon contribution and policy c
 Total 2010 baseline: ~590 MtCO2e/yr (matches Green Book reference data).
 Policies belong to one or more sectors. A building retrofit policy reduces Buildings
 sector emissions. An EV mandate reduces Transport. A renewables auction reduces Power.
+
+---
+
+## F. Scenarios
+
+The player selects a campaign scenario before the game begins. Each scenario sets a
+different start year, initial government, fossil dependency, technology maturity, player
+seniority, and event schedule. All three scenarios share the same core mechanics and
+end at 2050; the scenario determines what inherited headwinds or tailwinds the player
+faces and how much time remains.
+
+---
+
+### F.1 Humble Beginnings (2010)
+
+Year 2010. The center-right Union Party has just won the general election. The player
+joins the civil service as a junior officer. Net zero feels distant; energy security and
+the economy dominate. The full 40-year arc lies ahead.
+
+Starting state:
+  RulingParty:          PartyRight (Union Party)
+  Cabinet:              Cavendish (Leader), Drake (Chancellor), Holm (Foreign), Stafford (Energy)
+  GovernmentPopularity: 52
+  FossilDependency:     70
+  ClimateState:         STABLE (zero cumulative stock)
+  PlayerReputation:     20 (Higher Executive Officer, new to post)
+  StartYear:            2010
+  FirstElectionWeek:    260 (~May 2015)
+  WeeksAvailable:       2080 (40 years)
+
+Key event schedule (from game start):
+  Year 2016:  Texit campaign begins (see Section G)
+  Year 2018:  Texit sovereignty pivot
+  Year 2019:  The Great Sneeze fires (time-gated, week 469)
+  Year 2021:  Great Sneeze ends; emergency spending boost expires
+
+---
+
+### F.2 Rising Storm (2019)
+
+Year 2019. Noris Jackson leads a populist center-right government formed after a chaotic
+succession of leadership contests. Dizzy Truscott holds the Chancellor role. The Great
+Sneeze breaks immediately. The government is unstable -- scandals fire quickly; ministers
+cycle out in succession. Player choices about which minister to back determine who survives.
+Nine years of partial decarbonisation have already happened; the player inherits some
+progress but also entrenched fossil interests that have had time to dig in.
+
+Starting state:
+  RulingParty:          PartyRight (populist wing, Noris Jackson-led)
+  Cabinet:              Noris Jackson (Leader), Dizzy Truscott (Chancellor), other populist Right
+  GovernmentPopularity: 48
+  FossilDependency:     58  (nine years of partial decarbonisation from 2010-2019)
+  ClimateState:         ELEVATED (cumulative stock approximating 9 years at baseline)
+  PlayerReputation:     30 (Senior Executive Officer, established but not senior)
+  StartYear:            2019
+  FirstElectionWeek:    260 (~2024)
+  WeeksAvailable:       1612 (31 years)
+
+Key event schedule (from game start):
+  Week 1:     Great Sneeze fires immediately (TriggerAtYear=2019 matches start year)
+  Weeks 4-8:  Rapid scandal chain -- one scandal per week; succession mechanic enabled
+  Year 2021:  Great Sneeze ends
+
+Special mechanic -- Quick Succession Government:
+  In the Rising Storm scenario, the standard ministerSackingThreshold is lowered by 5
+  (threshold=20, highPop threshold=15) and scandals fire 50% more frequently (scandalProb
+  multiplied by 1.5). The first time any minister is sacked, a succession event fires:
+  the player is presented with two candidates for the vacant role and their endorsement
+  (via LobbyMinister action) influences which one is appointed. This creates a branching
+  early-game narrative depending on player choices.
+
+---
+
+### F.3 Crossroads (2026)
+
+Year 2026. A center-left government has recently taken power after years of center-right
+instability. The player is a senior civil servant with established relationships. Technology
+costs have fallen; some renewables policy is already on the books. The deadline pressure is
+intense -- 24 years to 2050. The political window may be shorter than the timeline suggests.
+
+Starting state:
+  RulingParty:          PartyLeft
+  Cabinet:              JJ Cameron (Leader), Left-wing Chancellor, Left energy minister
+  GovernmentPopularity: 55
+  FossilDependency:     46  (16 years of partial decarbonisation, some policy success)
+  ClimateState:         ELEVATED (significant stock accumulated)
+  PlayerReputation:     40 (Grade 7, seasoned policy officer)
+  StartYear:            2026
+  FirstElectionWeek:    260 (~2031)
+  WeeksAvailable:       1248 (24 years)
+
+Pre-unlocked technologies:
+  OffshoreWind maturity:  38 (above 20 threshold; immediately available)
+  OnshoreWind maturity:   52 (above 40 threshold; second-tier policies available)
+  EVs maturity:           35 (above 25 threshold; transport policy unlocked)
+  HeatPumps maturity:     28 (above 20 threshold; buildings policy unlocked)
+
+Key difference:
+  The Great Sneeze has already occurred in the backstory. The 2019-2021 spending boost
+  has been partially consumed by earlier governments. Trade uncertainty from the Veldorian
+  Community question has settled (see Section G). The player inherits a partial energy
+  transition -- good progress on power, lagging on buildings and transport.
+
+---
+
+### F.4 Scenario Technical Implementation
+
+ScenarioID type: enum { ScenarioHumbleBeginnings, ScenarioRisingStorm, ScenarioCrossroads }
+
+ScenarioConfig struct (defined in config/scenarios.go):
+  ID                   ScenarioID
+  Name                 string          // display name
+  ShortName            string          // used on scenario selection screen
+  Description          string          // narrative summary
+  StartYear            int             // 2010, 2019, or 2026
+  InitialParty         config.Party    // ruling party at scenario start
+  InitialPopularity    float64         // GovernmentPopularity seed
+  InitialFossilDep     float64         // FossilDependency seed
+  InitialPlayerRep     float64         // Player.Reputation seed
+  ElectionDueWeek      int             // weeks from scenario start until first election
+  StakeholderOverrides []StakeholderOverride  // scenario-specific entry timings
+  PreUnlockTech        map[Technology]float64 // tech maturity overrides above normal curve
+  ScandalRateMultiplier float64        // 1.0 = normal; 1.5 = Rising Storm
+
+StakeholderOverride struct:
+  StakeholderID string
+  ForceUnlock   bool    // unlock regardless of EntryTiming
+  ForceRole     Role    // assign to specific role (overrides default)
+
+NewWorldFromScenario(cfg, seed, scenario) is the constructor; NewWorld(cfg, seed) calls it
+with ScenarioHumbleBeginnings for backwards compatibility.
+
+---
+
+## G. World Context -- Veldoria and the Texit Chain
+
+Taitan is a sovereign island nation off the west coast of the continent of Veldoria.
+The Veldorian Community (VC) is a trade, regulatory and political union of Veldorian
+states. Taitan joined the VC in 1973 and has been a semi-detached member since: full
+single-market access, no common currency, occasional sovereignty debates.
+
+The VC matters to the game because:
+  a) A significant fraction of Taitan energy imports flow via VC pipeline networks.
+  b) VC carbon pricing mechanisms set a floor on Taitan domestic carbon costs.
+  c) Murican geopolitical actors (Ticky Tennison's network) view VC membership as
+     an obstacle to Taitan-Murica bilateral energy deals.
+  d) The Texit chain is the primary mid-game political disruption for 2010 starts.
+
+---
+
+### G.1 The Texit Chain (2010 scenario)
+
+Three time-gated events form a linked narrative chain. All three are in config/events.go
+with TriggerAtYear set; all three fire in FiredOnceEvents to prevent repetition.
+
+Event 1: texit_campaign_begins (TriggerAtYear=2016)
+  Headline:   "Text In or Text Out -- the Taitan phone poll that divided a nation"
+  Narrative:  The Taitan Restoration Party launches a national "Text-In" campaign
+              using mobile networks to call for a referendum on VC membership.
+              The campaign slogan: text STAY to stay, text OUT to leave. The irony
+              that the campaign depends on the very mobile roaming agreements
+              enabled by VC membership is noted by commentators and ignored by
+              campaigners.
+  Effects:    EconomyDelta=-2, GovtPopularityDelta=-2, LCRDelta=-1
+              DecayingShock: InitialElecPct=0.8, DecayRate=0.95, MaxWeeks=104
+              (trade uncertainty raises energy import costs modestly)
+  Visible to player: Yes (newspaper popup, shows economy and popularity effects)
+
+Event 2: texit_sovereignty_pivot (TriggerAtYear=2018)
+  Headline:   "Sovereignty, not smartphones: Taitan Restoration reframes the Texit debate"
+  Narrative:  After adopting smartphones en masse, far-right figures who built their
+              movement on text-message campaigns now disavow the "Text-In/Text-Out"
+              framing. The debate is now officially about sovereignty. The original
+              phone-poll infrastructure is quietly retired. Nobody acknowledges the
+              transition.
+  Effects:    EconomyDelta=-3, GovtPopularityDelta=-3
+              Relationship delta: all PartyFarRight stakeholders PressureDelta=+2
+              (they feel vindicated), all PartyLeft stakeholders PressureDelta=-2
+  Visible to player: Yes (newspaper popup, shows effects)
+
+Event 3: texit_settled (TriggerAtYear=2020)
+  Headline:   "Taitan votes to remain in the Veldorian Community by a narrow margin"
+  Narrative:  The referendum passes with 52% to remain. The result is immediately
+              contested. The Taitan Restoration Party announces it does not recognise
+              the legitimacy of the result. The trade uncertainty begins to fade but
+              political polarisation remains.
+  Effects:    EconomyDelta=+2 (uncertainty lifting), GovtPopularityDelta=+1
+              ActiveDecayingShock from Event 1 extended by 26 more weeks (uncertainty
+              lingers even after result)
+  Visible to player: Yes (newspaper popup)
+
+Note: The Texit chain is only scheduled for the 2010 (Humble Beginnings) scenario. In
+the Rising Storm (2019) start, the debate is in its final stages; texit_settled fires
+at Week 1+52 (year 2020 from the 2019 start). In the Crossroads (2026) start, all three
+events have occurred in the backstory and are pre-loaded into FiredOnceEvents.
+
+---
+
+### G.2 Flavor Events
+
+Flavor events have BaseProbability in the range 0.005-0.020, no DecayingShock, and
+minimal or zero gameplay effects. Their purpose is world-building and tonal variety.
+They appear as newspaper popup cards but can be dismissed quickly.
+
+All flavor events use EventType=EventSocial and Severity=MINOR.
+
+Planned flavor events (all to be added to config/events.go):
+
+  celebrity_awards_scandal     -- minor celebrity behaves badly at an awards ceremony
+                                  (GovtPop +0.2 -- government briefly enjoys not being
+                                  the scandal story)
+  sports_championship_win      -- Taitan national team wins a major championship
+                                  (GovtPop +1.0 -- short-lived national mood lift)
+  viral_street_art             -- a net-zero-themed mural goes viral on social media
+                                  (LCRDelta +0.3)
+  famous_musician_benefit      -- a popular musician holds a benefit for fuel poverty
+                                  charity (LCRDelta +0.5, GovtPop +0.3)
+  daytime_tv_debate            -- a high-profile daytime television debate about energy
+                                  bills; mostly heat, little light (no effect; pure flavor)
+  royal_opening               -- a ceremonial opening of a new renewable energy site
+                                  (LCRDelta +0.3)
+  cooking_competition_winner   -- the winner of a popular cooking competition dedicates
+                                  their prize to a local community energy project
+                                  (LCRDelta +0.2; no gameplay effect)
+
+---
+
+## I. UI Design
+
+### I.1 Layout Principles
+
+The UI is map-centred. The map is always visible. Panels appear as overlays or
+slide-out drawers rather than replacing the map. The goal is an organic, game-like
+feel rather than a BI-tool tab bar.
+
+Screen layout (1280x720 logical):
+
+  Top bar (HUD, 48px): Year | Month | Wk | Rep grade | AP | LCR | Climate badge | Advance Week
+  Map canvas: fills the full content area (below HUD)
+  Panel bar (bottom, 40px): icon buttons for each panel; active panel is highlighted
+  Active panel: slides up from panel bar as a semi-transparent overlay (half-screen height)
+                OR opens as a right-side drawer (one third of screen width)
+
+The map remains interactive while a panel is open. Clicking on the map while a panel
+is open retains panel state (does not close it). Clicking outside the panel closes it.
+The Advance Week button is always visible in the HUD regardless of panel state.
+
+---
+
+### I.2 Newspaper Popup System
+
+After each Advance Week click, any events that fired during the week are shown as
+newspaper-style popup cards before the player can interact with the next week.
+
+Each popup card shows:
+  Headline text (bold, large, newspaper-style)
+  Short narrative body (2-4 sentences)
+  Visible effects (e.g. "Economy: -2 | Popularity: -3 | LCR: -1")
+  "Dismiss" button (or press any key to dismiss)
+
+Hidden effects are NOT shown on the card. Effects that are considered easter eggs
+or hidden game mechanics (Ticky's internal relationship tracking, minister ideology
+accumulators, etc.) are never shown. The visible effects list shows only resources
+from the player-visible column of the Resource Table (Section C).
+
+Multiple events in one week stack as a card deck (first fires first). Player must
+dismiss each card before seeing the next. After all cards dismissed, normal gameplay
+resumes.
+
+Modals for Ticky pressure, shock responses, etc. follow the same popup treatment
+but retain their special buttons (Accept / Decline / Negotiate).
+
+Events that have OffersShockResponse=true still get a newspaper card; after the card
+is dismissed, the shock response buttons appear.
+
+Flavor events (Section G.2) generate newspaper cards but their "Visible effects" line
+is omitted if there are no player-visible effects.
+
+---
+
+### I.3 Objectives Overlay
+
+The objectives overlay is accessible from the panel bar. It presents the player's
+primary and secondary objectives.
+
+Primary objective (always visible):
+  "Reach net zero emissions by 2050"
+  Progress bar: current CumulativeStock trend vs. required trajectory
+  Years remaining to deadline
+
+Secondary objectives (the game is sandbox -- these are guidance, not requirements):
+  "Reduce fuel poverty below 10% nationally"
+  "Maintain government approval above 40% through the next election"
+  "Unlock all 8 clean technology categories"
+  "Pass 5 major policy cards before 2030"
+
+The player can ignore all secondary objectives. They serve as orientation for new
+players, not as victory conditions. The primary objective (net zero) is the only
+win condition.
+
+Dismissal: the objectives overlay can be minimised to a small corner indicator
+(showing only the primary objective progress bar and years remaining).
+
+---
+
+### I.4 Energy Minister -- The Boss
+
+The player's primary political relationship in the game is with the Energy Minister
+(the Secretary of State for Energy). This figure is the player's direct line manager,
+the approver for major policy submissions, and the person most affected by the player's
+choices.
+
+In the UI:
+  The Overview panel leads with a "Current Energy Secretary" card showing:
+    Minister name, party, current relationship score (as 5-label approximation),
+    current popularity, and a brief signal hint.
+  If the relationship drops to COOL or lower, a warning indicator appears in the HUD.
+  If the relationship reaches HOSTILE, a "Director's Warning" event fires (reputation
+  penalty, policy submission temporarily blocked until relationship recovers).
+
+In the Politics panel:
+  The Energy Minister's card is pinned to the top of the governing party column,
+  with a "YOUR BOSS" badge.
+
+---
+
+### I.5 Month Display
+
+The in-game clock shows calendar month in the HUD alongside the year and week.
+
+Month derivation (approximate):
+  weekOfYear = (week - 1) % 52           // 0-51 within each year
+  month = 1 + (weekOfYear * 12 / 52)    // 1-12
+  monthName = short 3-letter abbreviation (Jan, Feb, Mar, ...)
+
+Display format: "2016  Mar  Wk 319  Q1"
+
+---
+
+### I.6 Region Click Popup
+
+When the player clicks a region on the map, a small popup panel appears showing:
+  Region name
+  Local popularity gauge (0-100, as a coloured bar: red=hostile, green=supportive)
+  Current fuel poverty (% of households) -- revealed only if a fuel poverty study
+    has been commissioned for that region; otherwise shows "Unknown"
+  Average insulation level -- revealed only if an insulation survey has been commissioned
+  Average heating type split -- revealed only if an energy survey commissioned
+  Tile list (short names, with indicators for revealed data)
+
+The popup is non-blocking (map remains clickable, other panels remain accessible).
+Clicking a different region switches the popup to that region.
+
+---
+
+### I.7 Save and Load
+
+The save system is fully wired in the pre-production build. Auto-save fires after every
+Advance Week (writes to a default slot). Manual save is available from the main menu.
+Load-game is available from the start screen (before scenario selection).
+
+SaveState format (JSON, versioned):
+  version: int
+  scenario: ScenarioID
+  masterSeed: MasterSeed
+  worldSnapshot: WorldStateSnapshot   // full serialised WorldState
+  saveDate: ISO timestamp
+
+WorldStateSnapshot is a full JSON serialisation of WorldState with all sub-structs.
+The RNG state is NOT serialised (re-seeded from masterSeed + worldSnapshot.Week on load,
+which means RNG sequences after load will differ from the original play). This is
+intentional: replaying the exact same sequence would eliminate meaningful save/load.
+
+Save files are stored in the OS user data directory (os.UserConfigDir/twenty-fifty/).
+File name: slot_NN.json where NN is the slot number (00-09). Slot 00 is auto-save.
+
+---
+
+### I.8 Placeholder Image Assets
+
+The following image asset slots are defined but use coloured rectangles as placeholders
+until art assets are provided:
+
+  ui/assets/portrait_[stakeholder_id].png   -- 64x64 minister portrait per stakeholder
+  ui/assets/logo_game.png                   -- 200x60 game logo for start screen
+  ui/assets/icon_[panel_name].png           -- 24x24 icon per panel button in panel bar
+  ui/assets/bg_scenario_[id].png            -- 1280x720 scenario selection background
+  ui/assets/badge_[climate_level].png       -- 80x24 climate badge per level
+
+All placeholders are drawn as filled coloured rectangles with a centred label.
+The asset loader checks for the real file first; falls back to placeholder if not found.
+This allows art to be dropped in at any time without code changes.

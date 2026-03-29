@@ -14,7 +14,13 @@ Last updated: 2026-03-29
 Layers 0-5 are substantially built. The following features are complete and tested:
 
   Layer 0 (config, save):        all static definitions, EventDef with Headline/TriggerAtYear/
-                                  DecayingShockConfig; all event seeds in config/events.go
+                                  DecayingShockConfig; all event seeds in config/events.go;
+                                  [NEW] ScenarioConfig/ScenarioID/StakeholderOverride types in
+                                  config/scenarios.go (three scenarios: HumbleBeginnings 2010,
+                                  RisingStorm 2019, Crossroads 2026);
+                                  [NEW] Texit event chain (texit_campaign_begins 2016,
+                                  texit_sovereignty_pivot 2018, texit_settled 2020);
+                                  [NEW] seven flavor/social events
   Layer 1 (carbon, technology,   all packages implemented and tested
            region):
   Layer 2 (energy, climate,      all packages implemented and tested
@@ -31,9 +37,18 @@ Layers 0-5 are substantially built. The following features are complete and test
                                   GreatSneezeActive/GreatSneezeWeekEnd/GreatSneezeFired,
                                   FiredOnceEvents; pipeline phases 3b, 3c, 11b implemented;
                                   extended Ticky mechanics (Risky, Tricky, Angry, Wimpy)
-                                  implemented in phaseExtendedTickyMechanics
+                                  implemented in phaseExtendedTickyMechanics;
+                                  [NEW] NewWorldFromScenario(cfg, seed, ScenarioConfig);
+                                  NewWorld is a wrapper for ScenarioHumbleBeginnings;
+                                  WorldState gains StartYear, Month, ScenarioID,
+                                  ScandalRateMultiplier, BaseWeeklyMt fields;
+                                  phaseClockAdvance uses StartYear and derives Month;
+                                  phaseScandalAndPressureRoll applies ScandalRateMultiplier;
+                                  38 new scenario tests; HeadlessRun validated across all
+                                  three scenarios up to 1560 weeks
 
-Layer 6 (ui) and Layer 7 (entry point) are not yet built.
+Layer 6 (ui) and Layer 7 (entry point) are substantially built (vector polygon map, all tabs)
+but pending major UX rework (map-centred layout, newspaper popup, scenario selection).
 
 ---
 

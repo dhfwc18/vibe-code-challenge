@@ -1,6 +1,7 @@
 package event
 
 import (
+	"encoding/json"
 	"math/rand"
 	"strings"
 
@@ -46,6 +47,24 @@ func AppendEventLog(log EventLog, entry EventEntry) EventLog {
 		log.count++
 	}
 	return log
+}
+
+// MarshalJSON serialises EventLog as a flat JSON array (oldest-first order).
+func (l EventLog) MarshalJSON() ([]byte, error) {
+	return json.Marshal(l.Entries())
+}
+
+// UnmarshalJSON restores EventLog from a flat JSON array.
+func (l *EventLog) UnmarshalJSON(data []byte) error {
+	var entries []EventEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return err
+	}
+	*l = EventLog{}
+	for _, e := range entries {
+		*l = AppendEventLog(*l, e)
+	}
+	return nil
 }
 
 // Entries returns the log's events in chronological order (oldest first).

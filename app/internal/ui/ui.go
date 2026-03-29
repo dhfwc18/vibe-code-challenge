@@ -15,7 +15,8 @@ import (
 )
 
 // logicalW and logicalH are the fixed logical screen dimensions returned by game.Layout.
-// All click-detection code must use these -- never ebiten.WindowSize().
+// All click-detection code MUST use these -- never ebiten.WindowSize(), which returns the
+// physical window size and breaks on DPI-scaled displays.
 const (
 	logicalW = 1280
 	logicalH = 720
@@ -34,9 +35,10 @@ type UI struct {
 	tabs *TabBar
 
 	// Tab-specific state.
-	mapState      mapTabState
-	industryState industryTabState
-	evidenceState evidenceTabState
+	mapState        mapTabState
+	parliamentState parliamentTabState
+	industryState   industryTabState
+	evidenceState   evidenceTabState
 
 	// Pending actions queued this frame to return from Update.
 	pendingActions []simulation.Action
@@ -113,9 +115,8 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 
 	u.pendingActions = u.pendingActions[:0]
 
-	// Current logical screen dimensions (equals window size because Layout passes
-	// through the outside dimensions for native-resolution rendering).
-	sw, sh := ebiten.WindowSize()
+	// Use fixed logical dimensions -- never ebiten.WindowSize() which varies with DPI.
+	sw, sh := logicalW, logicalH
 
 	// Newspaper modal blocks all other input until dismissed.
 	if u.newspaper.HasPending() {
@@ -164,9 +165,9 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 // handleHUDClick detects clicks on the HUD Advance Week button.
 func (u *UI) handleHUDClick(world *simulation.WorldState, sw int) {
 	mx, my := ebiten.CursorPosition()
-	btnX := sw - 160
-	btnY := 6
-	if mx >= btnX && mx <= btnX+148 && my >= btnY && my <= btnY+28 {
+	btnX := sw - hudBtnW - 8
+	btnY := (hudHeight - hudBtnH) / 2
+	if inRect(mx, my, btnX, btnY, hudBtnW, hudBtnH) {
 		u.advanceWeekRequested = true
 		u.hud.setLastEvent("") // clear notification on new week
 	}
@@ -269,26 +270,24 @@ func (u *UI) handleEvidenceModalInput(world *simulation.WorldState, sw, sh int) 
 
 // handleTabContentClick handles clicks within the tab content area.
 func (u *UI) handleTabContentClick(world *simulation.WorldState) {
-	sw, sh := ebiten.WindowSize()
+	sw, sh := logicalW, logicalH
 	mx, my := ebiten.CursorPosition()
 
 	activeTab := u.tabs.ActiveTab()
 	ovX := sw - panelOverlayW
 
-	// Clicks outside the overlay (or when map is active) go to the map handler.
+	// When the map tab is active, route parliament panel clicks and map polygon clicks.
 	if activeTab == 1 || mx < ovX {
-		u.handleMapClick(mx, my, sw, sh)
+		u.handleMapClick(world, mx, my, sw, sh)
 		return
 	}
 
 	switch activeTab {
-	case 2: // Politics
-		u.handlePoliticsClick(world, mx, my, ovX)
-	case 3: // Policy
+	case 2: // Policy
 		u.handlePolicyClick(world, mx, my, ovX)
-	case 5: // Industry
+	case 4: // Industry
 		u.handleIndustryClick(mx, my, ovX)
-	case 6: // Evidence
+	case 5: // Evidence
 		u.handleEvidenceClick(world, mx, my, ovX)
 	}
 }
@@ -302,43 +301,6 @@ func (u *UI) handleIndustryClick(mx, my, panelX int) {
 		if inRect(mx, my, btnX, y, 78, 16) {
 			u.industryState.filter = industryFilter(i)
 			return
-		}
-	}
-}
-
-// handlePoliticsClick detects Lobby button clicks in the politics tab.
-func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my, panelX int) {
-	parties := []config.Party{
-		config.PartyLeft,
-		config.PartyRight,
-		config.PartyFarLeft,
-		config.PartyFarRight,
-	}
-	cy := hudHeight
-	for colIdx, party := range parties {
-		colX := panelX + 8 + colIdx*(politicsColW+8)
-		rowY := cy + 26
-		for i := range world.Stakeholders {
-			s := world.Stakeholders[i]
-			if s.Party != party || !s.IsUnlocked {
-				continue
-			}
-			btnX := colX + 4 + 145
-			btnY := rowY + 54
-			if inRect(mx, my, btnX, btnY, 50, 18) {
-				if isInCabinet(s, *world) && u.effectiveAP(world) >= 3 {
-					u.pendingActions = append(u.pendingActions, simulation.Action{
-						Type:   player.ActionTypeLobbyMinister,
-						Target: s.ID,
-					})
-					u.pendingAPSpend += 3
-				} else {
-					u.feedbackMsg = "Not enough AP or not in cabinet"
-					u.feedbackFrames = 150
-				}
-				return
-			}
-			rowY += ministerCardH
 		}
 	}
 }
@@ -414,8 +376,8 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 
 	effAP := u.effectiveAP(&world)
 
-	// Map is always rendered at full width as the background layer.
-	drawTabMap(screen, world, &u.mapState, u.face, 0, cy, sw, ch)
+	// Map is always rendered at full width as the background layer (includes parliament panel).
+	drawTabMap(screen, world, &u.mapState, &u.parliamentState, &u.pendingActions, u.face, 0, cy, sw, ch, effAP)
 
 	// Non-map tabs render as a right-side overlay panel on top of the map.
 	activeTab := u.tabs.ActiveTab()
@@ -425,16 +387,14 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 		case 0:
 			drawTabOverview(screen, world, u.face, ovX, cy, panelOverlayW, ch)
 		case 2:
-			drawTabPolitics(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
-		case 3:
 			drawTabPolicy(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
-		case 4:
+		case 3:
 			drawTabEnergy(screen, world, u.face, ovX, cy, panelOverlayW, ch)
-		case 5:
+		case 4:
 			drawTabIndustry(screen, world, &u.industryState, u.face, ovX, cy, panelOverlayW, ch)
-		case 6:
+		case 5:
 			drawTabEvidence(screen, world, &u.evidenceState, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch)
-		case 7:
+		case 6:
 			drawTabBudget(screen, world, u.face, ovX, cy, panelOverlayW, ch)
 		}
 	}
@@ -455,8 +415,15 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	}
 }
 
-// handleMapClick handles overlay button and region polygon clicks on the map tab.
-func (u *UI) handleMapClick(mx, my, sw, sh int) {
+// handleMapClick handles clicks on the map tab: parliament right panel, overlay buttons, and region polygons.
+func (u *UI) handleMapClick(world *simulation.WorldState, mx, my, sw, sh int) {
+	// Route right-panel clicks to parliament handler.
+	rightPanelX := sw - mapDetailPanelW
+	if mx >= rightPanelX {
+		u.handleParliamentClick(world, mx, my)
+		return
+	}
+
 	cy := hudHeight
 	ch := sh - hudHeight - panelBarH
 
@@ -489,6 +456,94 @@ func (u *UI) handleMapClick(mx, my, sw, sh int) {
 	ny := float32(my-pmy) / float32(pmh)
 	if id := hitTestMap(nx, ny); id != "" {
 		u.mapState.selectedRegion = id
+	}
+}
+
+// handleParliamentClick routes clicks in the parliament right panel.
+func (u *UI) handleParliamentClick(world *simulation.WorldState, mx, my int) {
+	px := logicalW - mapDetailPanelW
+	py := hudHeight
+	pw := mapDetailPanelW
+	ph := logicalH - hudHeight - panelBarH
+
+	state := &u.parliamentState
+
+	if state.selectedID != "" {
+		// Profile view: Back link (px+16, py+16, 140x28) and Lobby button.
+		if inRect(mx, my, px+16, py+16, 140, 28) {
+			state.selectedID = ""
+			return
+		}
+		btnX := px + 16
+		btnY := py + ph - 44
+		if inRect(mx, my, btnX, btnY, 120, 28) {
+			for i := range world.Stakeholders {
+				s := world.Stakeholders[i]
+				if s.ID == state.selectedID {
+					if isInCabinet(s, *world) && u.effectiveAP(world) >= 3 {
+						u.pendingActions = append(u.pendingActions, simulation.Action{
+							Type:   player.ActionTypeLobbyMinister,
+							Target: s.ID,
+						})
+						u.pendingAPSpend += 3
+					} else {
+						u.feedbackMsg = "Not enough AP or not in cabinet"
+						u.feedbackFrames = 150
+					}
+					return
+				}
+			}
+		}
+		return
+	}
+
+	if state.selectedParty != "" {
+		// Party member grid: Back link (px+12, py+12, 140x16) and member cards.
+		x := px + 12
+		if inRect(mx, my, x, py+12, 140, 16) {
+			state.selectedParty = ""
+			return
+		}
+		// Cards start at py+12+28+20 = py+60.
+		y := py + 60
+		cols := 2
+		cardW := (pw - 24 - parliamentCardGap) / cols
+		col := 0
+		row := 0
+		for i := range world.Stakeholders {
+			s := world.Stakeholders[i]
+			if s.Party != state.selectedParty {
+				continue
+			}
+			cardX := x + col*(cardW+parliamentCardGap)
+			cardY := y + row*(parliamentCardH+parliamentCardGap)
+			if cardY+parliamentCardH > py+ph-4 {
+				break
+			}
+			if inRect(mx, my, cardX, cardY, cardW, parliamentCardH) {
+				state.selectedID = s.ID
+				return
+			}
+			col++
+			if col >= cols {
+				col = 0
+				row++
+			}
+		}
+		return
+	}
+
+	// Overview: party table rows start below the region section and parliament header/hemicycle.
+	// Layout: py + regionSectionH + 2 (divider) + 12 + 20 (title) + hemicycleH + 8 + 18 (header)
+	x := px + 12
+	y := py + regionSectionH + 2 + 12 + 20 + hemicycleH + 8 + 18
+	rowH := 28
+	for _, p := range hemicyclePartyOrder {
+		if inRect(mx, my, x, y, pw-24, rowH) {
+			state.selectedParty = p
+			return
+		}
+		y += rowH + 2
 	}
 }
 

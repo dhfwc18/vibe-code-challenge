@@ -7,28 +7,40 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+// regionDrawOrder defines the fixed draw / hit-test order for region polygons.
+// Smaller / more specific regions appear later (drawn on top) and are
+// preferred in hit-testing when a click lands on a shared edge.
+var regionDrawOrder = []string{
+	"northern_highlands",
+	"eastern_lowlands",
+	"northern_industrial",
+	"pennine_corridor",
+	"north_west_cities",
+	"east_midlands",
+	"west_midlands",
+	"eastern_counties",
+	"western_coast",
+	"capital_region",
+	"south_east",
+	"south_west",
+}
+
 // regionPolygons defines normalized [0,1] polygon vertices for each of the
 // 12 Taitan regions. (0,0) = top-left of the map canvas, (1,1) = bottom-right.
 // Adjacent polygons share edges exactly; there are no gaps or overlaps.
 // The outline approximates a UK-equivalent island with the north at the top.
 var regionPolygons = map[string][][2]float32{
-	// Northern Highlands: full width, top 38% of the map.
+	// Northern Highlands: clean rectangle, top-left band.
 	"northern_highlands": {
-		{0.00, 0.00}, {1.00, 0.00}, {1.00, 0.08},
-		{0.95, 0.18}, {0.97, 0.28}, {0.92, 0.36},
-		{0.80, 0.38}, {0.64, 0.38}, {0.36, 0.38},
-		{0.24, 0.37}, {0.13, 0.34}, {0.07, 0.27}, {0.00, 0.19},
+		{0.00, 0.00}, {0.64, 0.00}, {0.64, 0.38}, {0.00, 0.38},
 	},
-	// Eastern Lowlands: upper-right coastal notch below NH.
+	// Eastern Lowlands: clean rectangle, full right strip from the top.
 	"eastern_lowlands": {
-		{0.64, 0.38}, {0.80, 0.38}, {0.92, 0.36},
-		{0.97, 0.28}, {0.95, 0.18}, {1.00, 0.08},
-		{1.00, 0.53}, {0.64, 0.53},
+		{0.64, 0.00}, {1.00, 0.00}, {1.00, 0.53}, {0.64, 0.53},
 	},
-	// Northern Industrial Belt: upper-left, picks up the west coast below NH.
+	// Northern Industrial Belt: clean rectangle below N.High on the left.
 	"northern_industrial": {
-		{0.00, 0.19}, {0.07, 0.27}, {0.13, 0.34},
-		{0.24, 0.37}, {0.36, 0.38}, {0.36, 0.53}, {0.00, 0.53},
+		{0.00, 0.38}, {0.36, 0.38}, {0.36, 0.53}, {0.00, 0.53},
 	},
 	// Pennine Corridor: center strip between NI Belt and Eastern Lowlands.
 	"pennine_corridor": {
@@ -111,9 +123,13 @@ func pointInPolygon(px, py float32, pts [][2]float32) bool {
 }
 
 // hitTestMap returns the region ID whose polygon contains the normalized point
-// (nx, ny) in [0,1]x[0,1]. Returns "" if no region matches.
+// (nx, ny) in [0,1]x[0,1]. Uses regionDrawOrder so the result is deterministic
+// when a click lands on a shared edge between two regions.
 func hitTestMap(nx, ny float32) string {
-	for id, pts := range regionPolygons {
+	// Iterate in reverse draw order: last-drawn (most specific) wins.
+	for i := len(regionDrawOrder) - 1; i >= 0; i-- {
+		id := regionDrawOrder[i]
+		pts := regionPolygons[id]
 		if pointInPolygon(nx, ny, pts) {
 			return id
 		}
@@ -155,6 +171,35 @@ func fillMapPolygon(screen *ebiten.Image, pts [][2]float32, col color.RGBA, ox, 
 		vs[i].ColorA = 1
 	}
 	screen.DrawTriangles(vs, is, getWhitePixel(), &ebiten.DrawTrianglesOptions{AntiAlias: true})
+}
+
+// strokeMapPolygon draws a closed polygon outline (1-pixel stroke) scaled to
+// the map canvas. Used to draw visible borders between adjacent regions.
+func strokeMapPolygon(screen *ebiten.Image, pts [][2]float32, col color.RGBA, ox, oy, sw, sh float32) {
+	if len(pts) < 2 {
+		return
+	}
+	var p vector.Path
+	p.MoveTo(pts[0][0]*sw+ox, pts[0][1]*sh+oy)
+	for _, pt := range pts[1:] {
+		p.LineTo(pt[0]*sw+ox, pt[1]*sh+oy)
+	}
+	p.Close()
+	vs, is := p.AppendVerticesAndIndicesForStroke(nil, nil, &vector.StrokeOptions{
+		Width:    1.5,
+		LineJoin: vector.LineJoinMiter,
+		LineCap:  vector.LineCapButt,
+	})
+	r := float32(col.R) / 255
+	g := float32(col.G) / 255
+	b := float32(col.B) / 255
+	for i := range vs {
+		vs[i].ColorR = r
+		vs[i].ColorG = g
+		vs[i].ColorB = b
+		vs[i].ColorA = 1
+	}
+	screen.DrawTriangles(vs, is, getWhitePixel(), &ebiten.DrawTrianglesOptions{AntiAlias: false})
 }
 
 // polygonLabelPos returns the screen centroid (average of vertices) scaled to

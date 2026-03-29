@@ -157,9 +157,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.ui.Draw(screen, g.world)
 }
 
-// Layout returns the logical screen dimensions used by Ebitengine.
-// Returning the outside (window) dimensions gives native-resolution rendering
-// so the game fills the window without letterboxing.
+// Layout returns the fixed logical screen dimensions used by Ebitengine.
+// Using a fixed resolution ensures all UI coordinates are independent of the
+// physical window size, DPI scaling, or display resolution. Ebiten scales the
+// render buffer to fill the window without letterboxing.
 func (g *Game) Layout(outsideW, outsideH int) (int, int) {
-	return outsideW, outsideH
+	return ScreenWidth, ScreenHeight
 }

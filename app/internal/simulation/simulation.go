@@ -667,6 +667,15 @@ func phaseClockAdvance(w WorldState) WorldState {
 		}
 		// Clear cabinet; set new ruling party; schedule next election 5 years out.
 		w.Government = government.TriggerElection(w.Government, winner, w.Week+260)
+		// Lock in the vote share at the moment of the election for the hemicycle display.
+		if len(w.PollHistory) > 0 {
+			src := w.PollHistory[len(w.PollHistory)-1].NationalPolls
+			vs := make(map[config.Party]float64, len(src))
+			for k, v := range src {
+				vs[k] = v
+			}
+			w.Government.LastElectionVoteShare = vs
+		}
 
 		// Rebuild cabinet from winning party's unlocked non-terminal ministers.
 		// Losing party ministers in ACTIVE/APPOINTED/UNDER_PRESSURE/OPPOSITION_SHADOW

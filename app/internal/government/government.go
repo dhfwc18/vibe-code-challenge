@@ -30,6 +30,10 @@ type GovernmentState struct {
 	ElectionDueWeek int
 	TermNumber      int
 	Phase           GovernmentPhase
+	// LastElectionVoteShare holds the national poll share (0-100, summing to ~100)
+	// captured at the moment the most recent election was resolved.
+	// Empty before the first election occurs.
+	LastElectionVoteShare map[config.Party]float64
 }
 
 // MinisterStats is the derived political-economy profile of a minister in post.
@@ -74,11 +78,12 @@ const (
 // NewGovernment returns a GovernmentState with an empty cabinet and TermNumber=1.
 func NewGovernment(rulingParty config.Party, electionDueWeek int) GovernmentState {
 	return GovernmentState{
-		RulingParty:     rulingParty,
-		CabinetByRole:   make(map[config.Role]string),
-		ElectionDueWeek: electionDueWeek,
-		TermNumber:      1,
-		Phase:           GovernmentPhaseStable,
+		RulingParty:           rulingParty,
+		CabinetByRole:         make(map[config.Role]string),
+		ElectionDueWeek:       electionDueWeek,
+		TermNumber:            1,
+		Phase:                 GovernmentPhaseStable,
+		LastElectionVoteShare: make(map[config.Party]float64),
 	}
 }
 

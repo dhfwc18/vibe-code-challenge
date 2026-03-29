@@ -876,44 +876,24 @@ func TestStrategy_TechGate_EVPolicies_BlockedAtStart(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Strategy 10: Year-end carbon budget check -- design flag D2
+// Strategy 10: Year-end carbon budget check (D2 fixed)
 // ---------------------------------------------------------------------------
 
-// TestStrategy_CarbonBudget_YearEndCheck_RejectsYearActual documents the
-// actual (current) behaviour of the year-end budget check.
-//
-// DESIGN FLAG D2: at week 52, phaseClockAdvance sets w.Year = 2011 BEFORE
-// phaseCarbonBudgetAccounting fires. So CheckAnnualBudget is called with
-// year=2011, applying the 2011 CCC limit to what is actually the first 52
-// weeks (game-year 2010) of emissions. This is one year off. The OvershootAccumulator
-// and CurrentBudgetLimit are both set using the next year's values.
-// Fix: either call CheckAnnualBudget with w.Year-1, or check the budget before
-// the year counter increments. This test documents the current behaviour to
-// make the discrepancy visible.
-func TestStrategy_CarbonBudget_YearEndCheck_UsesIncrementedYear(t *testing.T) {
+// TestStrategy_CarbonBudget_YearEndCheck_UsesCompletedYear verifies that the
+// year-end budget check evaluates the year that just completed (2010) not the
+// next year (2011). D2 was fixed by passing w.Year-1 to CheckAnnualBudget.
+func TestStrategy_CarbonBudget_YearEndCheck_UsesCompletedYear(t *testing.T) {
 	w := loadWorld(t)
 
-	// At game start, Year=2010. Advance exactly 52 weeks.
+	// Advance exactly 52 weeks (closes game-year 2010).
 	w = advanceN(w, 52)
 
-	// After 52 weeks: w.Year = 2010 + 52/52 = 2011.
-	// The year-end check fired at week 52 with w.Year=2011.
-	// This means RunningAnnualTotal was reset and CurrentBudgetLimit was set
-	// to limitForYear(2012), not limitForYear(2011).
+	// After 52 weeks: w.Year = 2011. Year-end check must have fired against
+	// year 2010 (w.Year-1). RunningAnnualTotal should be reset to 0.
 	assert.Equal(t, 2011, w.Year,
-		"Year must be 2011 at week 52 (DESIGN FLAG D2: year-end check fired against year 2011's budget)")
-
-	// CurrentBudgetLimit is now set to the next year's limit after CheckAnnualBudget:
-	// CheckAnnualBudget sets state.CurrentBudgetLimit = limitForYear(year+1, budgets)
-	// where year=2011, so CurrentBudgetLimit = limitForYear(2012).
-	// We verify RunningAnnualTotal was reset (year-end fired).
+		"Year must be 2011 at week 52")
 	assert.Equal(t, 0.0, w.Carbon.RunningAnnualTotal,
 		"RunningAnnualTotal must be 0 after year-end reset at week 52")
-
-	t.Logf("DESIGN FLAG D2: year-end check at week 52 used Year=%d. "+
-		"Emissions from weeks 1-52 (game-year 2010) were checked against the %d CCC limit. "+
-		"CurrentBudgetLimit is now set to the %d limit.",
-		w.Year, w.Year, w.Year+1)
 }
 
 // ---------------------------------------------------------------------------

@@ -796,8 +796,10 @@ func phaseCarbonBudgetAccounting(w WorldState) WorldState {
 	w.Carbon = carbon.AccumulateWeekly(w.Carbon, w.WeeklyNetCarbonMt)
 
 	// Year-end: check annual carbon budget limit against CCC targets.
+	// w.Year is already incremented by phaseClockAdvance (week 52 -> Year=2011),
+	// so subtract 1 to check the year that just completed (2010).
 	if w.Week%52 == 0 {
-		_, w.Carbon = carbon.CheckAnnualBudget(w.Carbon, w.Year, w.Cfg.CarbonBudgets)
+		_, w.Carbon = carbon.CheckAnnualBudget(w.Carbon, w.Year-1, w.Cfg.CarbonBudgets)
 	}
 	return w
 }

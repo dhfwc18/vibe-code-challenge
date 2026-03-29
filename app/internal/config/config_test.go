@@ -235,6 +235,9 @@ func TestLoad_Events_BaseProbabilityPositive(t *testing.T) {
 	cfg, err := Load()
 	require.NoError(t, err)
 	for _, e := range cfg.Events {
+		if e.TriggerAtYear > 0 {
+			continue // time-gated events fire deterministically; BaseProbability intentionally 0
+		}
 		assert.Greater(t, e.BaseProbability, 0.0,
 			"event %q must have BaseProbability > 0", e.ID)
 	}

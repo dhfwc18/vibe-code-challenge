@@ -399,16 +399,31 @@ type EventEffect struct {
 	CompanyQualityDelta      float64 // 0-100 scale delta applied to matched companies
 }
 
+// DecayingShockConfig defines an ongoing market effect that diminishes over time.
+// When an EventDef with a non-zero DecayingShock fires, the simulation creates an
+// ActiveDecayingShock in WorldState that applies the price deltas each week and
+// multiplies them by DecayRate until WeeksRemaining reaches zero.
+type DecayingShockConfig struct {
+	InitialGasPctPerWeek  float64 // first-week gas price % change (e.g. 2.5 = +2.5%)
+	InitialOilPctPerWeek  float64 // first-week oil price % change
+	InitialElecPctPerWeek float64 // first-week electricity price % change
+	DecayRate             float64 // multiply deltas by this each week (e.g. 0.93 = 7% decay)
+	MaxWeeks              int     // remove shock after this many weeks
+}
+
 // EventDef is the immutable definition of a global event card.
 type EventDef struct {
 	ID                  string
 	Name                string
+	Headline            string        // short newspaper-style headline shown in event notifications
 	EventType           EventType
 	Severity            EventSeverity
-	BaseProbability     float64 // probability per week of this event firing
-	ClimateMultiplier   float64 // multiplied against BaseProbability when climate is ELEVATED+
-	FossilMultiplier    float64 // multiplied against BaseProbability when FossilDependency > 60
+	BaseProbability     float64       // probability per week of this event firing; 0 = not probabilistic
+	ClimateMultiplier   float64       // multiplied against BaseProbability when climate is ELEVATED+
+	FossilMultiplier    float64       // multiplied against BaseProbability when FossilDependency > 60
+	TriggerAtYear       int           // if > 0, fires once automatically at the start of this game year
 	BaseEffects         EventEffect
-	Narrative           string // text shown in the player-visible event log
-	OffersShockResponse bool   // if true, queues a ShockResponseCard for the player
+	DecayingShock       DecayingShockConfig // zero value = no ongoing decaying effect
+	Narrative           string        // full text shown in the player-visible event log
+	OffersShockResponse bool          // if true, queues a ShockResponseCard for the player
 }

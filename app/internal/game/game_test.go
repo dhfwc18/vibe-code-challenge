@@ -15,7 +15,7 @@ func newTestGame(t *testing.T) *game.Game {
 	assert.NoError(t, err)
 	seed, err := save.NewMasterSeed()
 	assert.NoError(t, err)
-	return game.New(cfg, seed)
+	return game.New(cfg, seed, t.TempDir()+"\\autosave.json")
 }
 
 func TestNew_ReturnsNonNilGame(t *testing.T) {

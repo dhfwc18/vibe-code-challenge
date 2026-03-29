@@ -1,6 +1,9 @@
 package game
 
 import (
+	"encoding/json"
+	"log"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/event"
@@ -31,16 +34,25 @@ type Game struct {
 	scenarioScreen *ui.ScenarioScreen
 	phase          gamePhase
 	events         []event.EventEntry // fired during the most recent week advance
+	savePath       string             // path for the autosave file
 }
 
 // New returns a Game ready to show the scenario selection screen.
-func New(cfg *config.Config, masterSeed save.MasterSeed) *Game {
+// savePath is the path to use for autosave (pass "" to derive automatically).
+func New(cfg *config.Config, masterSeed save.MasterSeed, savePath string) *Game {
+	if savePath == "" {
+		savePath = save.AutoSavePath("")
+	}
+	ss := ui.NewScenarioScreen()
+	// Inform the scenario screen whether a save exists so it can show "Continue".
+	ss.SetHasSave(save.Exists(savePath))
 	return &Game{
 		cfg:            cfg,
 		masterSeed:     masterSeed,
-		scenarioScreen: ui.NewScenarioScreen(),
+		scenarioScreen: ss,
 		phase:          phaseScenarioSelect,
 		events:         []event.EventEntry{},
+		savePath:       savePath,
 	}
 }
 
@@ -53,11 +65,62 @@ func (g *Game) startScenario(id config.ScenarioID) {
 	g.phase = phasePlay
 }
 
+// loadSave resumes from the autosave file.
+func (g *Game) loadSave() {
+	ss, err := save.Read(g.savePath)
+	if err != nil {
+		log.Printf("load save: %v", err)
+		return
+	}
+	if len(ss.WorldData) == 0 {
+		log.Printf("load save: no world data in file")
+		return
+	}
+	var wd simulation.WorldSaveData
+	if err := json.Unmarshal(ss.WorldData, &wd); err != nil {
+		log.Printf("load save: unmarshal world data: %v", err)
+		return
+	}
+	world, err := simulation.RestoreWorld(wd, g.cfg)
+	if err != nil {
+		log.Printf("load save: restore world: %v", err)
+		return
+	}
+	g.world = world
+	g.ui = ui.New(&world, g.cfg)
+	g.phase = phasePlay
+}
+
+// autoSave writes the current world to disk.
+func (g *Game) autoSave() {
+	wd := simulation.SaveWorld(g.world)
+	raw, err := json.Marshal(wd)
+	if err != nil {
+		log.Printf("auto-save: marshal world: %v", err)
+		return
+	}
+	ss := &save.SaveState{
+		GameWeek:  g.world.Week,
+		GameYear:  g.world.Year,
+		WorldData: json.RawMessage(raw),
+	}
+	if saveErr := save.Write(g.savePath, ss); saveErr != nil {
+		log.Printf("auto-save: write: %v", saveErr)
+	}
+}
+
 // Update is called once per tick (60 Hz by default) and advances game state.
 func (g *Game) Update() error {
 	if g.phase == phaseScenarioSelect {
-		if id := g.scenarioScreen.Update(config.Scenarios); id != "" {
-			g.startScenario(id)
+		result := g.scenarioScreen.Update(config.Scenarios)
+		switch result {
+		case ui.ScenarioResultContinue:
+			g.loadSave()
+		case ui.ScenarioResultNone:
+			// no action
+		default:
+			// result is a ScenarioID string
+			g.startScenario(config.ScenarioID(result))
 		}
 		return nil
 	}
@@ -76,6 +139,9 @@ func (g *Game) Update() error {
 			g.ui.QueueNewsItems(firedEvents)
 			g.ui.NotifyEvent(firedEvents[len(firedEvents)-1].Name)
 		}
+
+		// Auto-save after each successful week advance.
+		g.autoSave()
 	}
 
 	return nil

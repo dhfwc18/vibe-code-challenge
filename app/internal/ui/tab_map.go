@@ -23,8 +23,8 @@ type mapTabState struct {
 	overlay        mapOverlay
 }
 
-// mapPanelW is the pixel width of the polygon map panel within the map tab.
-const mapPanelW = 480
+// mapDetailPanelW is the pixel width of the right-side detail panel within the map tab.
+const mapDetailPanelW = 360
 
 // drawTabMap renders the interactive vector-polygon map tab.
 func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTabState, face font.Face, cx, cy, cw, ch int) {
@@ -45,10 +45,14 @@ func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTab
 		drawLabel(screen, bx+6, by+15, name, ColourTextPrimary, face)
 	}
 
-	// Map canvas bounds.
+	// Map canvas bounds: polygon area fills all but the right-side detail panel.
+	polyW := cw - mapDetailPanelW - 16
+	if polyW < 64 {
+		polyW = 64
+	}
 	mx := cx + 8
 	my := cy + 36
-	mw := mapPanelW - 16
+	mw := polyW
 	mh := ch - 44
 	if maxH := mw * 14 / 10; mh > maxH {
 		mh = maxH
@@ -110,7 +114,7 @@ func drawTabMap(screen *ebiten.Image, world simulation.WorldState, state *mapTab
 	}
 
 	// Detail panel on the right.
-	drawMapDetailPanel(screen, world, state, face, cx+mapPanelW, cy, cw-mapPanelW, ch)
+	drawMapDetailPanel(screen, world, state, face, cx+cw-mapDetailPanelW, cy, mapDetailPanelW, ch)
 }
 
 // drawMapDetailPanel renders the right-side info panel for the selected region.

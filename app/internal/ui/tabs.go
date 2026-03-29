@@ -7,31 +7,36 @@ import (
 )
 
 const (
-	tabBarWidth  = 160
-	tabHeight    = 40
-	tabBarTop    = hudHeight
+	// tabBarWidth is kept as 0; the left sidebar has been removed.
+	// Tabs now render as a horizontal panel selector bar at the bottom of the screen.
+	tabBarWidth = 0
+	// panelBarH is the height of the bottom panel selector bar.
+	panelBarH = 40
+	// tabBarTop is kept for backward compatibility with HUD height references.
+	tabBarTop = hudHeight
 )
 
-// tabNames lists the eight tabs in display order.
+// tabNames lists the panel buttons in display order.
+// Index 1 ("Map") is the "map-only" state with no overlay panel visible.
 var tabNames = []string{
-	"Overview",
-	"Map",
-	"Politics",
-	"Policy",
-	"Energy",
-	"Industry",
-	"Evidence",
-	"Budget",
+	"Overview",  // 0
+	"Map",       // 1 -- clicking this hides all overlays
+	"Politics",  // 2
+	"Policy",    // 3
+	"Energy",    // 4
+	"Industry",  // 5
+	"Evidence",  // 6
+	"Budget",    // 7
 }
 
-// TabBar renders and handles input for the left sidebar tab buttons.
+// TabBar renders and handles input for the bottom panel selector bar.
 type TabBar struct {
-	activeTab int
+	activeTab int // -1 = no panel (used internally); 1 = Map = default no-overlay state
 }
 
-// newTabBar creates a new TabBar with Overview selected.
+// newTabBar creates a new TabBar defaulting to Map (no overlay).
 func newTabBar() *TabBar {
-	return &TabBar{}
+	return &TabBar{activeTab: 1}
 }
 
 // ActiveTab returns the index of the currently selected tab.
@@ -39,44 +44,69 @@ func (tb *TabBar) ActiveTab() int {
 	return tb.activeTab
 }
 
-// Update checks for mouse clicks on the tab buttons and updates the active tab.
+// Update checks for mouse clicks on the bottom panel buttons and updates the active tab.
 func (tb *TabBar) Update() {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
 	mx, my := ebiten.CursorPosition()
-	if mx < 0 || mx >= tabBarWidth {
+	sw, sh := ebiten.WindowSize()
+	barY := sh - panelBarH
+	if my < barY || my >= sh {
 		return
 	}
+	n := len(tabNames)
+	if n == 0 {
+		return
+	}
+	btnW := sw / n
 	for i := range tabNames {
-		y := tabBarTop + i*tabHeight
-		if my >= y && my < y+tabHeight {
-			tb.activeTab = i
+		bx := i * btnW
+		if mx >= bx && mx < bx+btnW {
+			if tb.activeTab == i && i != 1 {
+				// Clicking the active non-map tab closes the overlay.
+				tb.activeTab = 1
+			} else {
+				tb.activeTab = i
+			}
 			return
 		}
 	}
 }
 
-// Draw renders the tab sidebar onto screen.
+// Draw renders the bottom panel selector bar onto screen.
 func (tb *TabBar) Draw(screen *ebiten.Image, face font.Face) {
-	screenH := screen.Bounds().Dy()
+	sw := screen.Bounds().Dx()
+	sh := screen.Bounds().Dy()
+	barY := sh - panelBarH
+	n := len(tabNames)
+	if n == 0 {
+		return
+	}
+	btnW := sw / n
 
-	// Sidebar background.
-	sidebar := ebiten.NewImage(tabBarWidth, screenH-tabBarTop)
-	sidebar.Fill(ColourPanel)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, float64(tabBarTop))
-	screen.DrawImage(sidebar, op)
+	// Bar background.
+	solidRect(screen, 0, barY, sw, panelBarH, ColourPanel)
+	// Top border line.
+	solidRect(screen, 0, barY, sw, 1, colour(0x2E, 0x45, 0x38))
 
 	for i, name := range tabNames {
-		y := tabBarTop + i*tabHeight
-		var bg = ColourButtonNormal
+		bx := i * btnW
+		bw := btnW - 1 // 1px gap between buttons
+		bg := ColourButtonNormal
 		if i == tb.activeTab {
 			bg = ColourButtonHover
+		} else if isHovered(bx, barY+1, bw, panelBarH-1) {
+			bg = colour(0x2C, 0x48, 0x2E)
 		}
-		solidRect(screen, 0, y, tabBarWidth, tabHeight, bg)
-		// Bottom border between tabs.
-		solidRect(screen, 0, y+tabHeight-1, tabBarWidth, 1, ColourBackground)
-		drawLabel(screen, 12, y+26, name, ColourTextPrimary, face)
+		solidRect(screen, bx, barY+1, bw, panelBarH-1, bg)
+		// Centre-align text in button.
+		textW := len(name) * 7
+		labelX := bx + (bw-textW)/2
+		drawLabel(screen, labelX, barY+26, name, ColourTextPrimary, face)
+		// Active indicator: accent line at top of active button.
+		if i == tb.activeTab {
+			solidRect(screen, bx, barY+1, bw, 2, ColourAccent)
+		}
 	}
 }

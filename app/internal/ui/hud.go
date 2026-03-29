@@ -6,6 +6,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/carbon"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/simulation"
 	"golang.org/x/image/font"
 )
@@ -58,17 +59,31 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	op.GeoM.Translate(0, float64(hudHeight-1))
 	screen.DrawImage(borderImg, op)
 
-	// Left: Year, Week, Quarter.
-	timeStr := fmt.Sprintf("Year %d  Wk %d  Q%d", world.Year, world.Week, world.Quarter)
+	// Left: Month, Year, Week, Quarter.
+	mn := world.Month
+	if mn < 1 || mn > 12 {
+		mn = 1
+	}
+	monthStr := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}[mn-1]
+	timeStr := fmt.Sprintf("%s %d  Wk %d  Q%d", monthStr, world.Year, world.Week, world.Quarter)
 	drawLabel(screen, 8, 30, timeStr, ColourTextPrimary, face)
 
 	// Centre-left: AP remaining (effective, accounting for queued spend).
 	apStr := fmt.Sprintf("AP: %d", effectiveAP)
-	drawLabel(screen, 260, 30, apStr, ColourAccent, face)
+	drawLabel(screen, 280, 30, apStr, ColourAccent, face)
 
-	// Centre: LCR value.
-	lcrStr := fmt.Sprintf("LCR: %.0f", world.LCR.LastPollResult)
-	drawLabel(screen, 360, 30, lcrStr, ColourTextPrimary, face)
+	// Player reputation grade derived from LCR poll result.
+	grade, gradeCol := lcrGrade(world.LCR.LastPollResult)
+	gradeStr := fmt.Sprintf("Rep: %s (%.0f)", grade, world.LCR.LastPollResult)
+	drawLabel(screen, 360, 30, gradeStr, gradeCol, face)
+
+	// Energy Minister name (player's boss).
+	bossName := energyMinisterName(world)
+	if bossName != "" {
+		bossStr := "Boss: " + bossName
+		drawLabel(screen, 530, 30, bossStr, colour(0xF0, 0xC0, 0x40), face)
+	}
 
 	// Climate badge.
 	climateCol := climateColour(world.ClimateState.Level)
@@ -122,4 +137,38 @@ func climateLevelName(level carbon.ClimateLevel) string {
 	default:
 		return "STABLE"
 	}
+}
+
+// lcrGrade converts a LowCarbonReputation poll value to a letter grade and colour.
+func lcrGrade(lcr float64) (string, color.RGBA) {
+	switch {
+	case lcr >= 80:
+		return "A", colour(0x2E, 0xCC, 0x71)
+	case lcr >= 60:
+		return "B", colour(0xA8, 0xD8, 0x60)
+	case lcr >= 40:
+		return "C", colour(0xF3, 0x9C, 0x12)
+	case lcr >= 20:
+		return "D", colour(0xE6, 0x7E, 0x22)
+	default:
+		return "F", colour(0xE7, 0x4C, 0x3C)
+	}
+}
+
+// energyMinisterName returns the name of the current Energy Secretary, or "" if vacant.
+func energyMinisterName(world simulation.WorldState) string {
+	energyID := world.Government.CabinetByRole[config.RoleEnergy]
+	if energyID == "" {
+		return ""
+	}
+	for _, s := range world.Stakeholders {
+		if s.ID == energyID {
+			nick := s.Nickname
+			if nick != "" {
+				return nick
+			}
+			return s.Name
+		}
+	}
+	return ""
 }

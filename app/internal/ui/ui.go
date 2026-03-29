@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/event"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/player"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/simulation"
 	"golang.org/x/image/font"
@@ -20,8 +21,11 @@ const (
 	logicalH = 720
 )
 
-// contentX is the left edge of the main content area (after the sidebar).
+// contentX is the left edge of the main content area (sidebar is gone; kept for reference).
 const contentX = tabBarWidth
+
+// panelOverlayW is the pixel width of the right-side overlay panel for non-map tabs.
+const panelOverlayW = 720
 
 // UI owns the top-level UI state. It is created once before the game loop starts.
 type UI struct {
@@ -50,6 +54,9 @@ type UI struct {
 	// shockHandledCount tracks how many shock responses the player has queued
 	// this week. The shock modal hides once this reaches len(PendingShockResponses).
 	shockHandledCount int
+
+	// newspaper holds pending event news items to show after a week advance.
+	newspaper NewspaperQueue
 }
 
 // New creates and returns a fully initialised UI.
@@ -92,6 +99,11 @@ func (u *UI) NotifyEvent(name string) {
 	u.hud.setLastEvent(name)
 }
 
+// QueueNewsItems enqueues fired events for display in the newspaper modal.
+func (u *UI) QueueNewsItems(entries []event.EventEntry) {
+	u.newspaper.Enqueue(entries)
+}
+
 // Update processes input for this frame and returns any actions queued.
 // The returned slice is valid only until the next call to Update.
 func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
@@ -104,6 +116,14 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 	// Current logical screen dimensions (equals window size because Layout passes
 	// through the outside dimensions for native-resolution rendering).
 	sw, sh := ebiten.WindowSize()
+
+	// Newspaper modal blocks all other input until dismissed.
+	if u.newspaper.HasPending() {
+		if handleNewspaperInput(sw, sh) {
+			u.newspaper.Dismiss()
+		}
+		return u.pendingActions
+	}
 
 	// Handle Ticky modal first - it blocks all other input.
 	if world.PendingTickyPressure {
@@ -249,32 +269,36 @@ func (u *UI) handleEvidenceModalInput(world *simulation.WorldState, sw, sh int) 
 
 // handleTabContentClick handles clicks within the tab content area.
 func (u *UI) handleTabContentClick(world *simulation.WorldState) {
+	sw, sh := ebiten.WindowSize()
 	mx, my := ebiten.CursorPosition()
-	if mx < contentX {
-		return // not in content area
+
+	activeTab := u.tabs.ActiveTab()
+	ovX := sw - panelOverlayW
+
+	// Clicks outside the overlay (or when map is active) go to the map handler.
+	if activeTab == 1 || mx < ovX {
+		u.handleMapClick(mx, my, sw, sh)
+		return
 	}
 
-	switch u.tabs.ActiveTab() {
-	case 1: // Map
-		u.handleMapClick(mx, my)
+	switch activeTab {
 	case 2: // Politics
-		u.handlePoliticsClick(world, mx, my)
+		u.handlePoliticsClick(world, mx, my, ovX)
 	case 3: // Policy
-		u.handlePolicyClick(world, mx, my)
+		u.handlePolicyClick(world, mx, my, ovX)
 	case 5: // Industry
-		u.handleIndustryClick(mx, my)
+		u.handleIndustryClick(mx, my, ovX)
 	case 6: // Evidence
-		u.handleEvidenceClick(world, mx, my)
+		u.handleEvidenceClick(world, mx, my, ovX)
 	}
 }
 
 // handleIndustryClick detects filter button clicks in the industry tab.
-func (u *UI) handleIndustryClick(mx, my int) {
-	// Filter buttons drawn at: x = contentX+12 + i*80, y = hudHeight+4, w=78, h=16
-	// (matches tab_industry.go: x=cx+12, y=cy+16, buttons at y-12=cy+4, w=btnW-2=78)
+func (u *UI) handleIndustryClick(mx, my, panelX int) {
+	// Filter buttons drawn at: x = panelX+12 + i*80, y = hudHeight+4, w=78, h=16
 	y := hudHeight + 4
 	for i := 0; i < 4; i++ {
-		btnX := contentX + 12 + i*80
+		btnX := panelX + 12 + i*80
 		if inRect(mx, my, btnX, y, 78, 16) {
 			u.industryState.filter = industryFilter(i)
 			return
@@ -283,7 +307,7 @@ func (u *UI) handleIndustryClick(mx, my int) {
 }
 
 // handlePoliticsClick detects Lobby button clicks in the politics tab.
-func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
+func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my, panelX int) {
 	parties := []config.Party{
 		config.PartyLeft,
 		config.PartyRight,
@@ -292,7 +316,7 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 	}
 	cy := hudHeight
 	for colIdx, party := range parties {
-		colX := contentX + 8 + colIdx*(politicsColW+8)
+		colX := panelX + 8 + colIdx*(politicsColW+8)
 		rowY := cy + 26
 		for i := range world.Stakeholders {
 			s := world.Stakeholders[i]
@@ -320,10 +344,10 @@ func (u *UI) handlePoliticsClick(world *simulation.WorldState, mx, my int) {
 }
 
 // handlePolicyClick detects Submit button clicks in the policy tab.
-func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
+func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my, panelX int) {
 	cy := hudHeight
 	for colIdx, state := range policyColumns {
-		colX := contentX + 8 + colIdx*(policyColW+8)
+		colX := panelX + 8 + colIdx*(policyColW+8)
 		rowY := cy + 24
 		for i := range world.PolicyCards {
 			pc := world.PolicyCards[i]
@@ -353,12 +377,12 @@ func (u *UI) handlePolicyClick(world *simulation.WorldState, mx, my int) {
 }
 
 // handleEvidenceClick detects Commission button clicks in the evidence tab.
-func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my int) {
+func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my, panelX int) {
 	if world.Cfg == nil {
 		return
 	}
 	cy := hudHeight
-	x := contentX + 12
+	x := panelX + 12
 	y := cy + 16 + 18 + 14 // match drawTabEvidence layout
 	for _, orgDef := range world.Cfg.Organisations {
 		orgState := findOrgState(world.OrgStates, orgDef.ID)
@@ -383,44 +407,48 @@ func (u *UI) handleEvidenceClick(world *simulation.WorldState, mx, my int) {
 
 // Draw renders the entire UI onto screen.
 func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
-	// HUD top bar.
-	u.hud.Draw(screen, world, u.face, u.effectiveAP(&world), u.feedbackMsg)
-
-	// Tab sidebar.
-	u.tabs.Draw(screen, u.face)
-
-	// Content area dimensions.
 	sw := screen.Bounds().Dx()
 	sh := screen.Bounds().Dy()
-	cx := contentX
 	cy := hudHeight
-	cw := sw - contentX
-	ch := sh - hudHeight
+	ch := sh - hudHeight - panelBarH
 
 	effAP := u.effectiveAP(&world)
 
-	// Dispatch to active tab renderer.
-	switch u.tabs.ActiveTab() {
-	case 0:
-		drawTabOverview(screen, world, u.face, cx, cy, cw, ch)
-	case 1:
-		drawTabMap(screen, world, &u.mapState, u.face, cx, cy, cw, ch)
-	case 2:
-		drawTabPolitics(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch, effAP)
-	case 3:
-		drawTabPolicy(screen, world, &u.pendingActions, u.face, cx, cy, cw, ch, effAP)
-	case 4:
-		drawTabEnergy(screen, world, u.face, cx, cy, cw, ch)
-	case 5:
-		drawTabIndustry(screen, world, &u.industryState, u.face, cx, cy, cw, ch)
-	case 6:
-		drawTabEvidence(screen, world, &u.evidenceState, &u.pendingActions, u.face, cx, cy, cw, ch)
-	case 7:
-		drawTabBudget(screen, world, u.face, cx, cy, cw, ch)
+	// Map is always rendered at full width as the background layer.
+	drawTabMap(screen, world, &u.mapState, u.face, 0, cy, sw, ch)
+
+	// Non-map tabs render as a right-side overlay panel on top of the map.
+	activeTab := u.tabs.ActiveTab()
+	if activeTab != 1 {
+		ovX := sw - panelOverlayW
+		switch activeTab {
+		case 0:
+			drawTabOverview(screen, world, u.face, ovX, cy, panelOverlayW, ch)
+		case 2:
+			drawTabPolitics(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
+		case 3:
+			drawTabPolicy(screen, world, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch, effAP)
+		case 4:
+			drawTabEnergy(screen, world, u.face, ovX, cy, panelOverlayW, ch)
+		case 5:
+			drawTabIndustry(screen, world, &u.industryState, u.face, ovX, cy, panelOverlayW, ch)
+		case 6:
+			drawTabEvidence(screen, world, &u.evidenceState, &u.pendingActions, u.face, ovX, cy, panelOverlayW, ch)
+		case 7:
+			drawTabBudget(screen, world, u.face, ovX, cy, panelOverlayW, ch)
+		}
 	}
 
-	// Modals (drawn last so they appear on top).
-	if world.PendingTickyPressure {
+	// HUD top bar (drawn after panels so it overlaps any content that bleeds upward).
+	u.hud.Draw(screen, world, u.face, effAP, u.feedbackMsg)
+
+	// Bottom tab bar.
+	u.tabs.Draw(screen, u.face)
+
+	// Modals (top of draw stack).
+	if u.newspaper.HasPending() {
+		drawNewspaperModal(screen, u.newspaper.Current(), len(u.newspaper.items), u.face)
+	} else if world.PendingTickyPressure {
 		drawModalTicky(screen, world, &u.pendingActions, u.face)
 	} else if len(world.PendingShockResponses) > u.shockHandledCount {
 		drawModalShock(screen, world, &u.pendingActions, u.face)
@@ -428,13 +456,13 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 }
 
 // handleMapClick handles overlay button and region polygon clicks on the map tab.
-func (u *UI) handleMapClick(mx, my int) {
+func (u *UI) handleMapClick(mx, my, sw, sh int) {
 	cy := hudHeight
-	ch := logicalH - hudHeight
+	ch := sh - hudHeight - panelBarH
 
 	// Overlay selector buttons.
 	for i := 0; i < 3; i++ {
-		bx := contentX + 8 + i*110
+		bx := 8 + i*110
 		by := cy + 8
 		if inRect(mx, my, bx, by, 108, 20) {
 			u.mapState.overlay = mapOverlay(i)
@@ -442,10 +470,14 @@ func (u *UI) handleMapClick(mx, my int) {
 		}
 	}
 
-	// Map polygon area.
-	pmx := contentX + 8
+	// Map polygon area (mirrors drawTabMap bounds).
+	polyW := sw - mapDetailPanelW - 16
+	if polyW < 64 {
+		polyW = 64
+	}
+	pmx := 8
 	pmy := cy + 36
-	pmw := mapPanelW - 16
+	pmw := polyW
 	pmh := ch - 44
 	if maxH := pmw * 14 / 10; pmh > maxH {
 		pmh = maxH

@@ -228,9 +228,16 @@ type ActiveDecayingShock struct {
 // copies; both are treated as immutable (Cfg) or sequentially-advanced (RNG).
 type WorldState struct {
 	// Clock
-	Week    int // absolute week; 0 = initial state, 1 = first processed week
-	Year    int // calendar year: 2010-2050
-	Quarter int // 1-4
+	Week      int // absolute week; 0 = initial state, 1 = first processed week
+	Year      int // calendar year derived from StartYear + Week/52
+	Month     int // calendar month 1-12 derived from week-of-year
+	Quarter   int // 1-4
+	StartYear int // calendar year the scenario begins (e.g. 2010, 2019, 2026)
+
+	// Scenario metadata
+	ScenarioID            config.ScenarioID // which campaign start point is active
+	ScandalRateMultiplier float64           // multiplier on base scandal probability (1.0 = normal)
+	BaseWeeklyMt          float64           // scenario-calibrated baseline weekly emissions (MtCO2e)
 
 	// Static config (shared pointer; never mutated at runtime)
 	Cfg *config.Config
@@ -355,30 +362,61 @@ type SimulationReport struct {
 // NewWorld
 // ---------------------------------------------------------------------------
 
-// NewWorld seeds a complete initial WorldState from config and a master seed.
-// Week=0; Year=2010; Quarter=1. The first call to AdvanceWeek moves to Week=1.
+// NewWorld seeds a WorldState for the default (Humble Beginnings 2010) campaign.
+// It is a convenience wrapper around NewWorldFromScenario.
 func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
+	return NewWorldFromScenario(cfg, masterSeed, config.ScenarioByID(config.ScenarioHumbleBeginnings))
+}
+
+// NewWorldFromScenario seeds a complete initial WorldState from config, a master
+// seed, and a ScenarioConfig. Week=0; Year=scenario.StartYear; Quarter=1.
+// The first call to AdvanceWeek moves to Week=1.
+func NewWorldFromScenario(cfg *config.Config, masterSeed save.MasterSeed, scenario config.ScenarioConfig) WorldState {
 	rng := rand.New(rand.NewSource(int64(masterSeed.DeriveSubSeed("simulation"))))
 
-	w := WorldState{
-		Week:                    0,
-		Year:                    2010,
-		Quarter:                 1,
-		Cfg:                     cfg,
-		RNG:                     rng,
-		GovernmentPopularity:    initialGovtPopularity,
-		GovernmentLastPollResult: initialGovtPopularity,
-		FossilDependency:        initialFossilDependency,
-		WeeksUntilLCRPoll:       10 + rng.Intn(7),
-		TickyCountdown:          tickyPressureMinWeeks + rng.Intn(tickyPressureMaxVariance),
-		MinisterLastPollResults: make(map[string]float64),
-		TechDeliveryLog:         []string{},
+	scandalMult := scenario.ScandalRateMultiplier
+	if scandalMult <= 0 {
+		scandalMult = 1.0
+	}
+	baseWeekly := scenario.InitialCarbonMt / 52.0
+	if baseWeekly <= 0 {
+		baseWeekly = baselineYearlyMt / 52.0
 	}
 
-	// Government: center-right wins the 2010 election; first election ~2015.
-	w.Government = government.NewGovernment(config.PartyRight, initialElectionDueWeek)
+	w := WorldState{
+		Week:                     0,
+		Year:                     scenario.StartYear,
+		Month:                    1,
+		Quarter:                  1,
+		StartYear:                scenario.StartYear,
+		ScenarioID:               scenario.ID,
+		ScandalRateMultiplier:    scandalMult,
+		BaseWeeklyMt:             baseWeekly,
+		Cfg:                      cfg,
+		RNG:                      rng,
+		GovernmentPopularity:     scenario.InitialPopularity,
+		GovernmentLastPollResult: scenario.InitialPopularity,
+		FossilDependency:         scenario.InitialFossilDep,
+		WeeksUntilLCRPoll:        10 + rng.Intn(7),
+		TickyCountdown:           tickyPressureMinWeeks + rng.Intn(tickyPressureMaxVariance),
+		MinisterLastPollResults:  make(map[string]float64),
+		TechDeliveryLog:          []string{},
+	}
 
-	// Stakeholders: seed all; unlock START-timing figures; assign ruling party cabinet.
+	// Government: ruling party wins the scenario-start election.
+	w.Government = government.NewGovernment(scenario.InitialParty, scenario.ElectionDueWeek)
+
+	// Build a set of roles claimed by scenario overrides so the default pass
+	// can skip them (they will be assigned in the override pass below).
+	reservedRoles := make(map[config.Role]bool)
+	for _, o := range scenario.StakeholderOverrides {
+		if o.ForceRole != "" {
+			reservedRoles[o.ForceRole] = true
+		}
+	}
+
+	// Stakeholders: seed all; unlock TimingStart figures; assign ruling party cabinet
+	// unless the role is reserved for an override.
 	w.Stakeholders = stakeholder.SeedStakeholders(cfg.Stakeholders)
 	for i, s := range w.Stakeholders {
 		if s.EntryTiming != config.TimingStart {
@@ -386,22 +424,48 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 		}
 		w.Stakeholders[i] = stakeholder.UnlockStakeholder(s, 0)
 		w.Stakeholders[i].State = stakeholder.MinisterStateAppointed
-		if s.Party == config.PartyRight {
+		if s.Party == scenario.InitialParty && !reservedRoles[s.Role] {
 			w.Government = government.AssignMinister(w.Government, s.Role, s.ID)
 		}
 	}
 
-	// Energy market: anchored to 2010 values.
+	// Override pass: force-unlock stakeholders and assign them to overridden roles.
+	for _, o := range scenario.StakeholderOverrides {
+		if !o.ForceUnlock {
+			continue
+		}
+		for i := range w.Stakeholders {
+			if w.Stakeholders[i].ID != o.StakeholderID {
+				continue
+			}
+			// Force unlock regardless of EntryWeekMin (scenario backstory justification).
+			w.Stakeholders[i].IsUnlocked = true
+			w.Stakeholders[i].State = stakeholder.MinisterStateAppointed
+			role := w.Stakeholders[i].Role
+			if o.ForceRole != "" {
+				role = o.ForceRole
+			}
+			w.Government = government.AssignMinister(w.Government, role, w.Stakeholders[i].ID)
+			break
+		}
+	}
+
+	// Energy market: anchored to scenario start values.
 	w.EnergyMarket = energy.NewMarket()
 
-	// Climate: zero cumulative stock at game start.
+	// Climate: zero cumulative stock at scenario start.
 	w.ClimateState = climate.DeriveClimateState(0.0)
 
 	// Carbon: zero state; limits checked against cfg.CarbonBudgets each year.
 	w.Carbon = carbon.CarbonBudgetState{}
 
-	// Technology: seeded from logistic curve definitions.
+	// Technology: seeded from logistic curve definitions; then apply scenario overrides.
 	w.Tech = technology.NewTechTracker(cfg.Technologies)
+	for tech, maturity := range scenario.PreUnlockTech {
+		if _, ok := w.Tech.Maturities[tech]; ok {
+			w.Tech.Maturities[tech] = maturity
+		}
+	}
 
 	// Geography.
 	w.Regions = region.SeedRegions(cfg.Regions)
@@ -410,8 +474,10 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 	// Economy.
 	w.Economy = economy.NewEconomyState()
 
-	// Reputation.
+	// Reputation: start at scenario initial player rep.
 	w.LCR = reputation.NewLCR()
+	w.LCR.Value = scenario.InitialPlayerRep
+	w.LCR.LastPollResult = scenario.InitialPlayerRep
 
 	// Policies: all cards start in DRAFT.
 	w.PolicyCards = policy.SeedPolicyCards(cfg.PolicyCards)
@@ -426,11 +492,19 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 	w.EventLog = event.NewEventLog()
 	w.PressureGroups = event.DefaultPressureGroups()
 
+	// Pre-fire scenario backstory events so they do not re-trigger in-game.
+	if len(scenario.FiredOnceEvents) > 0 {
+		w.FiredOnceEvents = make(map[string]bool, len(scenario.FiredOnceEvents))
+		for _, id := range scenario.FiredOnceEvents {
+			w.FiredOnceEvents[id] = true
+		}
+	}
+
 	// Player.
 	w.Player = player.NewCivilServant()
 
 	// Initial budget allocation (recomputed each quarter).
-	w.LastTaxRevenue = economy.ComputeTaxRevenue(w.Economy, 1, 2010)
+	w.LastTaxRevenue = economy.ComputeTaxRevenue(w.Economy, 1, scenario.StartYear)
 	w.LastBudget = economy.AllocateBudget(
 		w.LastTaxRevenue,
 		baseDeptFractions(),
@@ -451,7 +525,7 @@ func NewWorld(cfg *config.Config, masterSeed save.MasterSeed) WorldState {
 // Pass nil (or an empty slice) for actions in headless/AI mode.
 func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry) {
 	// Reset weekly transients.
-	w.WeeklyNetCarbonMt = baseWeeklyMt
+	w.WeeklyNetCarbonMt = w.BaseWeeklyMt
 	w.WeeklyPolicyReductionMt = 0
 	w.WeeklyEventLCRDelta = 0
 	w.WeeklyPolicyLCRDelta = 0
@@ -576,10 +650,13 @@ func HeadlessRun(w WorldState, weeks int) (WorldState, SimulationReport) {
 
 func phaseClockAdvance(w WorldState) WorldState {
 	w.Week++
-	// Year: week 1-52 = 2010, week 53-104 = 2011, etc.
-	w.Year = 2010 + w.Week/52
+	// Year: week 1-52 = StartYear, week 53-104 = StartYear+1, etc.
+	w.Year = w.StartYear + w.Week/52
 	// Quarter: 1-4 within each 52-week year.
 	w.Quarter = 1 + (w.Week%52)/13
+	// Month 1-12 derived from week-of-year: weekOfYear in [0,51] -> month in [1,12].
+	weekOfYear := (w.Week - 1) % 52
+	w.Month = 1 + weekOfYear*12/52
 
 	// Election check: trigger when the scheduled week arrives.
 	if government.IsElectionDue(w.Government, w.Week) {
@@ -768,13 +845,23 @@ func phaseGlobalEventRoll(w WorldState) (WorldState, []event.EventEntry) {
 // ---------------------------------------------------------------------------
 
 func phaseScandalAndPressureRoll(w WorldState) WorldState {
+	// Number of scandal rolls per minister per week, shaped by ScandalRateMultiplier.
+	// Default (1.0) = one roll; Rising Storm (2.0) = two rolls.
+	multiplier := w.ScandalRateMultiplier
+	if multiplier < 1.0 {
+		multiplier = 1.0
+	}
+	scandalRolls := int(multiplier + 0.5) // round to nearest int
+
 	// Scandal roll for each active unlocked stakeholder.
 	for _, s := range w.Stakeholders {
 		if !s.IsUnlocked || isTerminalState(s.State) {
 			continue
 		}
-		if event.RollScandal(s, s.WeeksUnderPressure, w.RNG) {
-			w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity-2.0, 0, 100)
+		for i := 0; i < scandalRolls; i++ {
+			if event.RollScandal(s, s.WeeksUnderPressure, w.RNG) {
+				w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity-2.0, 0, 100)
+			}
 		}
 	}
 
@@ -916,7 +1003,7 @@ func phasePolicyResolution(w WorldState) WorldState {
 	// Net carbon: base emissions minus policy reductions (reductions stored as
 	// positive). Clamped to prevent negative values.
 	w.WeeklyNetCarbonMt = mathutil.Clamp(
-		baseWeeklyMt-w.WeeklyPolicyReductionMt, 0, baseWeeklyMt*2)
+		w.BaseWeeklyMt-w.WeeklyPolicyReductionMt, 0, w.BaseWeeklyMt*2)
 	return w
 }
 
@@ -928,8 +1015,8 @@ func phaseCarbonBudgetAccounting(w WorldState) WorldState {
 	w.Carbon = carbon.AccumulateWeekly(w.Carbon, w.WeeklyNetCarbonMt)
 
 	// Year-end: check annual carbon budget limit against CCC targets.
-	// w.Year is already incremented by phaseClockAdvance (week 52 -> Year=2011),
-	// so subtract 1 to check the year that just completed (2010).
+	// w.Year is already incremented by phaseClockAdvance for the new year,
+	// so subtract 1 to check the year that just completed.
 	if w.Week%52 == 0 {
 		_, w.Carbon = carbon.CheckAnnualBudget(w.Carbon, w.Year-1, w.Cfg.CarbonBudgets)
 	}

@@ -505,4 +505,190 @@ var eventDefs = []EventDef{
 		Narrative:           "A rapidly spreading illness forces closure of workplaces and public spaces across Taitan. Parliament passes emergency spending legislation; the government's popularity plummets as the scale of the crisis becomes clear. Emergency measures will remain in place until the situation stabilises.",
 		OffersShockResponse: false,
 	},
+
+	// ------------------------------------------------------------------
+	// INTERNATIONAL -- Texit chain (2016-2020)
+	// Three time-gated events forming the Texit narrative arc.
+	// All have BaseProbability=0; they fire deterministically via TriggerAtYear.
+	// Rising Storm and Crossroads scenarios pre-fire these as backstory.
+	// ------------------------------------------------------------------
+
+	{
+		ID:            "texit_campaign_begins",
+		Name:          "Texit Campaign Begins",
+		Headline:      "Text-it campaign calls for Taitan to leave the Veldorian Community",
+		EventType:     EventInternational,
+		Severity:      SeverityModerate,
+		BaseProbability: 0.0,
+		TriggerAtYear: 2016,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta:     -2.0,
+			LCRDelta:                -1.0,
+			// Tariff uncertainty raises electricity import costs modestly
+			ElectricityPriceDeltaPct: 2.0,
+			// Cabinet under parliamentary pressure
+			StakeholderFilter:       "CABINET",
+			StakeholderPressureDelta: 1,
+		},
+		DecayingShock: DecayingShockConfig{
+			InitialElecPctPerWeek: 0.8,
+			DecayRate:             0.94,
+			MaxWeeks:              52,
+		},
+		Narrative:           "A coordinated mobile and social media campaign, backed by the Taitan Restoration party, calls for a referendum on Taitan's membership of the Veldorian Community. The campaign spreads rapidly; trade and energy import uncertainty begins to weigh on business confidence.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:            "texit_sovereignty_pivot",
+		Name:          "Texit: Sovereignty Pivot",
+		Headline:      "Texit campaign relaunches on smartphones with sovereignty platform",
+		EventType:     EventInternational,
+		Severity:      SeverityModerate,
+		BaseProbability: 0.0,
+		TriggerAtYear: 2018,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta:     -1.5,
+			EconomyDelta:            -1.5,
+			ElectricityPriceDeltaPct: 1.5,
+			// FarRight stakeholders gain pressure from emboldened base
+			StakeholderFilter:       "ROLE:LEADER",
+			StakeholderPressureDelta: 1,
+		},
+		Narrative:           "The campaign rebrands around a full sovereignty platform. Polls show a narrow majority for Remain but the political temperature rises. Trade negotiators begin contingency planning for VC tariff disruption on energy imports.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:            "texit_settled",
+		Name:          "Texit Referendum: Narrow Remain",
+		Headline:      "Taitan votes to remain in Veldorian Community by 51.4 percent",
+		EventType:     EventInternational,
+		Severity:      SeverityMajor,
+		BaseProbability: 0.0,
+		TriggerAtYear: 2020,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta:     -2.0,
+			EconomyDelta:            -2.5,
+			LCRDelta:                1.5, // VC green regulation alignment retained
+			ElectricityPriceDeltaPct: -3.0, // tariff uncertainty resolved
+			StakeholderFilter:       "CABINET",
+			StakeholderPressureDelta: -1,
+		},
+		Narrative:           "The referendum returns a narrow Remain vote. The result is contested by the Taitan Restoration party but upheld by the Electoral Commission. VC membership is retained; electricity import tariff uncertainty resolves. A residual mid-term economic drag lingers as business investment restarts slowly.",
+		OffersShockResponse: false,
+	},
+
+	// ------------------------------------------------------------------
+	// SOCIAL -- Flavor events (light-hearted; minimal gameplay effect)
+	// These are world-building events with low BaseProbability.
+	// They add texture without significant mechanical impact.
+	// ------------------------------------------------------------------
+
+	{
+		ID:              "celebrity_awards_scandal",
+		Name:            "Celebrity Awards Scandal",
+		Headline:        "Televised awards ceremony overshadows energy debate",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.008,
+		ClimateMultiplier: 1.0,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta: -0.5,
+		},
+		Narrative:           "A theatrical spat at the Taitan Broadcasting Awards dominates newspaper front pages for a week, briefly crowding out coverage of the energy transition. Ministers note the irony.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "sports_championship_win",
+		Name:            "National Sports Championship Win",
+		Headline:        "Taitan wins the Veldorian Cup; nation celebrates",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.006,
+		ClimateMultiplier: 1.0,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta: 1.5,
+		},
+		Narrative:           "The national team wins the Veldorian Cup for the first time in a generation. The government basks in the reflected goodwill; the Prime Minister is photographed with the trophy.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "viral_street_art",
+		Name:            "Viral Climate Street Art",
+		Headline:        "Climate mural in capital goes global; prints sell out overnight",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.010,
+		ClimateMultiplier: 1.3,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			LCRDelta: 1.0,
+		},
+		Narrative:           "A large-scale mural depicting a melting Taitan coast goes viral internationally, briefly making net zero a trending topic and giving the low-carbon reputation a modest boost.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "famous_musician_benefit",
+		Name:            "Benefit Concert for Climate Fund",
+		Headline:        "Sold-out benefit concert raises GBP 4 million for climate adaptation",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.007,
+		ClimateMultiplier: 1.2,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			LCRDelta:            1.5,
+			GovtPopularityDelta: 0.5,
+		},
+		Narrative:           "A coalition of Taitan musicians organises a sold-out benefit concert for the National Climate Adaptation Fund. Media coverage is broadly positive; the government is invited to send a representative and accepts.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "daytime_tv_debate",
+		Name:            "Daytime TV Climate Debate",
+		Headline:        "Morning show net zero segment triggers record viewer complaints",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.012,
+		ClimateMultiplier: 1.0,
+		FossilMultiplier: 1.2,
+		BaseEffects: EventEffect{
+			GovtPopularityDelta: -0.3,
+			LCRDelta:            0.5,
+		},
+		Narrative:           "A heated daytime television debate on net zero policy generates record viewer complaints and a brief social media firestorm. Both sides claim victory; nothing changes.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "royal_opening",
+		Name:            "Royal Opening of Clean Energy Centre",
+		Headline:        "Monarch opens flagship clean energy research facility",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.005,
+		ClimateMultiplier: 1.0,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			LCRDelta:            2.0,
+			GovtPopularityDelta: 1.0,
+		},
+		Narrative:           "The monarch formally opens the Taitan Clean Energy Research Centre in a televised ceremony. The government receives rare cross-party praise; the footage is used extensively in low-carbon awareness campaigns.",
+		OffersShockResponse: false,
+	},
+	{
+		ID:              "cooking_competition_winner",
+		Name:            "Cooking Show Sustainability Episode",
+		Headline:        "National cooking competition's sustainability episode trends for a week",
+		EventType:       EventSocial,
+		Severity:        SeverityMinor,
+		BaseProbability: 0.015,
+		ClimateMultiplier: 1.0,
+		FossilMultiplier: 1.0,
+		BaseEffects: EventEffect{
+			LCRDelta: 0.3,
+		},
+		Narrative:           "The nationally beloved cooking competition devotes an episode to sustainable food and energy. The episode trends on every platform; a minor but measurable uptick in public interest in low-carbon living is recorded.",
+		OffersShockResponse: false,
+	},
 }

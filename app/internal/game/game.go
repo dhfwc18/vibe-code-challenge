@@ -15,28 +15,53 @@ const (
 	Title        = "20-50"
 )
 
+type gamePhase int
+
+const (
+	phaseScenarioSelect gamePhase = iota
+	phasePlay
+)
+
 // Game implements ebiten.Game and owns all top-level game state.
 type Game struct {
-	cfg    *config.Config
-	world  simulation.WorldState
-	ui     *ui.UI
-	events []event.EventEntry // fired during the most recent week advance
+	cfg            *config.Config
+	masterSeed     save.MasterSeed
+	world          simulation.WorldState
+	ui             *ui.UI
+	scenarioScreen *ui.ScenarioScreen
+	phase          gamePhase
+	events         []event.EventEntry // fired during the most recent week advance
 }
 
-// New returns an initialised Game with a fresh world seeded from masterSeed.
+// New returns a Game ready to show the scenario selection screen.
 func New(cfg *config.Config, masterSeed save.MasterSeed) *Game {
-	world := simulation.NewWorld(cfg, masterSeed)
-	u := ui.New(&world, cfg)
 	return &Game{
-		cfg:    cfg,
-		world:  world,
-		ui:     u,
-		events: []event.EventEntry{},
+		cfg:            cfg,
+		masterSeed:     masterSeed,
+		scenarioScreen: ui.NewScenarioScreen(),
+		phase:          phaseScenarioSelect,
+		events:         []event.EventEntry{},
 	}
+}
+
+// startScenario initialises the world for the chosen scenario and switches to play phase.
+func (g *Game) startScenario(id config.ScenarioID) {
+	scenario := config.ScenarioByID(id)
+	world := simulation.NewWorldFromScenario(g.cfg, g.masterSeed, scenario)
+	g.world = world
+	g.ui = ui.New(&world, g.cfg)
+	g.phase = phasePlay
 }
 
 // Update is called once per tick (60 Hz by default) and advances game state.
 func (g *Game) Update() error {
+	if g.phase == phaseScenarioSelect {
+		if id := g.scenarioScreen.Update(config.Scenarios); id != "" {
+			g.startScenario(id)
+		}
+		return nil
+	}
+
 	// Collect player actions from the UI.
 	actions := g.ui.Update(&g.world)
 
@@ -57,6 +82,10 @@ func (g *Game) Update() error {
 
 // Draw is called once per frame and renders the current state to screen.
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.phase == phaseScenarioSelect {
+		g.scenarioScreen.Draw(screen, config.Scenarios)
+		return
+	}
 	screen.Fill(backgroundColour)
 	g.ui.Draw(screen, g.world)
 }

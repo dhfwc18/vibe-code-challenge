@@ -21,9 +21,18 @@ Each game week executes in a fixed pipeline.
     are multiplied by ClimateState (for weather events) and FossilDependency (for oil/gas
     shocks). Economy is updated by shock severity. At most 2 events per week; most weeks
     zero. Major events (severity > threshold) queue a ShockResponse opportunity for Phase 11.
+3b. Time-Gated Events -- fire any EventDef whose TriggerAtYear matches the current year
+    and has not yet fired (tracked in FiredOnceEvents). This is how the Great Sneeze and
+    similar one-shot events activate regardless of the probabilistic draw.
+3c. Decaying Shock Tick -- apply ongoing energy market effects from any
+    ActiveDecayingShock entries in WorldState. Each shock's weekly price deltas are
+    applied to the EnergyMarket, then multiplied by the shock's DecayRate. Shocks whose
+    WeeksRemaining reaches zero are removed.
 4.  Scandal and Pressure Roll -- each minister independently rolls scandal probability;
     pressure groups apply weekly modifiers to GovernmentPopularity and LowCarbonReputation
-    based on carbon trajectory and recent climate events.
+    based on carbon trajectory and recent climate events. After the scandal roll, the
+    engine runs phaseTickyPressureTick (standard Ticky pressure countdown) and
+    phaseExtendedTickyMechanics (Risky Ticky, Tricky Ticky checks).
 5.  Technology Progress Tick -- each of 8 technologies advances its adoption curve;
     acceleration bonuses from R&D policies apply.
 6.  Regional World Tick -- 12 regions update SkillsNetwork, InstallerCapacity, SupplyChain
@@ -66,6 +75,9 @@ Each game week executes in a fixed pipeline.
     FuelPoverty aggregate (high national FuelPoverty drags consumer spending -> Economy),
     oil/gas shock severity, active industrial policy bonuses, FossilDependency drag.
     At quarter-end: compute Tax Revenue from Economy, run Budget Allocation formula.
+11b.Great Sneeze Tick -- while GreatSneezeActive is true, apply the weekly
+    GovernmentPopularity penalty (-0.3/week). When the current year passes
+    greatSneezeEndYear, deactivate the flag. This phase is a no-op in all other weeks.
 12. Polling Check -- Bernoulli draw each week (p=0.25). When a poll fires: generate
     noisy party vote shares per region and nationally; add government approval rating
     (GovernmentPopularity + sigma=3 noise) to PollSnapshot.GovernmentApprovalRating;
@@ -224,12 +236,20 @@ RelationshipScore labels: Hostile / Cool / Neutral / Warm / Ally.
 PlayerReputation labels: Generalist / Executive Officer / Higher Executive / Grade 7 / Grade 6 / Deputy Director / Director / Director General / Permanent Secretary.
 
 Player actions and AP costs:
-  Meet minister:         1-3 AP (seniority-dependent, relationship threshold may apply)
-  Submit policy:         2 AP
-  Commission consultancy: 1 AP + budget
-  Attend select committee: 2 AP (affects minister relationship)
-  Hire civil service staff: 3 AP + budget (increases future AP pool)
-  Read delivered report: 0 AP
+  Meet minister:                    1-3 AP (seniority-dependent, relationship threshold may apply)
+  Submit policy:                    2 AP
+  Commission consultancy:           1 AP + budget
+  Attend select committee:          2 AP (affects minister relationship)
+  Hire civil service staff:         3 AP + budget (increases future AP pool)
+  Read delivered report:            0 AP
+  Respond Risky Ticky (ENDORSE):    0 AP (available only when PendingRiskyTicky)
+  Respond Risky Ticky (DECLINE):    0 AP (available only when PendingRiskyTicky)
+  Respond Tricky Ticky (ACCEPT):    0 AP (available only when PendingTrickyTicky)
+  Respond Tricky Ticky (DECLINE):   0 AP (available only when PendingTrickyTicky)
+  Damage Ticky Reputation:          3 AP (available only when AngryTickyActive and
+                                    at least one FarRight non-Ticky cabinet member
+                                    has RelationshipScore >= 40)
+  Great Sneeze Lobby:               0 AP free lobby (available only while GreatSneezeActive)
 
 ---
 
@@ -380,6 +400,32 @@ WorldState {
   ministerLastPollResults: map[StakeholderID -> float64]  // per-minister noisy popularity
   techDeliveryLog: []string             // milestone messages when a company delivers a tech boost
   rng: SeededRNG
+
+  // Extended Ticky mechanic state
+  pendingRiskyTicky: bool               // Risky Ticky endorsement prompt awaiting player response
+  pendingTrickyTicky: bool              // Tricky Ticky Murican contract offer awaiting player response
+  angryTickyActive: bool                // Angry Ticky in effect; policy approval malus applied (+15 MinRelationshipScore)
+  angryTickyWimpy: bool                 // Wimpy Ticky triggered; malus has been lifted
+
+  // Decaying energy market shocks (from war/crisis events)
+  activeDecayingShocks: []ActiveDecayingShock
+
+  // Great Sneeze pandemic event
+  greatSneezeActive: bool               // true while Great Sneeze ongoing effects apply
+  greatSneezeWeekEnd: int               // week at which Great Sneeze deactivates
+  greatSneezeFired: bool                // prevents re-firing on save/load
+
+  // One-shot event tracking
+  firedOnceEvents: map[string]bool      // IDs of TriggerAtYear events that have fired
+}
+
+ActiveDecayingShock {
+  eventID: string
+  gasPctThisWeek: float64    // current weekly gas price % change
+  oilPctThisWeek: float64    // current weekly oil price % change
+  elecPctThisWeek: float64   // current weekly electricity price % change
+  decayRate: float64         // multiplied against each pct every week (e.g. 0.93)
+  weeksRemaining: int        // shock removed when this reaches zero
 }
 
 Minister {
@@ -794,6 +840,19 @@ EnergyShockEvent {
   economyDelta: float64                  // negative; scales with actualSeverity
   deptBudgetDelta: float64              // Treasury forced to bail out energy costs
   shockResponseQueued: bool
+}
+
+// EventDef (static config) has been extended with:
+//   headline: string         -- short newspaper-style headline shown in event notifications
+//   triggerAtYear: int       -- if > 0, fires once automatically at start of this game year
+//   decayingShock: DecayingShockConfig -- persistent market effect; zero value = no ongoing shock
+
+DecayingShockConfig {
+  initialGasPctPerWeek: float64   // first-week gas price % change (e.g. 2.5 = +2.5%)
+  initialOilPctPerWeek: float64
+  initialElecPctPerWeek: float64
+  decayRate: float64              // multiply deltas by this each week (e.g. 0.93 = 7% decay/week)
+  maxWeeks: int                   // remove shock after this many weeks
 }
 
 EconomyState {
@@ -1370,6 +1429,55 @@ When in opposition, they are shadows whose relationships still matter.
 
   Ticky pressure is unique to this minister. No other stakeholder generates this mechanic.
 
+#### Extended Ticky Mechanics
+
+  Four additional mechanics activate depending on the governing party and the player's
+  relationship with Ticky. All four are tracked in WorldState boolean flags.
+
+  Risky Ticky
+    Condition: Left or FarLeft party governs AND current week >= 52.
+    Probability: 3% per week (riskyTickyWeeklyProb).
+    Event: Ticky's FarRight party makes an overture to the player's department.
+    PendingRiskyTicky flag is set; player must respond during Phase 14.
+
+    Player options (ActionTypeRespondRiskyTicky):
+      ENDORSE: player publicly endorses Ticky's party platform.
+               RelationshipScore with Ticky +15.
+               RelationshipScore with every current cabinet member -8 each.
+      DECLINE: quietly decline.
+               RelationshipScore with Ticky -3.
+
+  Tricky Ticky
+    Condition: FarRight party governs.
+    Probability: 5% per week (trickyTickyWeeklyProb).
+    Event: a Murican energy company offers a lucrative contract via Ticky's network.
+    PendingTrickyTicky flag is set; player must respond during Phase 14.
+
+    Player options (ActionTypeRespondTrickyTicky):
+      ACCEPT: take the Murican contract.
+              DeptPower budget +20 GBP million one-off.
+              RelationshipScore with each FarRight cabinet member -5 each
+              (they resent being bypassed).
+      DECLINE: refuse the contract.
+               RelationshipScore with Ticky -3.
+
+  Angry Ticky
+    Condition: Ticky's RelationshipScore drops below 15 (angryTickyRelThreshold).
+    Effect: AngryTickyActive flag set. A permanent policy-approval malus of +15 is
+    added to the MinRelationshipScore requirement on every approval step while the
+    flag is active, making all policies harder to pass.
+    Unlocks: ActionTypeDamageTickyReputation (3 AP). Requirements: at least one
+    FarRight cabinet member (not Ticky) has RelationshipScore >= 40. Effect: Ticky's
+    effective reputation is reduced (-20 to his RelationshipScore internal value);
+    splash penalty of -3 to every other unlocked FarRight stakeholder.
+
+  Wimpy Ticky
+    Condition: Ticky's RelationshipScore drops below 5 (wimpyTickyRelThreshold).
+    Note: RelationshipScore is clamped to [0, 100] so this threshold is near zero.
+    Effect: Ticky backs down. AngryTickyActive is cleared; the policy-approval malus
+    is lifted. AngryTickyWimpy flag is set (informational; used to prevent re-trigger).
+    The DamageTickyReputation action is the primary route to driving Ticky to this state.
+
 #### Consultancy Affinity Mechanic (Right party -- soft incentive)
 
   Some Right party figures have personal or professional ties to specific advisory firms.
@@ -1388,6 +1496,69 @@ When in opposition, they are shadows whose relationships still matter.
 
   If the player is already at a high relationship score with an affiliated firm, the
   bonus is capped so that total relationshipScore cannot exceed 100.
+
+#### Decaying Energy Shocks
+
+  Some high-impact international events produce not only an immediate price spike (via
+  BaseEffects) but also a persistent weekly market effect that diminishes over time.
+  This is modelled by a DecayingShockConfig attached to the EventDef and a corresponding
+  ActiveDecayingShock entry created in WorldState when the event fires.
+
+  Mechanism (Phase 3c each week):
+    gasPctThisWeek, oilPctThisWeek, elecPctThisWeek are applied as percentage changes
+    to the EnergyMarket prices. After applying, each delta is multiplied by decayRate
+    (e.g. 0.93 = 7% decay per week). WeeksRemaining decrements by 1. When WeeksRemaining
+    reaches zero the shock is removed.
+
+  Multiple shocks can be active simultaneously; all are applied independently each Phase 3c.
+
+  The Coming Winter (event ID: the_coming_winter)
+    Setting: armed conflict between Northland and the Gold Trident severs a critical gas
+    transit corridor (fictional states; no real-world referent intended).
+    Immediate BaseEffects: gas +18%, electricity +10%, oil +4%, Economy -3.5,
+    GovernmentPopularity -4, TileFuelPoverty +7, CarbonEmissions +0.6 Mt,
+    cabinet StakeholderPressure +2.
+    DecayingShock: gas +2.5%/week, oil +0.3%/week, electricity +1.2%/week,
+    decayRate 0.93, up to 104 weeks (two years).
+    BaseProbability: 0.002/week (rare; FossilMultiplier 1.5 amplifies it when
+    fossil dependency is high).
+
+  The Amber Coast War (event ID: the_amber_coast_war)
+    Setting: Murican military intervention in the Amber Coast region disrupts shipping
+    lanes and triggers panic buying in crude markets (fictional region).
+    Immediate BaseEffects: oil +25%, gas +5%, electricity +3%, Economy -4.0,
+    GovernmentPopularity -3.5, TileFuelPoverty +5, LCR -1.5.
+    DecayingShock: oil +3.5%/week, gas +0.5%/week, electricity +0.6%/week,
+    decayRate 0.93, up to 78 weeks (eighteen months).
+    BaseProbability: 0.002/week (rare; FossilMultiplier 1.5).
+
+#### Great Sneeze Event (Time-Gated)
+
+  The Great Sneeze models the effect of a sudden national health emergency on government
+  capacity and public finances. It is a fictional event; no real-world illness or crisis
+  is referenced.
+
+  Trigger: TriggerAtYear = 2019. Fires automatically once at the start of year 2019 via
+  Phase 3b (phaseTimeGatedEvents). BaseProbability = 0.0, so it cannot fire
+  probabilistically. The FiredOnceEvents map prevents re-firing on save/load.
+
+  Immediate BaseEffects (on fire):
+    GovernmentPopularity -3.0, Economy -4.0, TileFuelPoverty +2.5, LCR -2.0.
+    All companies: CompanyWorkRate -15.
+
+  Emergency budget: +12 GBP million one-off added to every department on the turn
+  the Great Sneeze fires (greatSneezeEmergencyBudgetBoostGBP).
+
+  Ongoing effects (Phase 11b, every week while GreatSneezeActive):
+    GovernmentPopularity -0.3 per week.
+
+  Duration: GreatSneezeActive from year 2019 until the start of year 2021
+  (greatSneezeEndYear). GreatSneezeWeekEnd is set when it fires.
+
+  Special player action (while GreatSneezeActive):
+    ActionTypeGreatSneezeLobby -- 0 AP cost (free emergency lobby). Player can use
+    this action to lobby any stakeholder without spending AP from the weekly pool.
+    Available only while GreatSneezeActive is true. Expires when the Sneeze ends.
 
 #### Foreign Secretary Role and International Events
 

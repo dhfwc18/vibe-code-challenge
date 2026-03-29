@@ -27,6 +27,18 @@ const (
 	ActionTypeFireStaff        ActionType = "FIRE_STAFF"
 	ActionTypeShockResponse           ActionType = "SHOCK_RESPONSE"
 	ActionTypeRespondTickyPressure    ActionType = "RESPOND_TICKY_PRESSURE"
+	// ActionTypeRespondRiskyTicky handles the Risky Ticky endorsement prompt.
+	// Detail: "ENDORSE" or "DECLINE".
+	ActionTypeRespondRiskyTicky       ActionType = "RESPOND_RISKY_TICKY"
+	// ActionTypeRespondTrickyTicky handles the Tricky Ticky Murican contract offer.
+	// Detail: "ACCEPT" or "DECLINE".
+	ActionTypeRespondTrickyTicky      ActionType = "RESPOND_TRICKY_TICKY"
+	// ActionTypeDamageTickyReputation is the player counter-move when Angry Ticky
+	// is active. Costs AP and requires relationship support from other far-right figures.
+	ActionTypeDamageTickyReputation   ActionType = "DAMAGE_TICKY_REPUTATION"
+	// ActionTypeGreatSneezeLobby is a free-AP emergency lobby action available
+	// only while the Great Sneeze is active. Detail = target stakeholder ID.
+	ActionTypeGreatSneezeLobby        ActionType = "GREAT_SNEEZE_LOBBY"
 	ActionTypeOther                   ActionType = "OTHER"
 )
 

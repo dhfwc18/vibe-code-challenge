@@ -133,8 +133,94 @@ const (
 )
 
 // ---------------------------------------------------------------------------
+// Extended Ticky mechanics constants
+// ---------------------------------------------------------------------------
+
+// riskyTickyMinWeek is the earliest week Risky Ticky can fire (after game start).
+const riskyTickyMinWeek = 52
+
+// riskyTickyWeeklyProb is the per-week probability of Risky Ticky firing when
+// a centrist or far-left government is in power.
+const riskyTickyWeeklyProb = 0.03
+
+// riskyTickyEndorseRelBoost is the relationship gain with Ticky on endorsement.
+const riskyTickyEndorseRelBoost = 15.0
+
+// riskyTickyEndorseCabinetPenalty is the relationship penalty applied to each
+// current cabinet member when the player publicly endorses Ticky's party.
+const riskyTickyEndorseCabinetPenalty = -8.0
+
+// riskyTickyDeclinePenalty is the relationship penalty with Ticky on decline.
+const riskyTickyDeclinePenalty = -3.0
+
+// trickyTickyWeeklyProb is the per-week probability of Tricky Ticky firing when
+// the far-right is in government.
+const trickyTickyWeeklyProb = 0.05
+
+// trickyTickyAcceptBudgetBoost is the GBP-millions budget added to DeptPower on
+// accepting the Murican contract offer.
+const trickyTickyAcceptBudgetBoost = 20.0
+
+// trickyTickyAcceptCabinetPenalty is the relationship penalty applied to each
+// far-right cabinet member on accepting (they resent being bypassed).
+const trickyTickyAcceptCabinetPenalty = -5.0
+
+// trickyTickyDeclinePenalty is the relationship penalty with Ticky on decline.
+const trickyTickyDeclinePenalty = -3.0
+
+// angryTickyRelThreshold is the Ticky relationship score below which Angry
+// Ticky activates (a permanent policy-approval malus kicks in).
+const angryTickyRelThreshold = 15.0
+
+// angryTickyPolicyMalus is added to MinRelationshipScore for every approval
+// step while Angry Ticky is active, making all policies harder to pass.
+const angryTickyPolicyMalus = 15.0
+
+// angryTickyDamageAPCost is the AP cost of the DamageTickyReputation action.
+const angryTickyDamageAPCost = 3
+
+// angryTickyDamageRelDelta is applied to Ticky each time the player uses
+// the reputation-damage action.
+const angryTickyDamageRelDelta = -20.0
+
+// angryTickyDamageCabinetSplash is the relationship penalty applied to each
+// unlocked non-Ticky FarRight stakeholder on each reputation-damage action.
+const angryTickyDamageCabinetSplash = -3.0
+
+// wimpyTickyRelThreshold is the Ticky relationship level below which the
+// Wimpy Ticky outcome fires: Ticky backs down and the angry malus is lifted.
+// RelationshipScore is clamped to [0,100] so the threshold must be >= 0.
+const wimpyTickyRelThreshold = 5.0
+
+// greatSneezeStartYear is the calendar year the Great Sneeze activates.
+const greatSneezeStartYear = 2019
+
+// greatSneezeEndYear is the calendar year the Great Sneeze deactivates.
+const greatSneezeEndYear = 2021
+
+// greatSneezeWeeklyPopPenalty is the weekly GovernmentPopularity delta
+// applied every week the Great Sneeze is active.
+const greatSneezeWeeklyPopPenalty = -0.3
+
+// greatSneezeEmergencyBudgetBoostGBP is the one-time budget bonus per
+// department when the Great Sneeze fires.
+const greatSneezeEmergencyBudgetBoostGBP = 12.0
+
+// ---------------------------------------------------------------------------
 // WorldState
 // ---------------------------------------------------------------------------
+
+// ActiveDecayingShock is a runtime market-effect created when an event with
+// a config.DecayingShockConfig fires. Each week the price deltas are applied
+// to the energy market, multiplied by DecayRate, until WeeksRemaining hits zero.
+type ActiveDecayingShock struct {
+	EventID         string
+	GasPctThisWeek  float64 // current weekly gas price % change
+	OilPctThisWeek  float64 // current weekly oil price % change
+	ElecPctThisWeek float64 // current weekly electricity price % change
+	DecayRate       float64 // multiplied against each pct every week
+	WeeksRemaining  int
+}
 
 // WorldState is the single source of truth for a game turn. All simulation
 // logic reads and writes through AdvanceWeek, which returns a new copy each
@@ -200,6 +286,24 @@ type WorldState struct {
 	TickyCountdown               int  // weeks until next pressure event; only decrements when Ticky is in cabinet
 	PendingTickyPressure         bool // true when Ticky has applied pressure and player has not yet responded
 	TickyPressureAcceptedThisQuarter bool // true if player accepted or negotiated this quarter; reset at quarter-end
+
+	// Extended Ticky mechanics.
+	PendingRiskyTicky   bool // Risky Ticky endorsement prompt awaiting player response
+	PendingTrickyTicky  bool // Tricky Ticky Murican contract offer awaiting player response
+	AngryTickyActive    bool // Angry Ticky is in effect; policy approval malus applied
+	AngryTickyWimpy     bool // Wimpy Ticky triggered; malus has been lifted
+
+	// Decaying energy market shocks.
+	ActiveDecayingShocks []ActiveDecayingShock
+
+	// Great Sneeze pandemic event.
+	GreatSneezeActive  bool // true while Great Sneeze is ongoing
+	GreatSneezeWeekEnd int  // week number when Great Sneeze ends
+	GreatSneezeFired   bool // prevents repeat triggers across save/load
+
+	// FiredOnceEvents tracks IDs of events with TriggerAtYear that have already
+	// fired, preventing them from re-firing on save/load.
+	FiredOnceEvents map[string]bool
 
 	// Player
 	Player player.CivilServant
@@ -363,9 +467,16 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 	var firedEvents []event.EventEntry
 	w, firedEvents = phaseGlobalEventRoll(w)
 
+	// Phase 3b: Time-gated events (Great Sneeze and other TriggerAtYear events).
+	w = phaseTimeGatedEvents(w)
+
+	// Phase 3c: Apply and decay active market shocks from war/crisis events.
+	w = phaseDecayingShockTick(w)
+
 	// Phase 4: Scandal and Pressure Roll.
 	w = phaseScandalAndPressureRoll(w)
 	w = phaseTickyPressureTick(w)
+	w = phaseExtendedTickyMechanics(w)
 
 	// Phase 5: Technology Progress Tick.
 	w = phaseTechnologyProgressTick(w)
@@ -388,6 +499,9 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 	// Phase 11: Economy and Tax Revenue Tick.
 	w = phaseEconomyTick(w)
 
+	// Phase 11b: Great Sneeze ongoing effects (weekly popularity drain while active).
+	w = phaseGreatSneezeTick(w)
+
 	// Phase 12: Polling Check.
 	w = phasePollingCheck(w)
 
@@ -399,7 +513,7 @@ func AdvanceWeek(w WorldState, actions []Action) (WorldState, []event.EventEntry
 	// Phase 14: Player Action Phase.
 	w = phasePlayerActions(w, actions)
 
-	// Phase 15: Minister Health Check.
+	// Phase 15: Minister Health Check (includes Angry Ticky trigger detection).
 	w = phaseMinisterHealthCheck(w)
 
 	// Phase 16: Minister Transitions.
@@ -585,6 +699,19 @@ func phaseGlobalEventRoll(w WorldState) (WorldState, []event.EventEntry) {
 			EventDefID: def.ID,
 			Week:       w.Week,
 		})
+	}
+
+	// If the event has a decaying shock config, spawn an ActiveDecayingShock.
+	if def.DecayingShock.MaxWeeks > 0 {
+		shock := ActiveDecayingShock{
+			EventID:         def.ID,
+			GasPctThisWeek:  def.DecayingShock.InitialGasPctPerWeek,
+			OilPctThisWeek:  def.DecayingShock.InitialOilPctPerWeek,
+			ElecPctThisWeek: def.DecayingShock.InitialElecPctPerWeek,
+			DecayRate:       def.DecayingShock.DecayRate,
+			WeeksRemaining:  def.DecayingShock.MaxWeeks,
+		}
+		w.ActiveDecayingShocks = append(w.ActiveDecayingShocks, shock)
 	}
 
 	entry := event.EventEntry{DefID: def.ID, Name: def.Name, Week: w.Week, Effects: resolved}
@@ -981,6 +1108,27 @@ func applyAction(w WorldState, a Action) WorldState {
 		// Only executes if a Ticky pressure event is pending.
 		w = applyTickyPressureResponse(w, a)
 
+	case player.ActionTypeRespondRiskyTicky:
+		w = applyRiskyTickyResponse(w, a)
+
+	case player.ActionTypeRespondTrickyTicky:
+		w = applyTrickyTickyResponse(w, a)
+
+	case player.ActionTypeDamageTickyReputation:
+		w = applyDamageTickyReputation(w, a)
+
+	case player.ActionTypeGreatSneezeLobby:
+		// Free-AP emergency lobby; only available while Great Sneeze is active.
+		if w.GreatSneezeActive {
+			// Reuse the normal lobby logic but deduct 0 AP.
+			lobbyAction := Action{
+				Type:   player.ActionTypeLobbyMinister,
+				Target: a.Target,
+			}
+			// Apply lobby effect without AP deduction.
+			w = applyLobbyWithCost(w, lobbyAction, 0)
+		}
+
 	case player.ActionTypeShockResponse:
 		// a.Target = EventDefID; a.Detail = ShockResponseOption string.
 		w = applyShockResponse(w, a)
@@ -1146,6 +1294,317 @@ func unlockTickyOrg(w WorldState) WorldState {
 	return w
 }
 
+// applyLobbyWithCost applies the lobby action effect, deducting apCost AP from
+// the player. Pass apCost=0 for free actions (e.g. Great Sneeze emergency lobby).
+func applyLobbyWithCost(w WorldState, a Action, apCost int) WorldState {
+	for i, s := range w.Stakeholders {
+		if s.ID != a.Target || !s.IsUnlocked || isTerminalState(s.State) {
+			continue
+		}
+		if apCost > 0 {
+			cs, ok := player.SpendAP(w.Player, apCost)
+			if !ok {
+				break
+			}
+			w.Player = cs
+		}
+		w.Stakeholders[i] = stakeholder.TickRelationship(s, 5.0, 0)
+		for _, dept := range roleToDepts(s.Role) {
+			w.Economy = economy.AccumulateLobbyEffect(w.Economy, dept, lobbyBudgetEffect)
+		}
+		w.Player = player.RecordAction(w.Player, player.ActionRecord{
+			ActionType: a.Type, Week: w.Week, APCost: apCost,
+		})
+		break
+	}
+	return w
+}
+
+// applyRiskyTickyResponse resolves the Risky Ticky endorsement prompt.
+//
+//   - ENDORSE: +15 relationship with Ticky; -8 to every current cabinet member.
+//   - DECLINE: -3 relationship with Ticky.
+func applyRiskyTickyResponse(w WorldState, a Action) WorldState {
+	if !w.PendingRiskyTicky {
+		return w
+	}
+	switch a.Detail {
+	case "ENDORSE":
+		// Boost Ticky relationship.
+		for i, s := range w.Stakeholders {
+			if s.ID == tickyStakeholderID {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, riskyTickyEndorseRelBoost, 0)
+				break
+			}
+		}
+		// Damage relationship with every current cabinet minister.
+		cabinetIDs := make(map[string]bool, len(w.Government.CabinetByRole))
+		for _, sid := range w.Government.CabinetByRole {
+			cabinetIDs[sid] = true
+		}
+		for i, s := range w.Stakeholders {
+			if cabinetIDs[s.ID] && s.ID != tickyStakeholderID {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, riskyTickyEndorseCabinetPenalty, 0)
+			}
+		}
+	case "DECLINE":
+		for i, s := range w.Stakeholders {
+			if s.ID == tickyStakeholderID {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, riskyTickyDeclinePenalty, 0)
+				break
+			}
+		}
+	}
+	w.PendingRiskyTicky = false
+	w.Player = player.RecordAction(w.Player, player.ActionRecord{
+		ActionType: a.Type, Week: w.Week, APCost: 0,
+	})
+	return w
+}
+
+// applyTrickyTickyResponse resolves the Tricky Ticky Murican contract offer.
+//
+//   - ACCEPT: +20 GBP budget boost to DeptPower; -5 relationship with each far-right
+//     cabinet member (they resent being bypassed on the deal).
+//   - DECLINE: -3 relationship with Ticky.
+func applyTrickyTickyResponse(w WorldState, a Action) WorldState {
+	if !w.PendingTrickyTicky {
+		return w
+	}
+	switch a.Detail {
+	case "ACCEPT":
+		// Budget boost to Power department.
+		if w.LastBudget.Departments != nil {
+			w.LastBudget.Departments[government.DeptPower] += trickyTickyAcceptBudgetBoost
+		}
+		// Relationship penalty for every far-right cabinet member.
+		cabinetIDs := make(map[string]bool, len(w.Government.CabinetByRole))
+		for _, sid := range w.Government.CabinetByRole {
+			cabinetIDs[sid] = true
+		}
+		for i, s := range w.Stakeholders {
+			if cabinetIDs[s.ID] && s.Party == config.PartyFarRight {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, trickyTickyAcceptCabinetPenalty, 0)
+			}
+		}
+	case "DECLINE":
+		for i, s := range w.Stakeholders {
+			if s.ID == tickyStakeholderID {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, trickyTickyDeclinePenalty, 0)
+				break
+			}
+		}
+	}
+	w.PendingTrickyTicky = false
+	w.Player = player.RecordAction(w.Player, player.ActionRecord{
+		ActionType: a.Type, Week: w.Week, APCost: 0,
+	})
+	return w
+}
+
+// applyDamageTickyReputation is the player's counter-move against Angry Ticky.
+// Costs angryTickyDamageAPCost AP. Requires that at least one unlocked non-Ticky
+// far-right stakeholder has RelationshipScore >= 40 (tacit political cover).
+// If Ticky's relationship drops below wimpyTickyRelThreshold after this action,
+// Wimpy Ticky triggers: Angry Ticky is deactivated.
+func applyDamageTickyReputation(w WorldState, a Action) WorldState {
+	if !w.AngryTickyActive {
+		return w
+	}
+	if w.Player.APRemaining < angryTickyDamageAPCost {
+		return w
+	}
+	// Check political cover: need at least one non-Ticky FarRight with rel >= 40.
+	hasCover := false
+	for _, s := range w.Stakeholders {
+		if s.IsUnlocked && s.ID != tickyStakeholderID &&
+			s.Party == config.PartyFarRight && s.RelationshipScore >= 40 {
+			hasCover = true
+			break
+		}
+	}
+	if !hasCover {
+		return w
+	}
+	// Deduct AP.
+	w.Player.APRemaining -= angryTickyDamageAPCost
+	// Damage Ticky's relationship.
+	var tickyRel float64
+	for i, s := range w.Stakeholders {
+		if s.ID == tickyStakeholderID {
+			w.Stakeholders[i] = stakeholder.TickRelationship(s, angryTickyDamageRelDelta, 0)
+			tickyRel = w.Stakeholders[i].RelationshipScore
+			break
+		}
+	}
+	// Splash damage: other FarRight stakeholders take minor relationship penalty.
+	for i, s := range w.Stakeholders {
+		if s.ID != tickyStakeholderID && s.IsUnlocked && s.Party == config.PartyFarRight {
+			w.Stakeholders[i] = stakeholder.TickRelationship(s, angryTickyDamageCabinetSplash, 0)
+		}
+	}
+	// Wimpy Ticky trigger.
+	if tickyRel < wimpyTickyRelThreshold {
+		w.AngryTickyActive = false
+		w.AngryTickyWimpy = true
+		entry := event.EventEntry{
+			DefID: "wimpy_ticky",
+			Name:  "Ticky Backs Down",
+			Week:  w.Week,
+		}
+		w.EventLog = event.AppendEventLog(w.EventLog, entry)
+	}
+	w.Player = player.RecordAction(w.Player, player.ActionRecord{
+		ActionType: a.Type, Week: w.Week, APCost: angryTickyDamageAPCost,
+	})
+	return w
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3b: Time-gated events
+// ---------------------------------------------------------------------------
+
+// phaseTimeGatedEvents fires EventDef entries whose TriggerAtYear matches the
+// current game year. Each such event fires exactly once; FiredOnceEvents prevents
+// repeat fires. The Great Sneeze is the primary user of this mechanism.
+func phaseTimeGatedEvents(w WorldState) WorldState {
+	if w.FiredOnceEvents == nil {
+		w.FiredOnceEvents = make(map[string]bool)
+	}
+	// Only check on the first week of a new year (Week % 52 == 1).
+	if w.Week%52 != 1 {
+		return w
+	}
+	for _, def := range w.Cfg.Events {
+		if def.TriggerAtYear == 0 || def.TriggerAtYear != w.Year {
+			continue
+		}
+		if w.FiredOnceEvents[def.ID] {
+			continue
+		}
+		// Fire the event.
+		w.FiredOnceEvents[def.ID] = true
+		resolved := event.ResolveEffect(def.BaseEffects, w.Cfg.Regions, w.Stakeholders, companyStateSlice(w.Industry), companyDefMap(w.Cfg))
+		w.EnergyMarket = energy.ApplyShock(w.EnergyMarket, def.BaseEffects)
+		w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity+resolved.GovtPopularityDelta, 0, 100)
+		w.Economy.Value = mathutil.Clamp(w.Economy.Value+resolved.EconomyDelta, 0, 100)
+		w.WeeklyEventLCRDelta += resolved.LCRDelta
+		w.LCR.Value = mathutil.Clamp(w.LCR.Value+resolved.LCRDelta, 0, 100)
+		for i, r := range w.Regions {
+			if d, ok := resolved.RegionDeltas[r.ID]; ok {
+				w.Regions[i].InstallerCapacity = mathutil.Clamp(r.InstallerCapacity+d.InstallerCapacityDelta, 0, 100)
+				w.Regions[i].SkillsNetwork = mathutil.Clamp(r.SkillsNetwork+d.SkillsNetworkDelta, 0, 100)
+			}
+		}
+		for i, t := range w.Tiles {
+			if d, ok := resolved.TileDeltas[t.RegionID]; ok {
+				w.Tiles[i].FuelPoverty = mathutil.Clamp(t.FuelPoverty+d.FuelPovertyDelta, 0, 100)
+				w.Tiles[i].InsulationLevel = mathutil.Clamp(t.InsulationLevel-d.InsulationDamage, 0, 100)
+			}
+		}
+		for i, s := range w.Stakeholders {
+			if d, ok := resolved.StakeholderDeltas[s.ID]; ok {
+				w.Stakeholders[i] = stakeholder.TickRelationship(s, d.RelDelta, float64(d.PressureDelta))
+			}
+		}
+		w = applyCompanyDeltas(w, resolved.CompanyDeltas)
+		// Great Sneeze special handling.
+		if def.ID == "great_sneeze" && !w.GreatSneezeFired {
+			w.GreatSneezeFired = true
+			w.GreatSneezeActive = true
+			// Great Sneeze lasts until end of greatSneezeEndYear.
+			// Week offset: (greatSneezeEndYear - 2010 + 1) * 52 = roughly week 624 from start.
+			w.GreatSneezeWeekEnd = (greatSneezeEndYear-2010+1)*52 + 1
+			// Emergency spending: boost LastBudget for all departments.
+			for dept := range w.LastBudget.Departments {
+				w.LastBudget.Departments[dept] += greatSneezeEmergencyBudgetBoostGBP
+			}
+		}
+		entry := event.EventEntry{DefID: def.ID, Name: def.Name, Week: w.Week}
+		w.EventLog = event.AppendEventLog(w.EventLog, entry)
+	}
+	return w
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3c: Decaying shock tick
+// ---------------------------------------------------------------------------
+
+// phaseDecayingShockTick applies all active decaying market shocks this week,
+// then multiplies their weekly deltas by DecayRate and decrements WeeksRemaining.
+// Shocks that have expired (WeeksRemaining <= 0) are removed.
+func phaseDecayingShockTick(w WorldState) WorldState {
+	if len(w.ActiveDecayingShocks) == 0 {
+		return w
+	}
+	active := w.ActiveDecayingShocks[:0:len(w.ActiveDecayingShocks)]
+	for _, shock := range w.ActiveDecayingShocks {
+		if shock.WeeksRemaining <= 0 {
+			continue
+		}
+		// Apply this week's price deltas.
+		effect := config.EventEffect{
+			GasPriceDeltaPct:         shock.GasPctThisWeek,
+			OilPriceDeltaPct:         shock.OilPctThisWeek,
+			ElectricityPriceDeltaPct: shock.ElecPctThisWeek,
+		}
+		w.EnergyMarket = energy.ApplyShock(w.EnergyMarket, effect)
+		// Decay and decrement.
+		shock.GasPctThisWeek *= shock.DecayRate
+		shock.OilPctThisWeek *= shock.DecayRate
+		shock.ElecPctThisWeek *= shock.DecayRate
+		shock.WeeksRemaining--
+		if shock.WeeksRemaining > 0 {
+			active = append(active, shock)
+		}
+	}
+	w.ActiveDecayingShocks = active
+	return w
+}
+
+// ---------------------------------------------------------------------------
+// Phase 11b: Great Sneeze tick
+// ---------------------------------------------------------------------------
+
+// phaseGreatSneezeTick applies ongoing weekly effects while the Great Sneeze
+// is active (weekly popularity drain reflecting emergency chaos). It also checks
+// whether the sneeze has run its course and deactivates it.
+func phaseGreatSneezeTick(w WorldState) WorldState {
+	if !w.GreatSneezeActive {
+		return w
+	}
+	if w.Week >= w.GreatSneezeWeekEnd {
+		w.GreatSneezeActive = false
+		return w
+	}
+	w.GovernmentPopularity = mathutil.Clamp(w.GovernmentPopularity+greatSneezeWeeklyPopPenalty, 0, 100)
+	return w
+}
+
+// phaseExtendedTickyMechanics handles Risky Ticky (endorsement prompt when
+// Left/FarLeft governs) and Tricky Ticky (Murican contract offer when FarRight
+// governs). These are independent of the standard Ticky pressure countdown.
+func phaseExtendedTickyMechanics(w WorldState) WorldState {
+	// Risky Ticky: fires probabilistically when centrist-left or far-left governs,
+	// after the first year, and only if a Risky prompt is not already pending.
+	if !w.PendingRiskyTicky && w.Week >= riskyTickyMinWeek {
+		party := w.Government.RulingParty
+		if (party == config.PartyLeft || party == config.PartyFarLeft) &&
+			w.RNG.Float64() < riskyTickyWeeklyProb {
+			w.PendingRiskyTicky = true
+		}
+	}
+	// Tricky Ticky: fires probabilistically when far-right governs,
+	// only if a Tricky prompt is not already pending.
+	if !w.PendingTrickyTicky {
+		if w.Government.RulingParty == config.PartyFarRight &&
+			w.RNG.Float64() < trickyTickyWeeklyProb {
+			w.PendingTrickyTicky = true
+		}
+	}
+	return w
+}
+
 // activePolicyRDBonuses sums the RDBonus values from all ACTIVE policy cards.
 // Returns a map from Technology to total weekly acceleration bonus.
 func activePolicyRDBonuses(cards []policy.PolicyCard) map[config.Technology]float64 {
@@ -1261,6 +1720,25 @@ func phaseMinisterHealthCheck(w WorldState) WorldState {
 			}
 		}
 	}
+
+	// Angry Ticky detection: if Ticky's relationship drops below the threshold
+	// and AngryTickyActive has not yet been triggered, activate it.
+	if !w.AngryTickyActive && !w.AngryTickyWimpy {
+		for _, s := range w.Stakeholders {
+			if s.ID == tickyStakeholderID && s.IsUnlocked && s.RelationshipScore < angryTickyRelThreshold {
+				w.AngryTickyActive = true
+				// Log the event so the player sees it.
+				entry := event.EventEntry{
+					DefID: "angry_ticky",
+					Name:  "TD Tennison Turns Hostile",
+					Week:  w.Week,
+				}
+				w.EventLog = event.AppendEventLog(w.EventLog, entry)
+				break
+			}
+		}
+	}
+
 	return w
 }
 
@@ -1322,6 +1800,27 @@ func phaseMinisterTransitions(w WorldState) WorldState {
 	return w
 }
 
+// evaluateApprovalWithAngryTicKyMalus wraps policy.EvaluateApproval to apply
+// the Angry Ticky policy malus when AngryTickyActive is true. The malus adds
+// angryTickyPolicyMalus points to MinRelationshipScore on every approval step,
+// making all UNDER_REVIEW policies harder to push through.
+func evaluateApprovalWithAngryTicKyMalus(w WorldState, card policy.PolicyCard, stakeholders []stakeholder.Stakeholder) policy.PolicyCard {
+	if !w.AngryTickyActive || card.State != policy.PolicyStateUnderReview {
+		return policy.EvaluateApproval(card, stakeholders)
+	}
+	// Create a temporary copy of the def with elevated MinRelationshipScore.
+	defCopy := *card.Def
+	steps := make([]config.ApprovalRequirement, len(defCopy.ApprovalSteps))
+	for i, step := range defCopy.ApprovalSteps {
+		step.MinRelationshipScore += angryTickyPolicyMalus
+		steps[i] = step
+	}
+	defCopy.ApprovalSteps = steps
+	cardCopy := card
+	cardCopy.Def = &defCopy
+	return policy.EvaluateApproval(cardCopy, stakeholders)
+}
+
 // ---------------------------------------------------------------------------
 // Phase 16: Consequence Resolution
 // ---------------------------------------------------------------------------
@@ -1345,7 +1844,7 @@ func phaseConsequenceResolution(w WorldState) WorldState {
 			continue
 		}
 		prevSteps := card.StepsCleared
-		w.PolicyCards[i] = policy.EvaluateApproval(card, active)
+		w.PolicyCards[i] = evaluateApprovalWithAngryTicKyMalus(w, card, active)
 		// If all approval steps cleared, activate immediately.
 		if w.PolicyCards[i].State == policy.PolicyStateApproved {
 			w.PolicyCards[i] = policy.ActivatePolicy(w.PolicyCards[i])

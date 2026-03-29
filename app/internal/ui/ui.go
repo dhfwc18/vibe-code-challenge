@@ -255,6 +255,8 @@ func (u *UI) handleTabContentClick(world *simulation.WorldState) {
 	}
 
 	switch u.tabs.ActiveTab() {
+	case 1: // Map
+		u.handleMapClick(mx, my)
 	case 2: // Politics
 		u.handlePoliticsClick(world, mx, my)
 	case 3: // Policy
@@ -422,6 +424,36 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 		drawModalTicky(screen, world, &u.pendingActions, u.face)
 	} else if len(world.PendingShockResponses) > u.shockHandledCount {
 		drawModalShock(screen, world, &u.pendingActions, u.face)
+	}
+}
+
+// handleMapClick handles overlay button and region polygon clicks on the map tab.
+func (u *UI) handleMapClick(mx, my int) {
+	cy := hudHeight
+	ch := logicalH - hudHeight
+
+	// Overlay selector buttons.
+	for i := 0; i < 3; i++ {
+		bx := contentX + 8 + i*110
+		by := cy + 8
+		if inRect(mx, my, bx, by, 108, 20) {
+			u.mapState.overlay = mapOverlay(i)
+			return
+		}
+	}
+
+	// Map polygon area.
+	pmx := contentX + 8
+	pmy := cy + 36
+	pmw := mapPanelW - 16
+	pmh := ch - 44
+	if !inRect(mx, my, pmx, pmy, pmw, pmh) {
+		return
+	}
+	nx := float32(mx-pmx) / float32(pmw)
+	ny := float32(my-pmy) / float32(pmh)
+	if id := hitTestMap(nx, ny); id != "" {
+		u.mapState.selectedRegion = id
 	}
 }
 

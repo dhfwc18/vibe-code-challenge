@@ -24,7 +24,13 @@ func main() {
 	ebiten.SetWindowTitle(game.Title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	if err := ebiten.RunGame(game.New(cfg, masterSeed)); err != nil {
+	saveDir := save.AutoSaveDir("")
+	if err := save.EnsureSaveDir(saveDir); err != nil {
+		log.Printf("warning: could not create save directory: %v", err)
+	}
+	savePath := save.AutoSavePath("")
+
+	if err := ebiten.RunGame(game.New(cfg, masterSeed, savePath)); err != nil {
 		log.Fatal(err)
 	}
 }

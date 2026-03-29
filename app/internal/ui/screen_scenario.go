@@ -10,9 +10,21 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
+// ScenarioResult is returned by ScenarioScreen.Update to signal what the player chose.
+// It is either one of the sentinel constants below or a config.ScenarioID string.
+type ScenarioResult string
+
+const (
+	// ScenarioResultNone means no selection was made this frame.
+	ScenarioResultNone ScenarioResult = ""
+	// ScenarioResultContinue means the player clicked the "Continue" button to resume a save.
+	ScenarioResultContinue ScenarioResult = "__continue__"
+)
+
 // ScenarioScreen renders the campaign start-point selection UI.
 type ScenarioScreen struct {
-	face font.Face
+	face    font.Face
+	hasSave bool // true if an autosave file exists and the Continue button should be shown
 }
 
 // NewScenarioScreen creates a new ScenarioScreen.
@@ -22,13 +34,28 @@ func NewScenarioScreen() *ScenarioScreen {
 	}
 }
 
-// Update checks for a card click and returns the selected ScenarioID, or "" if none yet.
-func (s *ScenarioScreen) Update(scenarios []config.ScenarioConfig) config.ScenarioID {
+// SetHasSave controls whether the "Continue" button is displayed.
+func (s *ScenarioScreen) SetHasSave(has bool) {
+	s.hasSave = has
+}
+
+// Update checks for a card or continue click and returns the result.
+func (s *ScenarioScreen) Update(scenarios []config.ScenarioConfig) ScenarioResult {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		return ""
+		return ScenarioResultNone
 	}
 	sw, sh := ebiten.WindowSize()
 	mx, my := ebiten.CursorPosition()
+
+	// Continue button (top-right of screen).
+	if s.hasSave {
+		bx, by, bw, bh := continueButtonBounds(sw)
+		_ = sh
+		if inRect(mx, my, bx, by, bw, bh) {
+			return ScenarioResultContinue
+		}
+	}
+
 	cardX, cardY, cardW, cardH := scenarioCardBounds(sw, sh, len(scenarios))
 	for i, sc := range scenarios {
 		cx := cardX + i*(cardW+scenarioCardGap)
@@ -37,10 +64,10 @@ func (s *ScenarioScreen) Update(scenarios []config.ScenarioConfig) config.Scenar
 		btnW := cardW - 40
 		btnH := 28
 		if inRect(mx, my, btnX, btnY, btnW, btnH) {
-			return sc.ID
+			return ScenarioResult(sc.ID)
 		}
 	}
-	return ""
+	return ScenarioResultNone
 }
 
 // Draw renders the scenario selection screen onto screen.
@@ -55,6 +82,16 @@ func (s *ScenarioScreen) Draw(screen *ebiten.Image, scenarios []config.ScenarioC
 	title := "20-50  --  Select Your Campaign"
 	drawLabel(screen, sw/2-len(title)*3, 28, title, ColourAccent, s.face)
 
+	// Continue button (if save exists).
+	if s.hasSave {
+		bx, by, bw, bh := continueButtonBounds(sw)
+		bg := buttonColour(bx, by, bw, bh, true)
+		solidRect(screen, bx, by, bw, bh, bg)
+		solidRect(screen, bx, by, bw, 2, ColourAccent)
+		lbl := "Continue Last Game"
+		drawLabel(screen, bx+(bw-len(lbl)*7)/2, by+19, lbl, ColourAccent, s.face)
+	}
+
 	cardX, cardY, cardW, cardH := scenarioCardBounds(sw, sh, len(scenarios))
 
 	for i, sc := range scenarios {
@@ -63,11 +100,18 @@ func (s *ScenarioScreen) Draw(screen *ebiten.Image, scenarios []config.ScenarioC
 	}
 }
 
+// continueButtonBounds returns the bounds of the "Continue" button.
+func continueButtonBounds(sw int) (x, y, w, h int) {
+	w, h = 200, 32
+	x = sw - w - 20
+	y = 8
+	return
+}
+
 // scenarioCardGap is the horizontal gap between scenario cards.
 const scenarioCardGap = 32
 
-// scenarioCardBounds returns the origin and size of the first card, given the screen
-// dimensions and the number of cards.
+// scenarioCardBounds returns the origin and size of the first card.
 func scenarioCardBounds(sw, sh, n int) (cardX, cardY, cardW, cardH int) {
 	cardW = 360
 	cardH = 560
@@ -102,21 +146,16 @@ func drawScenarioCard(screen *ebiten.Image, sc config.ScenarioConfig, cx, cy, cw
 	if hovered {
 		borderCol = ColourAccent
 	}
-	// Top border.
 	solidRect(screen, cx, cy, cw, 2, borderCol)
-	// Bottom border.
 	solidRect(screen, cx, cy+ch-2, cw, 2, borderCol)
-	// Left border.
 	solidRect(screen, cx, cy, 2, ch, borderCol)
-	// Right border.
 	solidRect(screen, cx+cw-2, cy, 2, ch, borderCol)
 
 	x := cx + 16
 	y := cy + 18
 
 	// Year badge.
-	yearBadge := sc.ShortName
-	drawBadge(screen, cx+cw-50, cy+10, yearBadge, colour(0x1A, 0x6B, 0x3A), face)
+	drawBadge(screen, cx+cw-50, cy+10, sc.ShortName, colour(0x1A, 0x6B, 0x3A), face)
 
 	// Scenario name.
 	drawLabel(screen, x, y, sc.Name, ColourAccent, face)
@@ -192,5 +231,4 @@ func drawScenarioCard(screen *ebiten.Image, sc config.ScenarioConfig, cx, cy, cw
 	btnLabel := "Start Campaign"
 	labelX := btnX + (btnW-len(btnLabel)*7)/2
 	drawLabel(screen, labelX, btnY+19, btnLabel, ColourTextPrimary, face)
-
 }

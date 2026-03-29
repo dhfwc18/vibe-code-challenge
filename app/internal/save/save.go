@@ -12,17 +12,21 @@ import (
 // currentVersion is incremented whenever the SaveState schema changes in a way
 // that is incompatible with previous save files. Saves with a different version
 // are rejected at load time.
-const currentVersion = 1
+const currentVersion = 2
 
 // SaveState is the top-level structure written to disk. All game state that
 // must survive a quit-and-reload lives here. Packages populate their own
 // sub-structs; this file only owns the envelope and I/O logic.
+//
+// WorldData is typed as json.RawMessage so the simulation package can own
+// its own WorldSaveData schema without creating an import cycle.
 type SaveState struct {
-	Version    int        `json:"version"`
-	MasterSeed MasterSeed `json:"master_seed"`
-	GameWeek   int        `json:"game_week"`  // weeks elapsed since 2010-01-01
-	GameYear   int        `json:"game_year"`  // derived cache of the current calendar year
-	PlayerName string     `json:"player_name"`
+	Version    int             `json:"version"`
+	MasterSeed MasterSeed      `json:"master_seed"`
+	GameWeek   int             `json:"game_week"` // weeks elapsed since scenario start
+	GameYear   int             `json:"game_year"` // derived cache of the current calendar year
+	PlayerName string          `json:"player_name"`
+	WorldData  json.RawMessage `json:"world_data,omitempty"` // simulation.WorldSaveData
 }
 
 // NewSaveState creates a fresh save state for a new game.
@@ -39,6 +43,36 @@ func NewSaveState(playerName string) (*SaveState, error) {
 		GameYear:   2010,
 		PlayerName: playerName,
 	}, nil
+}
+
+// AutoSaveDir returns the directory used for save files.
+// If saveDir is empty, it uses a "saves" subdirectory next to the binary.
+func AutoSaveDir(saveDir string) string {
+	if saveDir != "" {
+		return saveDir
+	}
+	exe, err := os.Executable()
+	if err == nil {
+		return filepath.Join(filepath.Dir(exe), "saves")
+	}
+	return "saves"
+}
+
+// AutoSavePath returns the path to the autosave file in the given save directory.
+// Pass "" to use the default save directory (next to the binary).
+func AutoSavePath(saveDir string) string {
+	return filepath.Join(AutoSaveDir(saveDir), "autosave.json")
+}
+
+// EnsureSaveDir creates the save directory if it does not exist.
+func EnsureSaveDir(saveDir string) error {
+	return os.MkdirAll(saveDir, 0o755)
+}
+
+// Exists returns true if a file exists at path (save file presence check).
+func Exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // Write serialises s to the file at path, creating or truncating it.

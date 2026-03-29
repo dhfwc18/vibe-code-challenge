@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
@@ -11,127 +12,250 @@ import (
 	"golang.org/x/image/font"
 )
 
-// politicsTabState tracks selection and scroll offset in the politics tab.
-type politicsTabState struct {
-	selectedID  string // "" = no politician selected (show grid)
-	scrollY     int    // future: scroll offset for large rosters
+// parliamentTabState tracks navigation within the parliament panel embedded in the map tab.
+// Empty selectedParty shows the hemicycle overview and party list.
+// Non-empty selectedParty shows that party's member grid.
+// Non-empty selectedID shows the full politician profile.
+type parliamentTabState struct {
+	selectedParty config.Party
+	selectedID    string
 }
 
-// politicsCardW / politicsCardH are the dimensions of a politician card in the grid.
 const (
-	politicsCardW   = 210
-	politicsCardH   = 84
-	politicsCardGap = 8
+	parliamentCardH   = 84
+	parliamentCardGap = 6
+	hemicycleH        = 100 // pixel height of the hemicycle drawing box
+	hemicycleTotal    = 50  // total seat bubbles displayed
 )
 
-// roleAbbrev returns a short display string for a minister role.
-func roleAbbrev(r config.Role) string {
-	switch r {
-	case config.RoleLeader:
-		return "Leader"
-	case config.RoleChancellor:
-		return "Chanc."
-	case config.RoleForeignSecretary:
-		return "F.Sec."
-	case config.RoleEnergy:
-		return "Energy"
-	default:
-		return string(r)
-	}
+// hemicycleArc describes one concentric row of the parliament fan chart.
+type hemicycleArc struct {
+	count  int
+	radius int
 }
 
-// drawTabPolitics renders the politics panel.
-// It shows either the politician grid or a single profile depending on politicsTabState.
-func drawTabPolitics(
+var hemicycleArcs = []hemicycleArc{
+	{10, 38},
+	{17, 62},
+	{23, 86},
+}
+
+// hemicyclePartyOrder is the left-to-right political spectrum order for seat assignment.
+var hemicyclePartyOrder = []config.Party{
+	config.PartyFarLeft,
+	config.PartyLeft,
+	config.PartyRight,
+	config.PartyFarRight,
+}
+
+// hemicycleSeats converts a vote-share map into per-party seat counts summing to hemicycleTotal.
+func hemicycleSeats(voteShare map[config.Party]float64) map[config.Party]int {
+	total := 0.0
+	for _, v := range voteShare {
+		total += v
+	}
+	seats := make(map[config.Party]int, len(hemicyclePartyOrder))
+	if total == 0 {
+		n := hemicycleTotal / len(hemicyclePartyOrder)
+		for _, p := range hemicyclePartyOrder {
+			seats[p] = n
+		}
+		seats[config.PartyRight] += hemicycleTotal - n*len(hemicyclePartyOrder)
+		return seats
+	}
+	assigned := 0
+	for _, p := range hemicyclePartyOrder[:len(hemicyclePartyOrder)-1] {
+		s := int(math.Round(voteShare[p] / total * float64(hemicycleTotal)))
+		seats[p] = s
+		assigned += s
+	}
+	last := hemicyclePartyOrder[len(hemicyclePartyOrder)-1]
+	rem := hemicycleTotal - assigned
+	if rem < 0 {
+		rem = 0
+	}
+	seats[last] = rem
+	return seats
+}
+
+// buildSeatColors returns a slice of hemicycleTotal colours, ordered left-to-right by party.
+func buildSeatColors(voteShare map[config.Party]float64) []color.RGBA {
+	seats := hemicycleSeats(voteShare)
+	cols := make([]color.RGBA, 0, hemicycleTotal)
+	for _, p := range hemicyclePartyOrder {
+		for i := 0; i < seats[p]; i++ {
+			cols = append(cols, partyColour(p))
+		}
+	}
+	for len(cols) < hemicycleTotal {
+		cols = append(cols, ColourPartyNeutral)
+	}
+	return cols[:hemicycleTotal]
+}
+
+// drawParliamentPanel is the top-level parliament panel router.
+// It is drawn inside the right-side panel of the map tab.
+func drawParliamentPanel(
 	screen *ebiten.Image,
 	world simulation.WorldState,
 	pendingActions *[]simulation.Action,
 	face font.Face,
-	cx, cy, cw, ch int,
+	px, py, pw, ph int,
 	effectiveAP int,
-	state *politicsTabState,
+	state *parliamentTabState,
 ) {
-	drawPanel(screen, cx, cy, cw, ch)
+	drawPanel(screen, px, py, pw, ph)
 
 	if state.selectedID != "" {
-		// Find the selected stakeholder.
 		for i := range world.Stakeholders {
 			if world.Stakeholders[i].ID == state.selectedID {
 				drawPoliticianProfile(screen, world.Stakeholders[i], world, pendingActions, face,
-					cx, cy, cw, ch, effectiveAP)
+					px, py, pw, ph, effectiveAP)
 				return
 			}
 		}
-		// If not found (e.g., departed), fall back to grid.
 		state.selectedID = ""
 	}
 
-	drawPoliticianGrid(screen, world, face, cx, cy, cw, ch, state)
+	if state.selectedParty != "" {
+		drawPartyMemberGrid(screen, world, face, px, py, pw, ph, state.selectedParty)
+		return
+	}
+
+	drawParliamentOverview(screen, world, face, px, py, pw, ph)
 }
 
-// drawPoliticianGrid draws the full grid of all politicians (locked and unlocked).
-func drawPoliticianGrid(
+// drawParliamentOverview renders the hemicycle fan chart and party list.
+func drawParliamentOverview(
 	screen *ebiten.Image,
 	world simulation.WorldState,
 	face font.Face,
-	cx, cy, cw, ch int,
-	state *politicsTabState,
+	px, py, pw, ph int,
 ) {
-	// Section header.
-	drawLabel(screen, cx+12, cy+18, "Politicians", ColourAccent, face)
-	drawLabel(screen, cx+cw-200, cy+18, "Click a card to view profile", ColourTextMuted, face)
+	x := px + 12
+	y := py + 12
 
-	// Party filter strip below header.
-	partyOrder := []config.Party{
-		config.PartyLeft, config.PartyRight,
-		config.PartyFarLeft, config.PartyFarRight,
+	drawLabel(screen, x, y+12, "--- Parliament ---", ColourAccent, face)
+	y += 20
+
+	drawHemicycle(screen, world, px+4, y, pw-8, hemicycleH)
+	y += hemicycleH + 8
+
+	drawLabel(screen, x, y+12, "--- Parties ---", ColourAccent, face)
+	y += 18
+
+	rowH := 28
+	for _, p := range hemicyclePartyOrder {
+		bg := colour(0x16, 0x28, 0x1C)
+		if isHovered(x, y, pw-24, rowH) {
+			bg = ColourButtonHover
+		}
+		solidRect(screen, x, y, pw-24, rowH, bg)
+		solidRect(screen, x, y, 4, rowH, partyColour(p))
+		pName := config.PartyNames[p]
+		if len(pName) > 18 {
+			pName = pName[:18]
+		}
+		drawLabel(screen, x+10, y+18, pName, partyColour(p), face)
+		leader := partyLeaderName(world, p)
+		if len(leader) > 16 {
+			leader = leader[:16]
+		}
+		drawLabel(screen, x+148, y+18, leader, ColourTextMuted, face)
+		y += rowH + 2
 	}
-	headerY := cy + 24
+}
 
-	// Grid layout.
-	cols := (cw - politicsCardGap) / (politicsCardW + politicsCardGap)
-	if cols < 1 {
-		cols = 1
-	}
-	gridX := cx + politicsCardGap
-	gridY := headerY + 12
+// drawHemicycle renders the parliament fan-chart bubble display.
+// The semicircle base is at the bottom of the drawing area, centered horizontally.
+func drawHemicycle(
+	screen *ebiten.Image,
+	world simulation.WorldState,
+	px, py, pw, ph int,
+) {
+	seatColors := buildSeatColors(world.Government.LastElectionVoteShare)
 
-	col := 0
-	row := 0
-	mx, my := ebiten.CursorPosition()
+	cx := px + pw/2
+	cy := py + ph - 4
+	bubbleSize := 7
 
-	for _, party := range partyOrder {
-		for i := range world.Stakeholders {
-			s := world.Stakeholders[i]
-			if s.Party != party {
-				continue
-			}
-			cardX := gridX + col*(politicsCardW+politicsCardGap)
-			cardY := gridY + row*(politicsCardH+politicsCardGap)
-			if cardY+politicsCardH > cy+ch-4 {
-				break // out of visible area
-			}
-			hovered := inRect(mx, my, cardX, cardY, politicsCardW, politicsCardH)
-			drawPoliticianCard(screen, s, world, face, cardX, cardY, hovered)
-			col++
-			if col >= cols {
-				col = 0
-				row++
-			}
+	seatIdx := 0
+	for _, arc := range hemicycleArcs {
+		r := arc.radius
+		n := arc.count
+		for j := 0; j < n && seatIdx < hemicycleTotal; j++ {
+			theta := math.Pi * float64(n-j) / float64(n+1)
+			bx := cx + int(math.Round(float64(r)*math.Cos(theta))) - bubbleSize/2
+			by := cy - int(math.Round(float64(r)*math.Sin(theta))) - bubbleSize/2
+			solidRect(screen, bx, by, bubbleSize, bubbleSize, seatColors[seatIdx])
+			seatIdx++
 		}
 	}
 }
 
-// drawPoliticianCard draws a single compact politician card.
+// partyLeaderName returns the name of the first unlocked leader for party p.
+func partyLeaderName(world simulation.WorldState, p config.Party) string {
+	for _, s := range world.Stakeholders {
+		if s.Party == p && s.Role == config.RoleLeader && s.IsUnlocked {
+			return s.Name
+		}
+	}
+	return "--"
+}
+
+// drawPartyMemberGrid renders a 2-column card grid for all members of a single party.
+func drawPartyMemberGrid(
+	screen *ebiten.Image,
+	world simulation.WorldState,
+	face font.Face,
+	px, py, pw, ph int,
+	party config.Party,
+) {
+	x := px + 12
+	y := py + 12
+
+	drawLabel(screen, x, y+12, "<< Back to parties", ColourTextMuted, face)
+	y += 28
+
+	pName := config.PartyNames[party]
+	drawLabel(screen, x, y+12, pName, partyColour(party), face)
+	y += 20
+
+	cols := 2
+	cardW := (pw - 24 - parliamentCardGap) / cols
+	mx, my := ebiten.CursorPosition()
+
+	col := 0
+	row := 0
+	for i := range world.Stakeholders {
+		s := world.Stakeholders[i]
+		if s.Party != party {
+			continue
+		}
+		cardX := x + col*(cardW+parliamentCardGap)
+		cardY := y + row*(parliamentCardH+parliamentCardGap)
+		if cardY+parliamentCardH > py+ph-4 {
+			break
+		}
+		hovered := inRect(mx, my, cardX, cardY, cardW, parliamentCardH)
+		drawPoliticianCard(screen, s, world, face, cardX, cardY, cardW, parliamentCardH, hovered)
+		col++
+		if col >= cols {
+			col = 0
+			row++
+		}
+	}
+}
+
+// drawPoliticianCard draws a single compact politician card with explicit width and height.
 func drawPoliticianCard(
 	screen *ebiten.Image,
 	s stakeholder.Stakeholder,
 	world simulation.WorldState,
 	face font.Face,
-	x, y int,
+	x, y, w, h int,
 	hovered bool,
 ) {
-	// Card background.
 	bg := colour(0x16, 0x28, 0x1C)
 	if hovered {
 		bg = colour(0x1E, 0x36, 0x26)
@@ -139,57 +263,50 @@ func drawPoliticianCard(
 	if !s.IsUnlocked {
 		bg = colour(0x12, 0x1C, 0x16)
 	}
-	solidRect(screen, x, y, politicsCardW, politicsCardH, bg)
+	solidRect(screen, x, y, w, h, bg)
 
-	// Left party stripe (3px).
-	solidRect(screen, x, y, 3, politicsCardH, partyColour(s.Party))
+	solidRect(screen, x, y, 3, h, partyColour(s.Party))
 
-	// Top border.
 	borderCol := colour(0x2E, 0x45, 0x38)
 	if hovered {
 		borderCol = ColourAccent
 	}
-	solidRect(screen, x, y, politicsCardW, 1, borderCol)
-	solidRect(screen, x, y+politicsCardH-1, politicsCardW, 1, borderCol)
-	solidRect(screen, x+politicsCardW-1, y, 1, politicsCardH, borderCol)
+	solidRect(screen, x, y, w, 1, borderCol)
+	solidRect(screen, x, y+h-1, w, 1, borderCol)
+	solidRect(screen, x+w-1, y, 1, h, borderCol)
 
 	tx := x + 8
 
-	// Name.
 	nameCol := ColourTextPrimary
 	if !s.IsUnlocked {
 		nameCol = ColourTextMuted
 	}
 	name := s.Name
-	maxChars := (politicsCardW - 12) / 7
+	maxChars := (w - 12) / 7
 	if len(name) > maxChars {
 		name = name[:maxChars-2] + ".."
 	}
 	drawLabel(screen, tx, y+14, name, nameCol, face)
 
-	// Role badge + state badge on row 2.
 	if s.IsUnlocked {
 		drawBadge(screen, tx, y+18, roleAbbrev(s.Role), ColourOrgThinkTank, face)
 		stateCol := ministerStateColour(s.State)
 		stateStr := stateAbbrev(s.State)
 		drawBadge(screen, tx+64, y+18, stateStr, stateCol, face)
 
-		// Party name right-aligned.
 		pName := config.PartyNames[s.Party]
 		if len(pName) > 8 {
 			pName = pName[:8]
 		}
-		drawLabel(screen, x+politicsCardW-len(pName)*7-4, y+14, pName, partyColour(s.Party), face)
+		drawLabel(screen, x+w-len(pName)*7-4, y+14, pName, partyColour(s.Party), face)
 
-		// Popularity and relationship bars on rows 3-4.
 		drawLabel(screen, tx, y+50, "Pop", ColourTextMuted, face)
-		drawBar(screen, tx+26, y+40, politicsCardW-40, 7, s.Popularity, 100, ColourAccent, ColourButtonNormal)
+		drawBar(screen, tx+26, y+40, w-40, 7, s.Popularity, 100, ColourAccent, ColourButtonNormal)
 		drawLabel(screen, tx, y+64, "Rel", ColourTextMuted, face)
-		drawBar(screen, tx+26, y+54, politicsCardW-40, 7, s.RelationshipScore, 100, ColourOrgThinkTank, ColourButtonNormal)
+		drawBar(screen, tx+26, y+54, w-40, 7, s.RelationshipScore, 100, ColourOrgThinkTank, ColourButtonNormal)
 
-		// Cabinet star.
 		if isInCabinet(s, world) {
-			drawLabel(screen, x+politicsCardW-12, y+14, "*", ColourAccent, face)
+			drawLabel(screen, x+w-12, y+14, "*", ColourAccent, face)
 		}
 	} else {
 		drawLabel(screen, tx, y+40, "-- locked --", ColourTextMuted, face)
@@ -209,11 +326,9 @@ func drawPoliticianProfile(
 	x := cx + 16
 	y := cy + 16
 
-	// Back label at top-left.
-	drawLabel(screen, x, y+12, "<< Back to grid", ColourTextMuted, face)
+	drawLabel(screen, x, y+12, "<< Back to party", ColourTextMuted, face)
 	y += 28
 
-	// Party stripe header bar.
 	solidRect(screen, cx, y, cw, 24, partyColour(s.Party))
 	drawLabel(screen, cx+8, y+17, config.PartyNames[s.Party]+" | "+roleAbbrev(s.Role), ColourTextPrimary, face)
 	inCab := isInCabinet(s, world)
@@ -222,23 +337,19 @@ func drawPoliticianProfile(
 	}
 	y += 30
 
-	// Name + nickname.
 	drawLabel(screen, x, y+14, s.Name, ColourAccent, face)
 	if s.Nickname != "" {
 		drawLabel(screen, x+len(s.Name)*7+8, y+14, "(\""+s.Nickname+"\")", ColourTextMuted, face)
 	}
 	y += 20
 
-	// State badge.
 	stateCol := ministerStateColour(s.State)
 	drawBadge(screen, x, y, string(s.State), stateCol, face)
 	y += 24
 
-	// Divider.
 	solidRect(screen, cx+8, y, cw-16, 1, colour(0x2E, 0x45, 0x38))
 	y += 10
 
-	// Biography, wrapped at panel width.
 	if s.Biography != "" {
 		drawLabel(screen, x, y+12, "Background", ColourTextMuted, face)
 		y += 16
@@ -268,11 +379,9 @@ func drawPoliticianProfile(
 		y += 6
 	}
 
-	// Divider.
 	solidRect(screen, cx+8, y, cw-16, 1, colour(0x2E, 0x45, 0x38))
 	y += 12
 
-	// Attribute bars.
 	barW := cw - 80
 	type attr struct {
 		label string
@@ -280,7 +389,7 @@ func drawPoliticianProfile(
 		col   color.RGBA
 	}
 	attrs := []attr{
-		{"Ideology  ", s.IdeologyScore + 100, colour(0xA0, 0x60, 0xE0)}, // -100..+100 → 0..200 shown as 0..100
+		{"Ideology  ", s.IdeologyScore + 100, colour(0xA0, 0x60, 0xE0)},
 		{"Net Zero  ", s.NetZeroSympathy, colour(0x27, 0xAE, 0x60)},
 		{"Risk Tol. ", s.RiskTolerance, colour(0xE6, 0x7E, 0x22)},
 		{"Populism  ", s.PopulismScore, colour(0xE7, 0x4C, 0x3C)},
@@ -292,7 +401,7 @@ func drawPoliticianProfile(
 		drawLabel(screen, x, y+10, a.label, ColourTextMuted, face)
 		maxVal := 100.0
 		if a.label == "Ideology  " {
-			maxVal = 200 // normalized to 0..200 for display
+			maxVal = 200
 		}
 		drawBar(screen, x+80, y+2, barW, 10, a.val, maxVal, a.col, ColourButtonNormal)
 		drawLabel(screen, x+80+barW+4, y+10, fmt.Sprintf("%.0f", a.val), ColourTextMuted, face)
@@ -300,27 +409,24 @@ func drawPoliticianProfile(
 	}
 	y += 6
 
-	// Divider.
 	solidRect(screen, cx+8, y, cw-16, 1, colour(0x2E, 0x45, 0x38))
 	y += 12
 
-	// Signals (personality traits).
 	if len(s.Signals) > 0 {
 		drawLabel(screen, x, y+12, "Signals:", ColourTextMuted, face)
 		sigX := x + 56
 		for _, sig := range s.Signals {
-			w := len(sig)*7 + 12
-			if sigX+w > cx+cw-8 {
+			sw := len(sig)*7 + 12
+			if sigX+sw > cx+cw-8 {
 				sigX = x + 56
 				y += 16
 			}
 			drawBadge(screen, sigX, y, sig, colour(0x2E, 0x45, 0x38), face)
-			sigX += w + 6
+			sigX += sw + 6
 		}
 		y += 20
 	}
 
-	// Lobby button (only active if in cabinet and enough AP).
 	canLobby := inCab && effectiveAP >= 3
 	btnY := cy + ch - 44
 	btnX := x
@@ -338,7 +444,8 @@ func drawPoliticianProfile(
 	} else if effectiveAP < 3 {
 		drawLabel(screen, btnX+btnW+8, btnY+19, "Need 3 AP", colour(0xE7, 0x4C, 0x3C), face)
 	}
-	_ = pendingActions // lobby click handled in handlePoliticsProfileClick
+	_ = pendingActions // lobby click handled in handleParliamentClick
+	_ = y
 }
 
 // isInCabinet returns true if s holds a cabinet role in the current government.
@@ -349,6 +456,22 @@ func isInCabinet(s stakeholder.Stakeholder, world simulation.WorldState) bool {
 		}
 	}
 	return false
+}
+
+// roleAbbrev returns a short display string for a minister role.
+func roleAbbrev(r config.Role) string {
+	switch r {
+	case config.RoleLeader:
+		return "Leader"
+	case config.RoleChancellor:
+		return "Chanc."
+	case config.RoleForeignSecretary:
+		return "F.Sec."
+	case config.RoleEnergy:
+		return "Energy"
+	default:
+		return string(r)
+	}
 }
 
 // stateAbbrev shortens long state strings for card display.
@@ -379,7 +502,7 @@ func stateAbbrev(st stakeholder.MinisterState) string {
 	}
 }
 
-// partyColour returns the header colour for a party column.
+// partyColour returns the display colour for a party.
 func partyColour(p config.Party) color.RGBA {
 	switch p {
 	case config.PartyLeft:

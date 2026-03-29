@@ -18,15 +18,15 @@ const (
 
 // tabNames lists the panel buttons in display order.
 // Index 1 ("Map") is the "map-only" state with no overlay panel visible.
+// Parliament view is embedded inside the Map tab's right panel.
 var tabNames = []string{
 	"Overview",  // 0
 	"Map",       // 1 -- clicking this hides all overlays
-	"Politics",  // 2
-	"Policy",    // 3
-	"Energy",    // 4
-	"Industry",  // 5
-	"Evidence",  // 6
-	"Budget",    // 7
+	"Policy",    // 2
+	"Energy",    // 3
+	"Industry",  // 4
+	"Evidence",  // 5
+	"Budget",    // 6
 }
 
 // TabBar renders and handles input for the bottom panel selector bar.

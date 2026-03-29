@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/config"
+	"github.com/vibe-code-challenge/twenty-fifty/internal/event"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/player"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/simulation"
 	"golang.org/x/image/font"
@@ -53,6 +54,9 @@ type UI struct {
 	// shockHandledCount tracks how many shock responses the player has queued
 	// this week. The shock modal hides once this reaches len(PendingShockResponses).
 	shockHandledCount int
+
+	// newspaper holds pending event news items to show after a week advance.
+	newspaper NewspaperQueue
 }
 
 // New creates and returns a fully initialised UI.
@@ -95,6 +99,11 @@ func (u *UI) NotifyEvent(name string) {
 	u.hud.setLastEvent(name)
 }
 
+// QueueNewsItems enqueues fired events for display in the newspaper modal.
+func (u *UI) QueueNewsItems(entries []event.EventEntry) {
+	u.newspaper.Enqueue(entries)
+}
+
 // Update processes input for this frame and returns any actions queued.
 // The returned slice is valid only until the next call to Update.
 func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
@@ -107,6 +116,14 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 	// Current logical screen dimensions (equals window size because Layout passes
 	// through the outside dimensions for native-resolution rendering).
 	sw, sh := ebiten.WindowSize()
+
+	// Newspaper modal blocks all other input until dismissed.
+	if u.newspaper.HasPending() {
+		if handleNewspaperInput(sw, sh) {
+			u.newspaper.Dismiss()
+		}
+		return u.pendingActions
+	}
 
 	// Handle Ticky modal first - it blocks all other input.
 	if world.PendingTickyPressure {
@@ -429,7 +446,9 @@ func (u *UI) Draw(screen *ebiten.Image, world simulation.WorldState) {
 	u.tabs.Draw(screen, u.face)
 
 	// Modals (top of draw stack).
-	if world.PendingTickyPressure {
+	if u.newspaper.HasPending() {
+		drawNewspaperModal(screen, u.newspaper.Current(), len(u.newspaper.items), u.face)
+	} else if world.PendingTickyPressure {
 		drawModalTicky(screen, world, &u.pendingActions, u.face)
 	} else if len(world.PendingShockResponses) > u.shockHandledCount {
 		drawModalShock(screen, world, &u.pendingActions, u.face)

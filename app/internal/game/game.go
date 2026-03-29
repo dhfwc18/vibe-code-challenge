@@ -71,8 +71,9 @@ func (g *Game) Update() error {
 		g.world = newWorld
 		g.events = firedEvents
 
-		// Pass the most recent event name to the HUD notification strip.
+		// Pass events to the newspaper queue and HUD notification strip.
 		if len(firedEvents) > 0 {
+			g.ui.QueueNewsItems(firedEvents)
 			g.ui.NotifyEvent(firedEvents[len(firedEvents)-1].Name)
 		}
 	}

@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/vibe-code-challenge/twenty-fifty/internal/simulation"
 	"golang.org/x/image/font"
@@ -21,11 +23,14 @@ type mapTabState struct {
 	overlay        mapOverlay
 }
 
-// mapDetailPanelW is the pixel width of the right-side parliament panel within the map tab.
-const mapDetailPanelW = 360
+const (
+	// mapDetailPanelW is the pixel width of the right-side panel within the map tab.
+	mapDetailPanelW = 360
+	// regionSectionH is the pixel height allocated to region info in the right panel overview.
+	regionSectionH = 300
+)
 
 // drawTabMap renders the interactive vector-polygon map tab.
-// The right-side panel shows the parliament box (hemicycle + party list).
 func drawTabMap(
 	screen *ebiten.Image,
 	world simulation.WorldState,
@@ -52,7 +57,7 @@ func drawTabMap(
 		drawLabel(screen, bx+6, by+15, name, ColourTextPrimary, face)
 	}
 
-	// Map canvas bounds: polygon area fills all but the right-side parliament panel.
+	// Map canvas bounds: polygon area fills all but the right-side panel.
 	polyW := cw - mapDetailPanelW - 16
 	if polyW < 64 {
 		polyW = 64
@@ -135,7 +140,170 @@ func drawTabMap(
 		drawLabel(screen, int(lx)-len(lbl)*3, int(ly)+4, lbl, colour(0xFF, 0xFF, 0xFF), face)
 	}
 
-	// Parliament panel on the right.
-	drawParliamentPanel(screen, world, pendingActions, face,
-		cx+cw-mapDetailPanelW, cy, mapDetailPanelW, ch, effectiveAP, parliamentState)
+	// Right panel: region info (top) + parliament box (bottom).
+	drawMapRightPanel(screen, world, state, parliamentState, pendingActions, face,
+		cx+cw-mapDetailPanelW, cy, mapDetailPanelW, ch, effectiveAP)
+}
+
+// drawMapRightPanel renders the right-side panel.
+// In overview mode it shows region info at the top and the parliament box below.
+// In party-grid or profile mode it uses the full panel.
+func drawMapRightPanel(
+	screen *ebiten.Image,
+	world simulation.WorldState,
+	mapState *mapTabState,
+	parliamentState *parliamentTabState,
+	pendingActions *[]simulation.Action,
+	face font.Face,
+	px, py, pw, ph, effectiveAP int,
+) {
+	drawPanel(screen, px, py, pw, ph)
+
+	// Profile view: full panel.
+	if parliamentState.selectedID != "" {
+		for i := range world.Stakeholders {
+			if world.Stakeholders[i].ID == parliamentState.selectedID {
+				drawPoliticianProfile(screen, world.Stakeholders[i], world, pendingActions, face,
+					px, py, pw, ph, effectiveAP)
+				return
+			}
+		}
+		parliamentState.selectedID = ""
+	}
+
+	// Party member grid: full panel.
+	if parliamentState.selectedParty != "" {
+		drawPartyMemberGrid(screen, world, face, px, py, pw, ph, parliamentState.selectedParty)
+		return
+	}
+
+	// Overview: region info at top, parliament box below.
+	drawRegionInfo(screen, world, mapState, face, px, py, pw, regionSectionH)
+	solidRect(screen, px+4, py+regionSectionH, pw-8, 1, colour(0x2E, 0x45, 0x38))
+	drawParliamentOverview(screen, world, face, px, py+regionSectionH+2, pw, ph-regionSectionH-2)
+}
+
+// drawRegionInfo draws the map overlay legend and selected region stats.
+// Drawing is clipped to py+ph so it does not overflow into the parliament section.
+func drawRegionInfo(
+	screen *ebiten.Image,
+	world simulation.WorldState,
+	mapState *mapTabState,
+	face font.Face,
+	px, py, pw, ph int,
+) {
+	x := px + 12
+	y := py + 12
+	maxY := py + ph
+
+	overlayTitles := []string{"Fuel Poverty", "Political Opinion", "Insulation Level"}
+	drawLabel(screen, x, y+12, "--- Taitan Map ---", ColourAccent, face)
+	y += 18
+	drawLabel(screen, x, y+12, "Overlay: "+overlayTitles[mapState.overlay], ColourTextMuted, face)
+	y += 22
+
+	// Colour-scale legend bar (25 steps across 300px).
+	const legendW = 300
+	const legendH = 12
+	const steps = 25
+	stepW := legendW / steps
+	if y+legendH < maxY {
+		for i := 0; i < steps; i++ {
+			val := float64(i) / float64(steps) * 100
+			c := overlayColour(mapState.overlay, val)
+			solidRect(screen, x+i*stepW, y, stepW, legendH, c)
+		}
+	}
+	y += legendH + 14
+	if y < maxY {
+		drawLabel(screen, x, y, "Low", ColourTextPrimary, face)
+		drawLabel(screen, x+legendW-20, y, "High", ColourTextPrimary, face)
+	}
+	y += 26
+
+	if mapState.selectedRegion == "" {
+		if y < maxY {
+			drawLabel(screen, x, y, "Click a region to view details.", ColourTextMuted, face)
+		}
+		return
+	}
+
+	// Region name.
+	regName := mapState.selectedRegion
+	for _, r := range world.Regions {
+		if r.ID == mapState.selectedRegion {
+			regName = r.Name
+			break
+		}
+	}
+	if y < maxY {
+		drawLabel(screen, x, y, regName, ColourAccent, face)
+	}
+	y += 20
+
+	// Aggregate stats for the selected region.
+	var sumFP, sumIn, sumPol float64
+	var tileCount int
+	for _, t := range world.Tiles {
+		if t.RegionID != mapState.selectedRegion {
+			continue
+		}
+		sumFP += t.FuelPoverty
+		sumIn += t.InsulationLevel
+		sumPol += t.PoliticalOpinion
+		tileCount++
+	}
+	if tileCount > 0 {
+		n := float64(tileCount)
+		if y < maxY {
+			drawLabel(screen, x, y, fmt.Sprintf("Avg Fuel Poverty:  %.1f%%", sumFP/n), ColourTextPrimary, face)
+		}
+		y += 16
+		if y < maxY {
+			drawLabel(screen, x, y, fmt.Sprintf("Avg Insulation:    %.1f%%", sumIn/n), ColourTextPrimary, face)
+		}
+		y += 16
+		polAvg := sumPol / n
+		lean := "Neutral"
+		if polAvg < 44 {
+			lean = "Left"
+		} else if polAvg > 56 {
+			lean = "Right"
+		}
+		if y < maxY {
+			drawLabel(screen, x, y, fmt.Sprintf("Avg Pol. Opinion:  %.0f (%s)", polAvg, lean), ColourTextPrimary, face)
+		}
+		y += 24
+	}
+
+	// Tile list.
+	if y < maxY {
+		drawLabel(screen, x, y, "--- Tiles ---", ColourAccent, face)
+	}
+	y += 18
+	if y < maxY {
+		drawLabel(screen, x, y, "Tile Name", ColourTextMuted, face)
+		drawLabel(screen, x+190, y, "FuelPov", ColourTextMuted, face)
+		drawLabel(screen, x+260, y, "Insul", ColourTextMuted, face)
+		drawLabel(screen, x+320, y, "Pol", ColourTextMuted, face)
+	}
+	y += 14
+
+	for _, t := range world.Tiles {
+		if t.RegionID != mapState.selectedRegion {
+			continue
+		}
+		if y+14 > maxY {
+			break
+		}
+		name := t.Name
+		if len(name) > 24 {
+			name = name[:24]
+		}
+		drawLabel(screen, x, y, name, ColourTextPrimary, face)
+		drawLabel(screen, x+190, y, fmt.Sprintf("%.1f%%", t.FuelPoverty), ColourTextPrimary, face)
+		drawLabel(screen, x+260, y, fmt.Sprintf("%.1f%%", t.InsulationLevel), ColourTextPrimary, face)
+		drawLabel(screen, x+320, y, fmt.Sprintf("%.0f", t.PoliticalOpinion), ColourTextPrimary, face)
+		y += 14
+	}
 }

@@ -93,38 +93,6 @@ func buildSeatColors(voteShare map[config.Party]float64) []color.RGBA {
 	return cols[:hemicycleTotal]
 }
 
-// drawParliamentPanel is the top-level parliament panel router.
-// It is drawn inside the right-side panel of the map tab.
-func drawParliamentPanel(
-	screen *ebiten.Image,
-	world simulation.WorldState,
-	pendingActions *[]simulation.Action,
-	face font.Face,
-	px, py, pw, ph int,
-	effectiveAP int,
-	state *parliamentTabState,
-) {
-	drawPanel(screen, px, py, pw, ph)
-
-	if state.selectedID != "" {
-		for i := range world.Stakeholders {
-			if world.Stakeholders[i].ID == state.selectedID {
-				drawPoliticianProfile(screen, world.Stakeholders[i], world, pendingActions, face,
-					px, py, pw, ph, effectiveAP)
-				return
-			}
-		}
-		state.selectedID = ""
-	}
-
-	if state.selectedParty != "" {
-		drawPartyMemberGrid(screen, world, face, px, py, pw, ph, state.selectedParty)
-		return
-	}
-
-	drawParliamentOverview(screen, world, face, px, py, pw, ph)
-}
-
 // drawParliamentOverview renders the hemicycle fan chart and party list.
 func drawParliamentOverview(
 	screen *ebiten.Image,
@@ -146,22 +114,32 @@ func drawParliamentOverview(
 
 	rowH := 28
 	for _, p := range hemicyclePartyOrder {
+		isRuling := p == world.Government.RulingParty
 		bg := colour(0x16, 0x28, 0x1C)
+		if isRuling {
+			bg = colour(0x1A, 0x3E, 0x28)
+		}
 		if isHovered(x, y, pw-24, rowH) {
 			bg = ColourButtonHover
 		}
 		solidRect(screen, x, y, pw-24, rowH, bg)
 		solidRect(screen, x, y, 4, rowH, partyColour(p))
+		if isRuling {
+			solidRect(screen, x, y+rowH-2, pw-24, 2, colour(0xF5, 0xE0, 0x42))
+		}
 		pName := config.PartyNames[p]
 		if len(pName) > 18 {
 			pName = pName[:18]
 		}
 		drawLabel(screen, x+10, y+18, pName, partyColour(p), face)
 		leader := partyLeaderName(world, p)
-		if len(leader) > 16 {
-			leader = leader[:16]
+		if len(leader) > 14 {
+			leader = leader[:14]
 		}
 		drawLabel(screen, x+148, y+18, leader, ColourTextMuted, face)
+		if isRuling {
+			drawLabel(screen, x+pw-24-34, y+18, "Govt", colour(0xF5, 0xE0, 0x42), face)
+		}
 		y += rowH + 2
 	}
 }

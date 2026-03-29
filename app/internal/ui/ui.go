@@ -533,9 +533,10 @@ func (u *UI) handleParliamentClick(world *simulation.WorldState, mx, my int) {
 		return
 	}
 
-	// Overview: party table rows start at py+12+20+hemicycleH+8+18 = py+158.
+	// Overview: party table rows start below the region section and parliament header/hemicycle.
+	// Layout: py + regionSectionH + 2 (divider) + 12 + 20 (title) + hemicycleH + 8 + 18 (header)
 	x := px + 12
-	y := py + 12 + 20 + hemicycleH + 8 + 18
+	y := py + regionSectionH + 2 + 12 + 20 + hemicycleH + 8 + 18
 	rowH := 28
 	for _, p := range hemicyclePartyOrder {
 		if inRect(mx, my, x, y, pw-24, rowH) {

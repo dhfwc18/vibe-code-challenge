@@ -15,10 +15,10 @@ func seededRNG(seed int64) *rand.Rand {
 
 func makeTile(id, regionID string, opinion, capacity float64) region.Tile {
 	return region.Tile{
-		ID:              id,
-		RegionID:        regionID,
+		ID:               id,
+		RegionID:         regionID,
 		PoliticalOpinion: opinion,
-		HeatingCapacity: capacity,
+		HeatingCapacity:  capacity,
 	}
 }
 
@@ -90,8 +90,8 @@ func TestAggregateRegionPoll_HeatingCapacityWeightsOpinion(t *testing.T) {
 	// Two tiles: one far-left opinion with high capacity, one far-right with low.
 	// Result should lean left.
 	tiles := []region.Tile{
-		makeTile("t1", "r1", 5, 100),  // far-left, high weight
-		makeTile("t2", "r1", 95, 1),   // far-right, low weight
+		makeTile("t1", "r1", 5, 100), // far-left, high weight
+		makeTile("t2", "r1", 95, 1),  // far-right, low weight
 	}
 	totalFarLeft := 0.0
 	totalFarRight := 0.0

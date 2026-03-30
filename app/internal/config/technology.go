@@ -10,7 +10,7 @@ var techCurveDefs = []TechCurveDef{
 		ID:                TechOffshoreWind,
 		Name:              "Offshore Wind",
 		Sector:            SectorPower,
-		LogisticMidpoint:  520,  // ~week 520 = approx 2020
+		LogisticMidpoint:  520, // ~week 520 = approx 2020
 		LogisticSteepness: 0.01,
 		BaseAdoptionRate:  0.08,
 		InitialMaturity:   18.0, // meaningful but early-stage in 2010
@@ -19,7 +19,7 @@ var techCurveDefs = []TechCurveDef{
 		ID:                TechOnshoreWind,
 		Name:              "Onshore Wind",
 		Sector:            SectorPower,
-		LogisticMidpoint:  400,  // ~2018; already established by 2010
+		LogisticMidpoint:  400, // ~2018; already established by 2010
 		LogisticSteepness: 0.012,
 		BaseAdoptionRate:  0.07,
 		InitialMaturity:   30.0,
@@ -28,7 +28,7 @@ var techCurveDefs = []TechCurveDef{
 		ID:                TechSolarPV,
 		Name:              "Solar PV",
 		Sector:            SectorPower,
-		LogisticMidpoint:  600,  // ~2021-22; cost collapse drives later surge
+		LogisticMidpoint:  600, // ~2021-22; cost collapse drives later surge
 		LogisticSteepness: 0.013,
 		BaseAdoptionRate:  0.09,
 		InitialMaturity:   8.0, // minimal in 2010
@@ -46,7 +46,7 @@ var techCurveDefs = []TechCurveDef{
 		ID:                TechHeatPumps,
 		Name:              "Heat Pumps",
 		Sector:            SectorBuildings,
-		LogisticMidpoint:  780,  // ~2025
+		LogisticMidpoint:  780, // ~2025
 		LogisticSteepness: 0.009,
 		BaseAdoptionRate:  0.04,
 		InitialMaturity:   5.0, // niche in 2010
@@ -55,7 +55,7 @@ var techCurveDefs = []TechCurveDef{
 		ID:                TechEVs,
 		Name:              "Electric Vehicles",
 		Sector:            SectorTransport,
-		LogisticMidpoint:  700,  // ~2023
+		LogisticMidpoint:  700, // ~2023
 		LogisticSteepness: 0.011,
 		BaseAdoptionRate:  0.06,
 		InitialMaturity:   3.0, // negligible in 2010

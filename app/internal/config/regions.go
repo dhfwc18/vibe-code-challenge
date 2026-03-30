@@ -160,7 +160,6 @@ var regionDefs = []RegionDef{
 // InitialLocalIncome: 50 = median Taitan household income.
 // InitialPoliticalOpinion: 50 = neutral; >50 leans right; <50 leans left.
 var tileDefs = []TileDef{
-
 	// Northern Highlands
 	{
 		ID: "nh_coastal", RegionID: "northern_highlands", Name: "Highland Coast",

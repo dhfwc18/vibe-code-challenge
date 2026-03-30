@@ -9,9 +9,9 @@ import (
 // FuelPovertyInput bundles all inputs to the fuel poverty formula for one tile
 // in one week.
 type FuelPovertyInput struct {
-	GasPrice              float64            // GBP/MWh
-	ElectricityPrice      float64            // GBP/MWh
-	OilPrice              float64            // GBP/MWh; used only for OIL heating
+	GasPrice              float64 // GBP/MWh
+	ElectricityPrice      float64 // GBP/MWh
+	OilPrice              float64 // GBP/MWh; used only for OIL heating
 	HeatingType           config.HeatingType
 	InsulationLevel       float64 // 0-100
 	LocalIncome           float64 // 0-100 (50 = median Taitan household)

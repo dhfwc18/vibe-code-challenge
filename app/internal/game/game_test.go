@@ -22,7 +22,6 @@ func TestNew_ReturnsNonNilGame(t *testing.T) {
 	assert.NotNil(t, newTestGame(t))
 }
 
-
 func TestUpdate_ReturnsNoError(t *testing.T) {
 	assert.NoError(t, newTestGame(t).Update())
 }

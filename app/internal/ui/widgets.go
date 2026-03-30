@@ -2,11 +2,32 @@ package ui
 
 import (
 	"image/color"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"golang.org/x/image/font"
 )
+
+// goXFaceCache caches GoXFace wrappers keyed by the underlying font.Face pointer.
+// GoXFace wraps an x/image/font.Face for use with the text/v2 API.
+var (
+	goXFaceCache   = map[font.Face]*textv2.GoXFace{}
+	goXFaceCacheMu sync.Mutex
+)
+
+// toGoXFace returns a *textv2.GoXFace wrapping the given font.Face.
+// Results are cached so the same face always returns the same wrapper.
+func toGoXFace(f font.Face) *textv2.GoXFace {
+	goXFaceCacheMu.Lock()
+	defer goXFaceCacheMu.Unlock()
+	if gx, ok := goXFaceCache[f]; ok {
+		return gx
+	}
+	gx := textv2.NewGoXFace(f)
+	goXFaceCache[f] = gx
+	return gx
+}
 
 // isHovered returns true if the mouse cursor is currently inside the given rectangle.
 // Uses logical screen coordinates (matching ebiten.CursorPosition).
@@ -28,12 +49,12 @@ func buttonColour(x, y, w, h int, canAct bool) color.RGBA {
 }
 
 // drawBar draws a horizontal filled progress bar.
-// value and max define the fill fraction (clamped to [0, max]).
-func drawBar(screen *ebiten.Image, x, y, w, h int, value, max float64, fill, bg color.RGBA) {
-	if max <= 0 {
-		max = 1
+// value and maxVal define the fill fraction (clamped to [0, maxVal]).
+func drawBar(screen *ebiten.Image, x, y, w, h int, value, maxVal float64, fill, bg color.RGBA) {
+	if maxVal <= 0 {
+		maxVal = 1
 	}
-	frac := value / max
+	frac := value / maxVal
 	if frac < 0 {
 		frac = 0
 	}
@@ -71,12 +92,18 @@ func drawBadge(screen *ebiten.Image, x, y int, label string, bg color.RGBA, face
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(img, op)
 
-	text.Draw(screen, label, face, x+padX, y+h-padY, ColourTextPrimary)
+	drawLabel(screen, x+padX, y+h-padY, label, ColourTextPrimary, face)
 }
 
 // drawLabel draws a text string at the given position.
 func drawLabel(screen *ebiten.Image, x, y int, label string, col color.RGBA, face font.Face) {
-	text.Draw(screen, label, face, x, y, col)
+	var opts textv2.DrawOptions
+	opts.GeoM.Translate(float64(x), float64(y))
+	opts.ColorScale.SetR(float32(col.R) / 255)
+	opts.ColorScale.SetG(float32(col.G) / 255)
+	opts.ColorScale.SetB(float32(col.B) / 255)
+	opts.ColorScale.SetA(float32(col.A) / 255)
+	textv2.Draw(screen, label, toGoXFace(face), &opts)
 }
 
 // drawPanel draws a Panel-coloured rectangle with a subtle border.

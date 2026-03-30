@@ -10,9 +10,9 @@ import "github.com/vibe-code-challenge/twenty-fifty/internal/mathutil"
 type StaffRole string
 
 const (
-	StaffRoleAnalyst     StaffRole = "ANALYST"      // +1 AP/week, +evidence quality
-	StaffRoleAdvisor     StaffRole = "ADVISOR"       // +1 AP/week, improved approval odds
-	StaffRoleCommsOfficer StaffRole = "COMMS_OFFICER" // +1 AP/week, faster LCR polling
+	StaffRoleAnalyst      StaffRole = "ANALYST"        // +1 AP/week, +evidence quality
+	StaffRoleAdvisor      StaffRole = "ADVISOR"        // +1 AP/week, improved approval odds
+	StaffRoleCommsOfficer StaffRole = "COMMS_OFFICER"  // +1 AP/week, faster LCR polling
 	StaffRoleChiefOfStaff StaffRole = "CHIEF_OF_STAFF" // +2 AP/week, all bonuses reduced
 )
 
@@ -20,26 +20,26 @@ const (
 type ActionType string
 
 const (
-	ActionTypeSubmitPolicy     ActionType = "SUBMIT_POLICY"
-	ActionTypeCommissionReport ActionType = "COMMISSION_REPORT"
-	ActionTypeLobbyMinister    ActionType = "LOBBY_MINISTER"
-	ActionTypeHireStaff        ActionType = "HIRE_STAFF"
-	ActionTypeFireStaff        ActionType = "FIRE_STAFF"
-	ActionTypeShockResponse           ActionType = "SHOCK_RESPONSE"
-	ActionTypeRespondTickyPressure    ActionType = "RESPOND_TICKY_PRESSURE"
+	ActionTypeSubmitPolicy         ActionType = "SUBMIT_POLICY"
+	ActionTypeCommissionReport     ActionType = "COMMISSION_REPORT"
+	ActionTypeLobbyMinister        ActionType = "LOBBY_MINISTER"
+	ActionTypeHireStaff            ActionType = "HIRE_STAFF"
+	ActionTypeFireStaff            ActionType = "FIRE_STAFF"
+	ActionTypeShockResponse        ActionType = "SHOCK_RESPONSE"
+	ActionTypeRespondTickyPressure ActionType = "RESPOND_TICKY_PRESSURE"
 	// ActionTypeRespondRiskyTicky handles the Risky Ticky endorsement prompt.
 	// Detail: "ENDORSE" or "DECLINE".
-	ActionTypeRespondRiskyTicky       ActionType = "RESPOND_RISKY_TICKY"
+	ActionTypeRespondRiskyTicky ActionType = "RESPOND_RISKY_TICKY"
 	// ActionTypeRespondTrickyTicky handles the Tricky Ticky Murican contract offer.
 	// Detail: "ACCEPT" or "DECLINE".
-	ActionTypeRespondTrickyTicky      ActionType = "RESPOND_TRICKY_TICKY"
+	ActionTypeRespondTrickyTicky ActionType = "RESPOND_TRICKY_TICKY"
 	// ActionTypeDamageTickyReputation is the player counter-move when Angry Ticky
 	// is active. Costs AP and requires relationship support from other far-right figures.
-	ActionTypeDamageTickyReputation   ActionType = "DAMAGE_TICKY_REPUTATION"
+	ActionTypeDamageTickyReputation ActionType = "DAMAGE_TICKY_REPUTATION"
 	// ActionTypeGreatSneezeLobby is a free-AP emergency lobby action available
 	// only while the Great Sneeze is active. Detail = target stakeholder ID.
-	ActionTypeGreatSneezeLobby        ActionType = "GREAT_SNEEZE_LOBBY"
-	ActionTypeOther                   ActionType = "OTHER"
+	ActionTypeGreatSneezeLobby ActionType = "GREAT_SNEEZE_LOBBY"
+	ActionTypeOther            ActionType = "OTHER"
 )
 
 // ---------------------------------------------------------------------------
@@ -48,10 +48,10 @@ const (
 
 // StaffMember represents one member of the player's support team.
 type StaffMember struct {
-	ID         string
-	Role       StaffRole
-	APBonus    int  // AP added to the weekly pool while this member is hired
-	WeekHired  int
+	ID        string
+	Role      StaffRole
+	APBonus   int // AP added to the weekly pool while this member is hired
+	WeekHired int
 }
 
 // ActionRecord logs one player action for history and reputation tracking.
@@ -78,14 +78,14 @@ const (
 	baseAPPool = 5 // AP available per week before staff bonuses
 
 	// Reputation grade boundaries (lower bound of each grade band).
-	reputationGeneralist        = 0.0
-	reputationHigherExecutive   = 15.0
-	reputationSeniorExecutive   = 28.0
-	reputationGrade7            = 40.0
-	reputationGrade6            = 52.0
-	reputationGrade5            = 63.0
-	reputationGrade4            = 74.0
-	reputationDeputySecretary   = 85.0
+	reputationGeneralist         = 0.0
+	reputationHigherExecutive    = 15.0
+	reputationSeniorExecutive    = 28.0
+	reputationGrade7             = 40.0
+	reputationGrade6             = 52.0
+	reputationGrade5             = 63.0
+	reputationGrade4             = 74.0
+	reputationDeputySecretary    = 85.0
 	reputationPermanentSecretary = 95.0
 )
 

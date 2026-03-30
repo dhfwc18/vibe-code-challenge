@@ -18,19 +18,19 @@ type Region struct {
 
 // Tile holds the live state of one map tile.
 type Tile struct {
-	ID                 string
-	RegionID           string
-	Name               string
-	InsulationLevel    float64            // 0-100; higher = better insulated
-	HeatingType        config.HeatingType
-	LocalIncome        float64            // 0-100; 50 = median Taitan household income
-	PoliticalOpinion   float64            // 0-100; >50 right-leaning, <50 left-leaning
-	HeatingCapacity    float64            // 0-100
-	InstallerQuality    float64            // 0-100; drives the true/observed retrofit gap
-	FuelPoverty         float64            // 0-100; computed each week by the simulation
-	ObservedRetrofitRate float64           // 0-100; survey-reported completion rate (may overstate)
-	TrueRetrofitRate    float64            // 0-100; actual completion rate; see ComputeTrueRetrofitRate
-	RevealedAttributes  map[string]bool    // fog-of-war: keys are attribute names
+	ID                   string
+	RegionID             string
+	Name                 string
+	InsulationLevel      float64 // 0-100; higher = better insulated
+	HeatingType          config.HeatingType
+	LocalIncome          float64         // 0-100; 50 = median Taitan household income
+	PoliticalOpinion     float64         // 0-100; >50 right-leaning, <50 left-leaning
+	HeatingCapacity      float64         // 0-100
+	InstallerQuality     float64         // 0-100; drives the true/observed retrofit gap
+	FuelPoverty          float64         // 0-100; computed each week by the simulation
+	ObservedRetrofitRate float64         // 0-100; survey-reported completion rate (may overstate)
+	TrueRetrofitRate     float64         // 0-100; actual completion rate; see ComputeTrueRetrofitRate
+	RevealedAttributes   map[string]bool // fog-of-war: keys are attribute names
 }
 
 // Tile attribute name constants used as keys in RevealedAttributes.
@@ -73,14 +73,14 @@ func SeedTiles(defs []config.TileDef) []Tile {
 	tiles := make([]Tile, len(defs))
 	for i, d := range defs {
 		tiles[i] = Tile{
-			ID:                 d.ID,
-			RegionID:           d.RegionID,
-			Name:               d.Name,
-			InsulationLevel:    d.InitialInsulationLevel,
-			HeatingType:        d.InitialHeatingType,
-			LocalIncome:        d.InitialLocalIncome,
-			PoliticalOpinion:   d.InitialPoliticalOpinion,
-			HeatingCapacity:    d.InitialHeatingCapacity,
+			ID:                   d.ID,
+			RegionID:             d.RegionID,
+			Name:                 d.Name,
+			InsulationLevel:      d.InitialInsulationLevel,
+			HeatingType:          d.InitialHeatingType,
+			LocalIncome:          d.InitialLocalIncome,
+			PoliticalOpinion:     d.InitialPoliticalOpinion,
+			HeatingCapacity:      d.InitialHeatingCapacity,
 			InstallerQuality:     d.InitialInstallerQuality,
 			FuelPoverty:          0,
 			ObservedRetrofitRate: 0,
@@ -151,4 +151,3 @@ func UpdateLocalPoliticalOpinion(tile Tile, fuelPovertyDelta, climateEventImpact
 	tile.PoliticalOpinion = mathutil.Clamp(opinion, 0, 100)
 	return tile
 }
-

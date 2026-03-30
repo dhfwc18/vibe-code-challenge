@@ -724,7 +724,7 @@ func TestPolicyApproval_MinorSignificanceHighConflictLongStall_NoHardReject(t *t
 	s := stakeholder.Stakeholder{
 		IsUnlocked:        true,
 		Role:              config.RoleChancellor,
-		IdeologyScore:     90.0,  // very high conflict
+		IdeologyScore:     90.0, // very high conflict
 		RelationshipScore: 80.0,
 	}
 	req := card.Def.ApprovalSteps[0]

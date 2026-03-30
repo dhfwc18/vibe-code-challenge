@@ -7,19 +7,18 @@ package config
 // TechUnlockGate = "" means no technology gate applies.
 // ApprovalSteps are checked in order; all must pass before the card activates.
 var policyCardDefs = []PolicyCardDef{
-
 	// ------------------------------------------------------------------
 	// POWER SECTOR
 	// ------------------------------------------------------------------
 
 	{
-		ID:                 "offshore_wind_cfd",
-		Name:               "Offshore Wind CfD Round",
-		Sector:             PolicySectorPower,
-		Description:        "Issue a Contracts for Difference auction for offshore wind capacity, guaranteeing a strike price that de-risks private investment.",
-		APCost:             2,
-		BudgetCostToSubmit: 20.0,
-		TechUnlockGate:     TechOffshoreWind,
+		ID:                  "offshore_wind_cfd",
+		Name:                "Offshore Wind CfD Round",
+		Sector:              PolicySectorPower,
+		Description:         "Issue a Contracts for Difference auction for offshore wind capacity, guaranteeing a strike price that de-risks private investment.",
+		APCost:              2,
+		BudgetCostToSubmit:  20.0,
+		TechUnlockGate:      TechOffshoreWind,
 		TechUnlockThreshold: 20.0,
 		ApprovalSteps: []ApprovalRequirement{
 			{Role: RoleChancellor, MinRelationshipScore: 40.0, MaxIdeologyConflict: 50.0},

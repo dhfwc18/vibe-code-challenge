@@ -484,11 +484,11 @@ func TestStrategy_NZSHybrid_JJCameron_StillBlocksSomePolicies(t *testing.T) {
 
 	const nzsSympathyWeight = 0.6
 	type policyResult struct {
-		ID       string
+		ID          string
 		RawConflict float64
 		EffConflict float64
-		MaxAllow float64
-		Blocked  bool
+		MaxAllow    float64
+		Blocked     bool
 	}
 	var results []policyResult
 
@@ -766,7 +766,7 @@ func TestStrategy_FuelPoverty_Insulation_ReducesFuelPoverty(t *testing.T) {
 	w, _ = AdvanceWeek(w, nil)
 
 	// Find a tile with positive fuel poverty.
-	var testTileIdx int = -1
+	testTileIdx := -1
 	for i, tile := range w.Tiles {
 		if tile.FuelPoverty > 0 && tile.InsulationLevel < 90 {
 			testTileIdx = i

@@ -103,7 +103,6 @@ func (s TechSnapshot) Maturity(tech config.Technology) float64 {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-
 func copyTracker(t TechTracker) TechTracker {
 	m := make(map[config.Technology]float64, len(t.Maturities))
 	for k, v := range t.Maturities {

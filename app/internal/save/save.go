@@ -93,16 +93,16 @@ func Write(path string, s *SaveState) error {
 	}
 	tmpPath := tmp.Name()
 	if _, err = tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmpPath)
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("save write temp: %w", err)
 	}
 	if err = tmp.Close(); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("save close temp: %w", err)
 	}
 	if err = os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("save rename: %w", err)
 	}
 	return nil
@@ -115,7 +115,7 @@ func Read(path string) (*SaveState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("save open: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	data, err := io.ReadAll(f)
 	if err != nil {

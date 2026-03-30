@@ -16,8 +16,8 @@ type LowCarbonReputation struct {
 
 // Constants for the reputation model.
 const (
-	pollNoiseSigma     = 4.0  // standard deviation of poll noise
-	naturalDecayTarget = 50.0 // LCR drifts toward this when no policies are active
+	pollNoiseSigma     = 4.0   // standard deviation of poll noise
+	naturalDecayTarget = 50.0  // LCR drifts toward this when no policies are active
 	naturalDecayRate   = 0.005 // weekly drift fraction when policy gain is small
 	minPolicyGain      = 0.05  // policy gain below this triggers natural decay
 
@@ -96,4 +96,3 @@ func CapitalisationProbability(lcr, playerReputation float64) float64 {
 func CapitalisationSuccess(lcr, playerReputation float64, rng *rand.Rand) bool {
 	return rng.Float64() < CapitalisationProbability(lcr, playerReputation)
 }
-

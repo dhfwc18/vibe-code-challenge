@@ -10,10 +10,12 @@ import (
 // significanceRefuseConflict is the ideology conflict threshold above which a
 // minister issues a formal hard refusal for policies of the given significance,
 // provided the card has also been stalled for the corresponding number of weeks.
-const majorSignificanceRefuseConflict    = 75.0
-const majorSignificanceRefuseWeeks      = 8
-const moderateSignificanceRefuseConflict = 110.0
-const moderateSignificanceRefuseWeeks   = 16
+const (
+	majorSignificanceRefuseConflict    = 75.0
+	majorSignificanceRefuseWeeks       = 8
+	moderateSignificanceRefuseConflict = 110.0
+	moderateSignificanceRefuseWeeks    = 16
+)
 
 // PolicyState tracks where a policy card sits in the approval and lifecycle pipeline.
 // Transition logic runs in the simulation layer; this package provides pure functions
@@ -52,9 +54,9 @@ const (
 type PolicyCard struct {
 	Def              *config.PolicyCardDef
 	State            PolicyState
-	WeeksActive      int  // incremented each week while ACTIVE
-	WeeksUnderReview int  // incremented each week while UNDER_REVIEW
-	StepsCleared     int  // number of ApprovalSteps that have been approved so far
+	WeeksActive      int // incremented each week while ACTIVE
+	WeeksUnderReview int // incremented each week while UNDER_REVIEW
+	StepsCleared     int // number of ApprovalSteps that have been approved so far
 	ArchiveReason    ArchiveReason
 }
 

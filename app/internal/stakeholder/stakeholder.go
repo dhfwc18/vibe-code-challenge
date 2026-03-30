@@ -36,11 +36,11 @@ type Stakeholder struct {
 	Name                string
 	Nickname            string
 	Biography           string
-	IdeologyScore       float64 // -100 (far-left) to +100 (far-right)
-	NetZeroSympathy     float64 // 0-100
-	RiskTolerance       float64 // 0-100
-	PopulismScore       float64 // 0-100
-	DiplomaticSkill     float64 // 0-100; relevant for ForeignSecretary role
+	IdeologyScore       float64  // -100 (far-left) to +100 (far-right)
+	NetZeroSympathy     float64  // 0-100
+	RiskTolerance       float64  // 0-100
+	PopulismScore       float64  // 0-100
+	DiplomaticSkill     float64  // 0-100; relevant for ForeignSecretary role
 	ConsultancyAffinity []string // org IDs; drives passive relationship bonus
 	ConsultancyAversion bool     // true = hostile to private consultancy spend
 	Signals             []string // observable personality signals shown on appointment
@@ -55,10 +55,10 @@ type Stakeholder struct {
 	IsUnlocked        bool
 
 	// Minister popularity (distinct from GovernmentPopularity)
-	Popularity             float64 // 0-100 hidden true value; polled with sigma=5
-	WeeksUnderPressure     int     // increments while State==UNDER_PRESSURE; resets on recovery
-	GraceWeeksRemaining    int     // countdown after appointment; minister not held accountable during grace
-	IdeologyConflictScore  float64 // accumulates when minister approves ideologically-opposed policies
+	Popularity            float64 // 0-100 hidden true value; polled with sigma=5
+	WeeksUnderPressure    int     // increments while State==UNDER_PRESSURE; resets on recovery
+	GraceWeeksRemaining   int     // countdown after appointment; minister not held accountable during grace
+	IdeologyConflictScore float64 // accumulates when minister approves ideologically-opposed policies
 
 	// Signal queue (appended externally by simulation layer)
 	PendingSignals []string
@@ -74,13 +74,13 @@ type Stakeholder struct {
 
 // Calibration constants for the stakeholder model.
 const (
-	startingRelationship  = 50.0
-	decayTarget           = 50.0
-	decayRate             = 0.02  // fraction of (score - 50) that reverts per week
-	maxRelationshipDelta  = 5.0   // max relationship change per tick from a player action
-	maxEventImpact        = 3.0   // max relationship change per tick from a single event
+	startingRelationship = 50.0
+	decayTarget          = 50.0
+	decayRate            = 0.02 // fraction of (score - 50) that reverts per week
+	maxRelationshipDelta = 5.0  // max relationship change per tick from a player action
+	maxEventImpact       = 3.0  // max relationship change per tick from a single event
 
-	tickyPressureThreshold    = 12  // weeks at ELEVATED+ before Murican-org event is signalled
+	tickyPressureThreshold    = 12   // weeks at ELEVATED+ before Murican-org event is signalled
 	dizzySurgeProbability     = 0.08 // 8% per week chance of DizzySurge toggle
 	electoralFatigueThreshold = 156  // 3 years (156 weeks) before fatigue signals departure
 
@@ -127,30 +127,30 @@ func SeedStakeholders(defs []config.StakeholderSeed) []Stakeholder {
 	out := make([]Stakeholder, 0, len(defs))
 	for _, d := range defs {
 		s := Stakeholder{
-			ID:                  d.ID,
-			Party:               d.Party,
-			Role:                d.Role,
-			Name:                d.Name,
-			Nickname:            d.Nickname,
-			Biography:           d.Biography,
-			IdeologyScore:       d.IdeologyScore,
-			NetZeroSympathy:     d.NetZeroSympathy,
-			RiskTolerance:       d.RiskTolerance,
-			PopulismScore:       d.PopulismScore,
-			DiplomaticSkill:     d.DiplomaticSkill,
-			ConsultancyAffinity: d.ConsultancyAffinity,
-			ConsultancyAversion: d.ConsultancyAversion,
-			Signals:             d.Signals,
-			EntryWeekMin:        d.EntryWeekMin,
-			EntryWeekMax:        d.EntryWeekMax,
-			EntryTiming:         d.EntryTiming,
-			SpecialMechanic:     d.SpecialMechanic,
-			RelationshipScore:   startingRelationship,
+			ID:                    d.ID,
+			Party:                 d.Party,
+			Role:                  d.Role,
+			Name:                  d.Name,
+			Nickname:              d.Nickname,
+			Biography:             d.Biography,
+			IdeologyScore:         d.IdeologyScore,
+			NetZeroSympathy:       d.NetZeroSympathy,
+			RiskTolerance:         d.RiskTolerance,
+			PopulismScore:         d.PopulismScore,
+			DiplomaticSkill:       d.DiplomaticSkill,
+			ConsultancyAffinity:   d.ConsultancyAffinity,
+			ConsultancyAversion:   d.ConsultancyAversion,
+			Signals:               d.Signals,
+			EntryWeekMin:          d.EntryWeekMin,
+			EntryWeekMax:          d.EntryWeekMax,
+			EntryTiming:           d.EntryTiming,
+			SpecialMechanic:       d.SpecialMechanic,
+			RelationshipScore:     startingRelationship,
 			Popularity:            50.0,
 			IdeologyConflictScore: 0.0,
 			IsUnlocked:            d.EntryTiming == config.TimingStart,
-			State:               MinisterStateActive,
-			PendingSignals:      []string{},
+			State:                 MinisterStateActive,
+			PendingSignals:        []string{},
 		}
 		out = append(out, s)
 	}

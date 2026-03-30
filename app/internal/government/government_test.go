@@ -10,10 +10,10 @@ import (
 
 func makeStakeholder(id string, ideo, nzs float64, role config.Role) stakeholder.Stakeholder {
 	return stakeholder.Stakeholder{
-		ID:              id,
-		Role:            role,
-		IdeologyScore:   ideo,
-		NetZeroSympathy: nzs,
+		ID:                id,
+		Role:              role,
+		IdeologyScore:     ideo,
+		NetZeroSympathy:   nzs,
 		RelationshipScore: 50,
 	}
 }

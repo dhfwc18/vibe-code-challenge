@@ -32,13 +32,13 @@ func makeCard(sector config.PolicySector, steps []config.ApprovalRequirement) Po
 
 func makeStakeholder(role config.Role, ideology, relationship float64, unlocked bool) stakeholder.Stakeholder {
 	return stakeholder.Stakeholder{
-		ID:              "s1",
-		Role:            role,
-		IdeologyScore:   ideology,
+		ID:                "s1",
+		Role:              role,
+		IdeologyScore:     ideology,
 		RelationshipScore: relationship,
-		NetZeroSympathy: 50.0,
-		IsUnlocked:      unlocked,
-		State:           stakeholder.MinisterStateActive,
+		NetZeroSympathy:   50.0,
+		IsUnlocked:        unlocked,
+		State:             stakeholder.MinisterStateActive,
 	}
 }
 
@@ -184,13 +184,13 @@ func TestEvaluateApprovalStep_MajorSignificance_HighConflictAndStalledWeeks_Hard
 	// WeeksUnderReview = 8 >= majorSignificanceRefuseWeeks -> hard rejects.
 	// NZS=0 is used here to ensure effective conflict equals raw conflict.
 	s := stakeholder.Stakeholder{
-		ID:              "s1",
-		Role:            config.RoleLeader,
-		IdeologyScore:   -80.0,
+		ID:                "s1",
+		Role:              config.RoleLeader,
+		IdeologyScore:     -80.0,
 		RelationshipScore: 70.0,
-		NetZeroSympathy: 0.0, // zero sympathy: no NZS reduction
-		IsUnlocked:      true,
-		State:           stakeholder.MinisterStateActive,
+		NetZeroSympathy:   0.0, // zero sympathy: no NZS reduction
+		IsUnlocked:        true,
+		State:             stakeholder.MinisterStateActive,
 	}
 	req := config.ApprovalRequirement{
 		Role:                 config.RoleLeader,

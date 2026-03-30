@@ -68,7 +68,7 @@ func TestTickReputation_NoPolicyGain_BelowTarget_DecaysTowardTarget(t *testing.T
 
 func TestTickReputation_DoesNotMutateOriginal(t *testing.T) {
 	lcr := LowCarbonReputation{Value: 60.0}
-	TickReputation(lcr, 1.0, -2.0)
+	_ = TickReputation(lcr, 1.0, -2.0)
 	assert.InDelta(t, 60.0, lcr.Value, 0.001)
 }
 

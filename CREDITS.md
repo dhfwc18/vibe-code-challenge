@@ -20,30 +20,6 @@ Source:  https://github.com/hajimehoshi/ebiten
 Licence: Apache 2.0
 Use:     Primary game engine -- rendering loop, window management, input handling
 
-Name:    ebitenui
-Type:    Library
-Source:  https://github.com/ebitenui/ebitenui
-Licence: MIT
-Use:     HUD and UI widget toolkit
-
-Name:    go-tiled
-Type:    Library
-Source:  https://github.com/lafriks/go-tiled
-Licence: MIT
-Use:     Tile map loading (Tiled map format)
-
-Name:    kamera
-Type:    Library
-Source:  https://github.com/mazznoer/kamera
-Licence: MIT
-Use:     Camera pan and zoom
-
-Name:    donburi
-Type:    Library
-Source:  https://github.com/yohamta/donburi
-Licence: MIT
-Use:     Entity component system (ECS) for world state management
-
 Name:    testify
 Type:    Library
 Source:  https://github.com/stretchr/testify

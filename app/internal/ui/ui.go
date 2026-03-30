@@ -1,6 +1,5 @@
 // Package ui provides the front-end rendering and input handling for the 20-50 game.
-// All visual output is produced via direct ebiten.Image drawing; ebitenui is used for
-// button widget management.
+// All visual output is produced via direct ebiten.Image drawing calls.
 package ui
 
 import (

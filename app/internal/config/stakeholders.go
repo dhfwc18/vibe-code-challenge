@@ -4,7 +4,6 @@ package config
 // Entry timing controls when a figure becomes available for role assignment.
 // See game_design.md Named Cast section for full biographical notes.
 var stakeholderSeeds = []StakeholderSeed{
-
 	// ================================================================
 	// FARRIGHT -- Taitan First
 	// ================================================================
@@ -12,12 +11,12 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "joe_barage", Party: PartyFarRight, Role: RoleLeader,
 		EntryTiming: TimingStart,
-		Name: "Joe Barage",
+		Name:        "Joe Barage",
 		Biography: "Born in Murica, moved to Taitan aged 14. Founder of the Taitan for " +
 			"Taitons movement. Loud, media-savvy, frames every issue as Taitan sovereignty " +
 			"versus foreign interference.",
 		IdeologyScore: 95, NetZeroSympathy: 5, RiskTolerance: 85, PopulismScore: 98,
-		DiplomaticSkill: 20,
+		DiplomaticSkill:     20,
 		ConsultancyAffinity: []string{"frontier_energy_institute"},
 		Signals: []string{
 			"Murica-born, naturalised Taiton",
@@ -27,11 +26,11 @@ var stakeholderSeeds = []StakeholderSeed{
 	},
 	{
 		ID: "rex_harlow", Party: PartyFarRight, Role: RoleChancellor,
-		EntryTiming: TimingStart,
-		Name: "Rex Harlow",
-		Biography: "Old money, former City trader. Sees green spending as economic self-harm.",
+		EntryTiming:   TimingStart,
+		Name:          "Rex Harlow",
+		Biography:     "Old money, former City trader. Sees green spending as economic self-harm.",
 		IdeologyScore: 80, NetZeroSympathy: 15, RiskTolerance: 40, PopulismScore: 50,
-		DiplomaticSkill: 30,
+		DiplomaticSkill:     30,
 		ConsultancyAffinity: []string{"albion_institute", "heritage_taitan"},
 		Signals: []string{
 			"advocate for lower business regulation",
@@ -42,7 +41,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "tommy_braveheart", Party: PartyFarRight, Role: RoleForeignSecretary,
 		EntryTiming: TimingStart,
-		Name: "Thomas \"Tommy\" Braveheart",
+		Name:        "Thomas \"Tommy\" Braveheart",
 		Biography: "Ex-military, no-nonsense. Frames energy security as a sovereignty issue. " +
 			"Supports domestic fossil extraction on independence grounds. Will back renewables " +
 			"if the case is made on strategic self-sufficiency.",
@@ -57,7 +56,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "ticky_tennison", Party: PartyFarRight, Role: RoleEnergy,
 		EntryTiming: TimingStart,
-		Name: "TD \"Ticky\" Tennison",
+		Name:        "TD \"Ticky\" Tennison",
 		Biography: "Career in Murican-linked energy sector before entering politics. Has " +
 			"personal relationships with Murican consultancy and think tank founders.",
 		IdeologyScore: 85, NetZeroSympathy: 10, RiskTolerance: 70, PopulismScore: 75,
@@ -92,7 +91,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "jj_cameron", Party: PartyLeft, Role: RoleLeader,
 		EntryTiming: TimingStart,
-		Name: "JJ Cameron",
+		Name:        "JJ Cameron",
 		Biography: "Veteran backbencher. Former secondary school teacher (RE and History), " +
 			"lifelong trade union rep, self-published author of seven pamphlets including " +
 			"The Carbon Commons: Energy as a Public Good (2003), Manhole Covers of the " +
@@ -115,7 +114,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		// Successor leader; only enters pool after JJ Cameron departs via ELECTORAL_FATIGUE
 		ID: "david_reeve", Party: PartyLeft, Role: RoleLeader,
 		EntryTiming: TimingSuccessor,
-		Name: "David Reeve",
+		Name:        "David Reeve",
 		Biography: "A sensible figure with broadly correct instincts. Has views on things. " +
 			"Considered reliable. The party's attempt to appear electable to people who " +
 			"did not vote for it last time.",
@@ -130,11 +129,11 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "george_harmon", Party: PartyLeft, Role: RoleChancellor,
 		EntryTiming: TimingStart,
-		Name: "George Harmon",
+		Name:        "George Harmon",
 		Biography: "Fiscal conservative in a left-of-centre mould. Supportive of green " +
 			"investment when the numbers work. Will push back on uncosted policies.",
 		IdeologyScore: -15, NetZeroSympathy: 55, RiskTolerance: 30, PopulismScore: 25,
-		DiplomaticSkill: 40,
+		DiplomaticSkill:     40,
 		ConsultancyAffinity: []string{"progress_policy_centre"},
 		Signals: []string{
 			"former public sector economist",
@@ -146,7 +145,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "john_ashworth", Party: PartyLeft, Role: RoleForeignSecretary,
 		EntryTiming: TimingStart,
-		Name: "John Ashworth",
+		Name:        "John Ashworth",
 		Biography: "Experienced. Reliable. Has strong feelings about correct procedure. " +
 			"Represents the solid, unremarkable competence the party relies on.",
 		IdeologyScore: -20, NetZeroSympathy: 45, RiskTolerance: 50, PopulismScore: 35,
@@ -160,7 +159,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "claire_blackwell", Party: PartyLeft, Role: RoleEnergy,
 		EntryTiming: TimingStart,
-		Name: "Claire Blackwell",
+		Name:        "Claire Blackwell",
 		Biography: "Player's first boss. Left governs at game start in 2010. Committed to " +
 			"getting things done within the system. Good starting relationship with player.",
 		IdeologyScore: -30, NetZeroSympathy: 70, RiskTolerance: 40, PopulismScore: 30,
@@ -225,14 +224,14 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "daniel_cavendish", Party: PartyRight, Role: RoleLeader,
 		EntryTiming: TimingStart,
-		Name: "Daniel \"Pork\" Cavendish",
-		Nickname: "Pork",
+		Name:        "Daniel \"Pork\" Cavendish",
+		Nickname:    "Pork",
 		Biography: "Old-money upper class, went to the right schools, inherited the right " +
 			"connections. Somewhat flaky under pressure. Privately supportive of net zero " +
 			"but easily swayed by party faction pressure. The exact origin of his nickname " +
 			"is a mystery: associates deflect when asked, and he simply smiles.",
 		IdeologyScore: 35, NetZeroSympathy: 60, RiskTolerance: 30, PopulismScore: 25,
-		DiplomaticSkill: 50,
+		DiplomaticSkill:     50,
 		ConsultancyAffinity: []string{"meridian_strategy"},
 		Signals: []string{
 			"educated at Briarfield and Aldenvale",
@@ -244,11 +243,11 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "philip_drake", Party: PartyRight, Role: RoleChancellor,
 		EntryTiming: TimingStart,
-		Name: "Philip Drake",
+		Name:        "Philip Drake",
 		Biography: "Free market purist, deeply sceptical of green industrial policy. " +
 			"Describes every subsidy as market distortion and means it.",
 		IdeologyScore: 55, NetZeroSympathy: 35, RiskTolerance: 35, PopulismScore: 30,
-		DiplomaticSkill: 38,
+		DiplomaticSkill:     38,
 		ConsultancyAffinity: []string{"albion_institute", "energy_realists_network"},
 		Signals: []string{
 			"authored free market think tank papers on energy",
@@ -259,7 +258,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "andrew_stafford", Party: PartyRight, Role: RoleForeignSecretary,
 		EntryTiming: TimingStart,
-		Name: "Andrew Stafford",
+		Name:        "Andrew Stafford",
 		Biography: "Hawkish, frames energy security as strategic priority. Can be won over " +
 			"on renewables if the argument is made in terms of reducing Taitan dependence " +
 			"on foreign fossil fuel states.",
@@ -274,12 +273,12 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "rupert_holm", Party: PartyRight, Role: RoleEnergy,
 		EntryTiming: TimingStart,
-		Name: "Rupert Holm",
+		Name:        "Rupert Holm",
 		Biography: "Tech-optimist, strongly pro-nuclear, lukewarm on mandates and home " +
 			"retrofit. Will approve technology-led policies readily; resists behaviour-change " +
 			"policies.",
 		IdeologyScore: 45, NetZeroSympathy: 60, RiskTolerance: 55, PopulismScore: 35,
-		DiplomaticSkill: 35,
+		DiplomaticSkill:     35,
 		ConsultancyAffinity: []string{"clearpath_advisory", "tacute_energy"},
 		Signals: []string{
 			"backed the new nuclear programme",
@@ -291,12 +290,12 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "dawn_truscott", Party: PartyRight, Role: RoleChancellor,
 		EntryTiming: TimingMid, EntryWeekMin: 260, EntryWeekMax: 460,
-		Name: "Dawn \"Dizzy\" Truscott",
+		Name:     "Dawn \"Dizzy\" Truscott",
 		Nickname: "Dizzy",
 		Biography: "Sharp, ideologically driven free-marketeer. Believes the state should " +
 			"step back and let capital decarbonise on its own schedule. High personal ambition.",
 		IdeologyScore: 60, NetZeroSympathy: 30, RiskTolerance: 75, PopulismScore: 40,
-		DiplomaticSkill: 35,
+		DiplomaticSkill:     35,
 		ConsultancyAffinity: []string{"meridian_strategy", "axiom_infrastructure"},
 		Signals: []string{
 			"youngest ever Chancellor candidate",
@@ -333,7 +332,7 @@ var stakeholderSeeds = []StakeholderSeed{
 			"engineering household. The family dinner table consensus was that fission is the " +
 			"answer and everything else is sentiment. He has not revised this.",
 		IdeologyScore: 45, NetZeroSympathy: 62, RiskTolerance: 55, PopulismScore: 35,
-		DiplomaticSkill: 38,
+		DiplomaticSkill:     38,
 		ConsultancyAffinity: []string{"clearpath_advisory", "tacute_energy"},
 		Signals: []string{
 			"backed the new nuclear programme",
@@ -364,11 +363,11 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "miriam_corbett", Party: PartyFarLeft, Role: RoleLeader,
 		EntryTiming: TimingStart,
-		Name: "Miriam Corbett",
+		Name:        "Miriam Corbett",
 		Biography: "Long-standing socialist. Strong climate action but only via public " +
 			"ownership. Hostile to corporate LCT companies and market mechanisms.",
 		IdeologyScore: -90, NetZeroSympathy: 80, RiskTolerance: 55, PopulismScore: 70,
-		DiplomaticSkill: 35,
+		DiplomaticSkill:     35,
 		ConsultancyAversion: true,
 		Signals: []string{
 			"advocate for nationalised energy",
@@ -380,11 +379,11 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "priya_sharma", Party: PartyFarLeft, Role: RoleChancellor,
 		EntryTiming: TimingStart,
-		Name: "Priya Sharma",
+		Name:        "Priya Sharma",
 		Biography: "Academic economist, MMT-leaning. Believes public investment can fund the " +
 			"transition without fiscal constraints. Opposed to austerity framing.",
 		IdeologyScore: -80, NetZeroSympathy: 75, RiskTolerance: 65, PopulismScore: 50,
-		DiplomaticSkill: 48,
+		DiplomaticSkill:     48,
 		ConsultancyAversion: true,
 		Signals: []string{
 			"authored The Green New Deal for Taitan",
@@ -395,7 +394,7 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "marcus_webb", Party: PartyFarLeft, Role: RoleForeignSecretary,
 		EntryTiming: TimingStart,
-		Name: "Marcus Webb",
+		Name:        "Marcus Webb",
 		Biography: "Ex-military turned pacifist MP. Advocates redirecting defence budget to " +
 			"climate diplomacy and green aid. Deeply uncomfortable with hard-power responses.",
 		IdeologyScore: -75, NetZeroSympathy: 70, RiskTolerance: 45, PopulismScore: 55,
@@ -409,12 +408,12 @@ var stakeholderSeeds = []StakeholderSeed{
 	{
 		ID: "rosa_chen", Party: PartyFarLeft, Role: RoleEnergy,
 		EntryTiming: TimingStart,
-		Name: "Rosa Chen",
+		Name:        "Rosa Chen",
 		Biography: "Strong climate champion, anti-corporate. Will approve ambitious policies " +
 			"rapidly but demands they exclude private profit. Hostile to Tacute and private " +
 			"consultancies.",
 		IdeologyScore: -85, NetZeroSympathy: 95, RiskTolerance: 70, PopulismScore: 65,
-		DiplomaticSkill: 40,
+		DiplomaticSkill:     40,
 		ConsultancyAversion: true,
 		Signals: []string{
 			"co-authored the Zero Carbon Cities bill",

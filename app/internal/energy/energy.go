@@ -44,7 +44,7 @@ func PriceAt(ring PriceRing, n int) float64 {
 	if n > 51 {
 		n = 51
 	}
-	idx := ((ring.Head - n) % 52 + 52) % 52
+	idx := ((ring.Head-n)%52 + 52) % 52
 	return ring.Values[idx]
 }
 
@@ -125,4 +125,3 @@ func ApplyShock(m EnergyMarket, effect config.EventEffect) EnergyMarket {
 	m.OilPrice = mathutil.Clamp(m.OilPrice*(1+effect.OilPriceDeltaPct/100), 0, 9999)
 	return m
 }
-

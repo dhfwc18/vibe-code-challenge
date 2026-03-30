@@ -60,14 +60,14 @@ func TestDeriveClimateState_SeverityAlwaysInBounds(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 var alwaysFireDef = config.EventDef{
-	ID:                "always",
-	Name:              "Always Fires",
-	EventType:         config.EventWeather,
-	Severity:          config.SeverityMinor,
-	BaseProbability:   1.0, // always fires
-	ClimateMultiplier: 1.0,
-	FossilMultiplier:  1.0,
-	BaseEffects:       config.EventEffect{},
+	ID:                  "always",
+	Name:                "Always Fires",
+	EventType:           config.EventWeather,
+	Severity:            config.SeverityMinor,
+	BaseProbability:     1.0, // always fires
+	ClimateMultiplier:   1.0,
+	FossilMultiplier:    1.0,
+	BaseEffects:         config.EventEffect{},
 	OffersShockResponse: false,
 }
 

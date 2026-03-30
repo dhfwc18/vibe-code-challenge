@@ -20,8 +20,10 @@ var policyColumns = []policy.PolicyState{
 	policy.PolicyStateArchived,
 }
 
-const policyColW = 216
-const policyCardH = 72
+const (
+	policyColW  = 216
+	policyCardH = 72
+)
 
 // drawTabPolicy renders the policy pipeline tab.
 func drawTabPolicy(
@@ -71,7 +73,7 @@ func truncatePol(s string) string {
 func drawPolicyCard(
 	screen *ebiten.Image,
 	pc policy.PolicyCard,
-	world simulation.WorldState,
+	_ simulation.WorldState,
 	pendingActions *[]simulation.Action,
 	face font.Face,
 	x, y int,

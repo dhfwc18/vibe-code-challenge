@@ -21,9 +21,6 @@ const (
 	logicalH = 720
 )
 
-// contentX is the left edge of the main content area (sidebar is gone; kept for reference).
-const contentX = tabBarWidth
-
 // panelOverlayW is the pixel width of the right-side overlay panel for non-map tabs.
 const panelOverlayW = 720
 
@@ -162,7 +159,7 @@ func (u *UI) Update(world *simulation.WorldState) []simulation.Action {
 }
 
 // handleHUDClick detects clicks on the HUD Advance Week button.
-func (u *UI) handleHUDClick(world *simulation.WorldState, sw int) {
+func (u *UI) handleHUDClick(_ *simulation.WorldState, sw int) {
 	mx, my := ebiten.CursorPosition()
 	btnX := sw - hudBtnW - 8
 	btnY := (hudHeight - hudBtnH) / 2
@@ -173,7 +170,7 @@ func (u *UI) handleHUDClick(world *simulation.WorldState, sw int) {
 }
 
 // handleTickyInput detects which Ticky response button was clicked.
-func (u *UI) handleTickyInput(world *simulation.WorldState, sw, sh int) {
+func (u *UI) handleTickyInput(_ *simulation.WorldState, sw, sh int) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
@@ -247,7 +244,7 @@ func (u *UI) handleShockInput(world *simulation.WorldState, sw, sh int) {
 }
 
 // handleEvidenceModalInput detects confirm/cancel clicks on the commission modal.
-func (u *UI) handleEvidenceModalInput(world *simulation.WorldState, sw, sh int) {
+func (u *UI) handleEvidenceModalInput(_ *simulation.WorldState, sw, sh int) {
 	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}

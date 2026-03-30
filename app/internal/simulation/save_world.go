@@ -48,9 +48,9 @@ type WorldSaveData struct {
 	GovernmentPopularity float64                    `json:"government_popularity"`
 
 	// Environment
-	EnergyMarket     energy.EnergyMarket     `json:"energy_market"`
-	ClimateState     climate.ClimateState    `json:"climate_state"`
-	FossilDependency float64                 `json:"fossil_dependency"`
+	EnergyMarket     energy.EnergyMarket      `json:"energy_market"`
+	ClimateState     climate.ClimateState     `json:"climate_state"`
+	FossilDependency float64                  `json:"fossil_dependency"`
 	Carbon           carbon.CarbonBudgetState `json:"carbon"`
 
 	// Technology and industry
@@ -62,9 +62,9 @@ type WorldSaveData struct {
 	Tiles   []region.Tile   `json:"tiles"`
 
 	// Economy
-	Economy        economy.EconomyState      `json:"economy"`
-	LastTaxRevenue economy.TaxRevenue        `json:"last_tax_revenue"`
-	LastBudget     economy.BudgetAllocation  `json:"last_budget"`
+	Economy        economy.EconomyState     `json:"economy"`
+	LastTaxRevenue economy.TaxRevenue       `json:"last_tax_revenue"`
+	LastBudget     economy.BudgetAllocation `json:"last_budget"`
 
 	// Reputation
 	LCR               reputation.LowCarbonReputation `json:"lcr"`
@@ -82,8 +82,8 @@ type WorldSaveData struct {
 	Reports     []evidence.InsightReport `json:"reports"`
 
 	// Events
-	EventLog              event.EventLog              `json:"event_log"`
-	PressureGroups        []event.PressureGroup       `json:"pressure_groups"`
+	EventLog              event.EventLog               `json:"event_log"`
+	PressureGroups        []event.PressureGroup        `json:"pressure_groups"`
 	PendingShockResponses []event.PendingShockResponse `json:"pending_shock_responses"`
 
 	// Ticky

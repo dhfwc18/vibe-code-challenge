@@ -99,12 +99,12 @@ type PendingShockResponse struct {
 // PressureGroup is a persistent actor that generates pressure events based on
 // the state of carbon trajectory and low-carbon reputation.
 type PressureGroup struct {
-	ID           string
-	Name         string
-	ConstantPop  float64 // weekly GovernmentPopularity delta (always applied)
-	CarbonPop    float64 // additional pop delta when CarbonTrajectory > carbonTriggerThreshold
-	ConstantLCR  float64 // weekly LCR delta (always applied)
-	LowLCRBoost  float64 // additional LCR delta when LCR < lcrLowThreshold
+	ID          string
+	Name        string
+	ConstantPop float64 // weekly GovernmentPopularity delta (always applied)
+	CarbonPop   float64 // additional pop delta when CarbonTrajectory > carbonTriggerThreshold
+	ConstantLCR float64 // weekly LCR delta (always applied)
+	LowLCRBoost float64 // additional LCR delta when LCR < lcrLowThreshold
 }
 
 // PressureResult is the aggregate output of one tick's pressure group application.

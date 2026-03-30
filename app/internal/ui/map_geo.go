@@ -60,8 +60,13 @@ var regionPolygons = map[string][][2]float32{
 	},
 	// Eastern Counties: right-side spur spanning two rows.
 	"eastern_counties": {
-		{0.72, 0.53}, {1.00, 0.53}, {1.00, 0.82},
-		{0.88, 0.82}, {0.78, 0.79}, {0.72, 0.74}, {0.72, 0.67},
+		{0.72, 0.53},
+		{1.00, 0.53},
+		{1.00, 0.82},
+		{0.88, 0.82},
+		{0.78, 0.79},
+		{0.72, 0.74},
+		{0.72, 0.67},
 	},
 	// Western Coast: simple west-side strip (Wales analogue).
 	// Clean rectangle sharing x=0.20 with capital_region and y=0.84 with south_west.
@@ -72,21 +77,33 @@ var regionPolygons = map[string][][2]float32{
 	// South boundary: (0.20,0.84)->(0.40,0.88)->(0.72,0.84) shared with SW/SE.
 	// Right boundary: (0.72,0.74)->(0.78,0.79)->(0.88,0.82) shared with eastern_counties.
 	"capital_region": {
-		{0.20, 0.67}, {0.72, 0.67}, {0.72, 0.74},
-		{0.78, 0.79}, {0.88, 0.82}, {0.72, 0.84},
-		{0.40, 0.88}, {0.20, 0.84},
+		{0.20, 0.67},
+		{0.72, 0.67},
+		{0.72, 0.74},
+		{0.78, 0.79},
+		{0.88, 0.82},
+		{0.72, 0.84},
+		{0.40, 0.88},
+		{0.20, 0.84},
 	},
 	// South East: lower-right, butts against capital_region and eastern_counties.
 	// Top boundary: (0.72,0.84)->(0.88,0.82)->(1.00,0.82) shared with cap/counties.
 	"south_east": {
-		{0.72, 0.84}, {0.88, 0.82}, {1.00, 0.82},
-		{1.00, 1.00}, {0.40, 1.00}, {0.40, 0.88},
+		{0.72, 0.84},
+		{0.88, 0.82},
+		{1.00, 0.82},
+		{1.00, 1.00},
+		{0.40, 1.00},
+		{0.40, 0.88},
 	},
 	// South West: lower-left peninsula, shares y=0.84 with western_coast and
 	// the diagonal (0.40,0.88) boundary with capital_region and south_east.
 	"south_west": {
-		{0.00, 0.84}, {0.20, 0.84}, {0.40, 0.88},
-		{0.40, 1.00}, {0.00, 1.00},
+		{0.00, 0.84},
+		{0.20, 0.84},
+		{0.40, 0.88},
+		{0.40, 1.00},
+		{0.00, 1.00},
 	},
 }
 
@@ -160,7 +177,7 @@ func fillMapPolygon(screen *ebiten.Image, pts [][2]float32, col color.RGBA, ox, 
 		p.LineTo(pt[0]*sw+ox, pt[1]*sh+oy)
 	}
 	p.Close()
-	vs, is := p.AppendVerticesAndIndicesForFilling(nil, nil)
+	vs, is := p.AppendVerticesAndIndicesForFilling(nil, nil) //nolint:staticcheck // vector API migration deferred; current API works correctly
 	r := float32(col.R) / 255
 	g := float32(col.G) / 255
 	b := float32(col.B) / 255
@@ -185,7 +202,7 @@ func strokeMapPolygon(screen *ebiten.Image, pts [][2]float32, col color.RGBA, ox
 		p.LineTo(pt[0]*sw+ox, pt[1]*sh+oy)
 	}
 	p.Close()
-	vs, is := p.AppendVerticesAndIndicesForStroke(nil, nil, &vector.StrokeOptions{
+	vs, is := p.AppendVerticesAndIndicesForStroke(nil, nil, &vector.StrokeOptions{ //nolint:staticcheck // vector API migration deferred; current API works correctly
 		Width:    1.5,
 		LineJoin: vector.LineJoinMiter,
 		LineCap:  vector.LineCapButt,

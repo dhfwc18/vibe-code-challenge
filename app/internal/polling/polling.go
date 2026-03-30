@@ -19,10 +19,10 @@ type RegionPoll struct {
 
 // PollSnapshot is the full national and regional polling picture at one game week.
 type PollSnapshot struct {
-	Week                  int
-	RegionPolls           map[string]RegionPoll    // keyed by RegionID
-	NationalPolls         map[config.Party]float64 // always contains all four parties; sums to ~100
-	GovernmentApprovalRating float64               // 0-100 noisy sample of GovernmentPopularity (sigma=3)
+	Week                     int
+	RegionPolls              map[string]RegionPoll    // keyed by RegionID
+	NationalPolls            map[config.Party]float64 // always contains all four parties; sums to ~100
+	GovernmentApprovalRating float64                  // 0-100 noisy sample of GovernmentPopularity (sigma=3)
 }
 
 // allParties lists the four parties in a fixed order used for deterministic iteration.
@@ -44,9 +44,9 @@ var partyPosition = map[config.Party]float64{
 
 // Calibration constants.
 const (
-	pollNoiseSigma    = 3.0  // Gaussian noise standard deviation per party share
-	kernelBandwidth   = 25.0 // bandwidth of the Gaussian proximity kernel
-	minPartyShare     = 0.5  // minimum share floor to prevent parties vanishing
+	pollNoiseSigma  = 3.0  // Gaussian noise standard deviation per party share
+	kernelBandwidth = 25.0 // bandwidth of the Gaussian proximity kernel
+	minPartyShare   = 0.5  // minimum share floor to prevent parties vanishing
 )
 
 // AggregateRegionPoll computes the party-share distribution for one region from its tiles.

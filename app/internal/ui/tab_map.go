@@ -190,7 +190,7 @@ func drawRegionInfo(
 	world simulation.WorldState,
 	mapState *mapTabState,
 	face font.Face,
-	px, py, pw, ph int,
+	px, py, _, ph int,
 ) {
 	x := px + 12
 	y := py + 12

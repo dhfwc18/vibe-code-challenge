@@ -128,8 +128,8 @@ var scenarioRisingStorm = ScenarioConfig{
 		TechNuclear:       45.0, // existing fleet; slow natural growth
 		TechHeatPumps:     10.0,
 		TechEVs:           12.0,
-		TechHydrogen:       5.0,
-		TechIndustrialCCS:  7.0,
+		TechHydrogen:      5.0,
+		TechIndustrialCCS: 7.0,
 	},
 	// Texit chain events are backstory; treat as already fired.
 	FiredOnceEvents: []string{

@@ -4,7 +4,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text" //nolint:staticcheck // text/v2 migration deferred; current API works correctly
 	"golang.org/x/image/font"
 )
 
@@ -28,12 +28,12 @@ func buttonColour(x, y, w, h int, canAct bool) color.RGBA {
 }
 
 // drawBar draws a horizontal filled progress bar.
-// value and max define the fill fraction (clamped to [0, max]).
-func drawBar(screen *ebiten.Image, x, y, w, h int, value, max float64, fill, bg color.RGBA) {
-	if max <= 0 {
-		max = 1
+// value and maxVal define the fill fraction (clamped to [0, maxVal]).
+func drawBar(screen *ebiten.Image, x, y, w, h int, value, maxVal float64, fill, bg color.RGBA) {
+	if maxVal <= 0 {
+		maxVal = 1
 	}
-	frac := value / max
+	frac := value / maxVal
 	if frac < 0 {
 		frac = 0
 	}

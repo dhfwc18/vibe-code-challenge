@@ -2,7 +2,6 @@ package save
 
 import (
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 )
@@ -43,10 +42,4 @@ func (m MasterSeed) DeriveSubSeed(subsystem string) uint64 {
 	x ^= x >> 27
 	x *= 0x2545F4914F6CDD1D
 	return x
-}
-
-// seedFromBytes decodes a little-endian uint64 from exactly 8 bytes.
-// Used when deserialising a legacy seed that was stored as raw bytes.
-func seedFromBytes(b [8]byte) MasterSeed {
-	return MasterSeed(binary.LittleEndian.Uint64(b[:]))
 }

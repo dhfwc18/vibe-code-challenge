@@ -38,7 +38,7 @@ func drawModalTicky(
 	drawLabel(screen, mx+12, my+40,
 		"TD Tennison is applying pressure to strengthen Murican ties.", ColourTextPrimary, face)
 	drawLabel(screen, mx+12, my+56,
-		"Accepting unlocks the American Growth Alliance.", ColourTextMuted, face)
+		"Accepting unlocks the Murican Growth Alliance.", ColourTextMuted, face)
 
 	// Accept button.
 	solidRect(screen, mx+20, my+90, 130, 28, ColourButtonNormal)

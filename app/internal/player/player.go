@@ -195,7 +195,7 @@ func staffRoleCost(role StaffRole) float64 {
 // ---------------------------------------------------------------------------
 
 // ReputationGrade maps a 0-100 reputation score to a civil service grade label.
-// Labels follow Taitan's equivalent of the UK civil service grade structure.
+// Labels follow the Taitan civil service grade structure.
 func ReputationGrade(rep float64) string {
 	rep = mathutil.Clamp(rep, 0, 100)
 	switch {

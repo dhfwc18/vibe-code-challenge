@@ -5,3 +5,11 @@
 .idea/
 *.swp
 *.swo
+
+# Build artifacts
+*.exe
+*.dll
+
+# Screenshots and session automation scripts
+*.png
+*.ps1

@@ -32,7 +32,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		Biography: "Old money, former City trader. Sees green spending as economic self-harm.",
 		IdeologyScore: 80, NetZeroSympathy: 15, RiskTolerance: 40, PopulismScore: 50,
 		DiplomaticSkill: 30,
-		ConsultancyAffinity: []string{"albion_institute", "heritage_uk"},
+		ConsultancyAffinity: []string{"albion_institute", "heritage_taitan"},
 		Signals: []string{
 			"advocate for lower business regulation",
 			"opposed the carbon levy bill",
@@ -235,7 +235,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		DiplomaticSkill: 50,
 		ConsultancyAffinity: []string{"meridian_strategy"},
 		Signals: []string{
-			"educated at Briarfield and Oxbridge",
+			"educated at Briarfield and Aldenvale",
 			"considered a safe pair of hands by the establishment",
 			"occasionally says the right thing for unclear reasons",
 			"known for expensive consultancy commissions",
@@ -311,7 +311,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		Name: "Noris Jackson",
 		Biography: "Born in Murica while his father was completing a fellowship there; " +
 			"grew up in Taitan from age four. Part of his paternal lineage traces back to " +
-			"the Eastern Provinces. Educated at Briarfield and Oxbridge. Spent several " +
+			"the Eastern Provinces. Educated at Briarfield and Aldenvale. Spent several " +
 			"years as a political journalist and foreign correspondent before entering " +
 			"politics, giving him a talent for a good story and a relaxed relationship " +
 			"with factual precision. Laddish, loud, socially well-connected. Holds dual " +
@@ -320,7 +320,7 @@ var stakeholderSeeds = []StakeholderSeed{
 		DiplomaticSkill: 72,
 		Signals: []string{
 			"born in Murica, dual citizen",
-			"Briarfield and Oxbridge, former foreign correspondent",
+			"Briarfield and Aldenvale, former foreign correspondent",
 			"known for after-hours diplomatic back-channels",
 			"never misses a party conference drinks reception",
 		},

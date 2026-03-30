@@ -155,8 +155,8 @@ var orgDefinitions = []OrgDefinition{
 		Specialisms: []InsightType{InsightEnergyMarket, InsightPower},
 	},
 	{
-		ID:      "heritage_uk",
-		Name:    "Heritage UK",
+		ID:      "heritage_taitan",
+		Name:    "Heritage Taitan",
 		OrgType: OrgThinkTank,
 		Origin:  OrgLocal,
 		BaseCost: 65.0,
@@ -232,7 +232,7 @@ var orgDefinitions = []OrgDefinition{
 	// Availability is tiered by MuricanAccessTier:
 	//   Tier 0 (game start): Frontier Energy Institute -- a well-known fossil
 	//          think tank that already operates internationally in 2010.
-	//   Tier 1 (Murican event triggers OR Ticky): American Growth Alliance --
+	//   Tier 1 (Murican event triggers OR Ticky): Murican Growth Alliance --
 	//          surfaces when Murican geopolitical activity raises its profile in
 	//          Taitan (murican_tariff_threat, murican_fossil_subsidy_expansion, etc.).
 	//   Tier 2 (Ticky-only): Pinnacle Energy Partners -- a commercial consultancy
@@ -256,8 +256,8 @@ var orgDefinitions = []OrgDefinition{
 		Specialisms: []InsightType{InsightEnergyMarket, InsightPower},
 	},
 	{
-		ID:                "american_growth_alliance",
-		Name:              "American Growth Alliance",
+		ID:                "murican_growth_alliance",
+		Name:              "Murican Growth Alliance",
 		OrgType:           OrgThinkTank,
 		Origin:            OrgMurican,
 		MuricanAccessTier: 1, // unlocked by Murican international events or Ticky

@@ -13,7 +13,7 @@ var companyDefs = []CompanyDef{
 	// Onshore Wind / Solar
 	{ID: "greenfield_power", Name: "Greenfield Power", TechCategory: TechCatOnshore,
 		OriginSize: CompanyLarge, BaseQuality: 65, BaseWorkRate: 62, TaitonHQ: true},
-	{ID: "solarion_uk", Name: "Solarion UK", TechCategory: TechCatOnshore,
+	{ID: "solarion_taitan", Name: "Solarion Taitan", TechCategory: TechCatOnshore,
 		OriginSize: CompanySME, BaseQuality: 55, BaseWorkRate: 60, TaitonHQ: false},
 
 	// Heat Pumps
@@ -23,9 +23,9 @@ var companyDefs = []CompanyDef{
 		OriginSize: CompanyStartup, BaseQuality: 48, BaseWorkRate: 52, TaitonHQ: true},
 
 	// EVs
-	{ID: "volta_motors_uk", Name: "Volta Motors UK", TechCategory: TechCatEVs,
+	{ID: "volta_motors_taitan", Name: "Volta Motors Taitan", TechCategory: TechCatEVs,
 		OriginSize: CompanyLarge, BaseQuality: 70, BaseWorkRate: 65, TaitonHQ: true},
-	{ID: "britdrive", Name: "BritDrive", TechCategory: TechCatEVs,
+	{ID: "taitdrive", Name: "TaitDrive", TechCategory: TechCatEVs,
 		OriginSize: CompanySME, BaseQuality: 52, BaseWorkRate: 58, TaitonHQ: true},
 
 	// Hydrogen
@@ -41,12 +41,12 @@ var companyDefs = []CompanyDef{
 		OriginSize: CompanySME, BaseQuality: 58, BaseWorkRate: 50, TaitonHQ: true},
 
 	// Grid / Retail
-	{ID: "gridnorth_uk", Name: "GridNorth UK", TechCategory: TechCatGrid,
+	{ID: "gridnorth_taitan", Name: "GridNorth Taitan", TechCategory: TechCatGrid,
 		OriginSize: CompanyMultinational, BaseQuality: 75, BaseWorkRate: 70, TaitonHQ: false},
 	{ID: "cleanwatts_energy", Name: "CleanWatts Energy", TechCategory: TechCatGrid,
 		OriginSize: CompanySME, BaseQuality: 60, BaseWorkRate: 62, TaitonHQ: true},
 
 	// Legacy Transition
-	{ID: "britannia_energy", Name: "Britannia Energy", TechCategory: TechCatLegacy,
+	{ID: "northgate_energy", Name: "Northgate Energy", TechCategory: TechCatLegacy,
 		OriginSize: CompanyMultinational, BaseQuality: 65, BaseWorkRate: 75, TaitonHQ: true},
 }

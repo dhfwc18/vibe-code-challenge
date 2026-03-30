@@ -84,7 +84,7 @@ const lobbyBudgetEffect = 1.10
 const tickyStakeholderID = "ticky_tennison"
 
 // tickyTier1OrgID is the Tier 1 Murican org that Ticky unlocks on Accept/Negotiate.
-const tickyTier1OrgID = "american_growth_alliance"
+const tickyTier1OrgID = "murican_growth_alliance"
 
 // tickyPressureMinWeeks is the minimum weeks between Ticky pressure events.
 const tickyPressureMinWeeks = 6
@@ -103,7 +103,7 @@ const tickyRelationshipDecline = -5.0
 const tickyRelationshipNegotiate = -2.0
 
 const (
-	// baselineYearlyMt is the 2010 UK-equivalent baseline annual emissions.
+	// baselineYearlyMt is the 2010 Taitan baseline annual emissions.
 	baselineYearlyMt = 590.0
 	// baseWeeklyMt is the implied weekly emission rate before any policy reductions.
 	baseWeeklyMt = baselineYearlyMt / 52.0
@@ -1342,9 +1342,9 @@ func phaseTickyPressureTick(w WorldState) WorldState {
 
 // applyTickyPressureResponse resolves the player's response to a Ticky pressure event.
 //
-//   - ACCEPT:    +8 relationship with Ticky; unlocks american_growth_alliance this quarter.
+//   - ACCEPT:    +8 relationship with Ticky; unlocks murican_growth_alliance this quarter.
 //   - DECLINE:   -5 relationship with Ticky; no Murican org access.
-//   - NEGOTIATE: -2 relationship with Ticky; unlocks american_growth_alliance this quarter.
+//   - NEGOTIATE: -2 relationship with Ticky; unlocks murican_growth_alliance this quarter.
 //
 // Has no effect if no pressure event is pending.
 func applyTickyPressureResponse(w WorldState, a Action) WorldState {

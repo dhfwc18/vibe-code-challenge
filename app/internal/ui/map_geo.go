@@ -28,7 +28,7 @@ var regionDrawOrder = []string{
 // regionPolygons defines normalized [0,1] polygon vertices for each of the
 // 12 Taitan regions. (0,0) = top-left of the map canvas, (1,1) = bottom-right.
 // Adjacent polygons share edges exactly; there are no gaps or overlaps.
-// The outline approximates a UK-equivalent island with the north at the top.
+// The outline approximates a Taitan island with the north at the top.
 var regionPolygons = map[string][][2]float32{
 	// Northern Highlands: clean rectangle, top-left band.
 	"northern_highlands": {

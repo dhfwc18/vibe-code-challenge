@@ -942,7 +942,7 @@ func TestTickyPressure_AcceptDeal_UnlocksOrgAndBoostsRelationship(t *testing.T) 
 	for _, os := range w.OrgStates {
 		if os.OrgID == tickyTier1OrgID {
 			assert.False(t, os.MuricanUnlocked,
-				"american_growth_alliance must start locked")
+				"murican_growth_alliance must start locked")
 			break
 		}
 	}
@@ -976,7 +976,7 @@ func TestTickyPressure_AcceptDeal_UnlocksOrgAndBoostsRelationship(t *testing.T) 
 	for _, os := range w.OrgStates {
 		if os.OrgID == tickyTier1OrgID {
 			assert.True(t, os.MuricanUnlocked,
-				"american_growth_alliance must be unlocked after accepting Ticky deal")
+				"murican_growth_alliance must be unlocked after accepting Ticky deal")
 			break
 		}
 	}

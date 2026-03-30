@@ -1,6 +1,7 @@
-**Warning:** this (and the .claude files) is the only document that is written soley by
-a human in the entire repo.
+**Warning:** this is the only document that is written soley by a human in the entire
+repo.
 
+## Preface
 Before we start, I suppose a little introduction is an order. My name is David Huang
 I am an Economics/Data Consultant working in the Energy Sector.
 
@@ -44,3 +45,42 @@ Any how, here we go ~
 
 David Huang
 22:25, 27.03.2026
+
+## Postface
+So here we are, at the end of a three days journey. I lied a little, I didn't end up
+completing the task at 12:00 am. In fact, I am still sleeping at the time (what do you
+expect its sunday XD). The project is content complete on 00:45 AM 30.03.2026 (Monday)
+and because of my insomnia I went back to work on the final clean up around 02:00 AM or
+slightly earlier. I digress in less than 72 hours this is indeed some impressive work.
+I will probably write some detail afternotes in the morning but for now this will do.
+
+Before I go, I just want to add a couple of disclaimer:
+1. This repo is obviously AI generated, so please treat it more as an experiment than
+   an art. I know how hard it is for indie dev to make a break these days and I don't
+   want to take any of the glory away from these unsung hero, whose hand-crafted code
+   is undoubtly why we can have high quality AI-based code today.
+2. I try to be as careful as possible when adding my twist of political satire in the
+   game but I used AI to scale a lot of the content so if you find some of the writing
+   inappropriate or of bad taste do let me know, happy to review or remove them. I won't
+   apologies for some of the edgy content I add in myself though XD, I feel like they
+   are well balance and the shots I took are only towards those who are priviledge and
+   controversial enough to take a joke on the chin.
+3. One thing I am not so sure about is design of the character Ticky. I meant to design
+   this character as a man but I think Claude turn her into a woman, don't think it
+   makes a material difference though. I thought about removing some of the traits from
+   her because people tend to demean and judge women much harsher than men. However,
+   I don't feel like giving misogynists a free win by self-censoring myself because of
+   their views. Still, if you think this character is genuinely harmful to the
+   conversation on gender equality and stereotypes do let me know, I will see what I can
+   do about it. She is a very interesting and funny villan though that I must say.
+4. I detest stolen art. I try to make explicit instruction for Claude not to include
+   any copy-righted work, but this is vibe coding and the codebase is gigantic so there
+   might be a few misses. If your work is included by accident or without credit do let
+   me know. I will remove them no question asked (well unless your claim to the work is
+   false XD).
+
+Anyways, I am going to sleep.
+
+David Out.
+
+03:58, 30.03.2026

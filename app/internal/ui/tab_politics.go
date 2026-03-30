@@ -98,7 +98,7 @@ func drawParliamentOverview(
 	screen *ebiten.Image,
 	world simulation.WorldState,
 	face font.Face,
-	px, py, pw, _ int,
+	px, py, pw, ph int,
 ) {
 	x := px + 12
 	y := py + 12

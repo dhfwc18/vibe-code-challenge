@@ -33,11 +33,9 @@ const ministerGraceWeeks = 4
 
 // signWeightMinor/Moderate/Major are multipliers applied to ideology conflict
 // accumulation based on the policy card's Significance classification.
-const (
-	signWeightMinor    = 1.0
-	signWeightModerate = 2.0
-	signWeightMajor    = 4.0
-)
+const signWeightMinor    = 1.0
+const signWeightModerate = 2.0
+const signWeightMajor    = 4.0
 
 // consultancyAffinityBonusPerWeek is the weekly relationship bonus applied to
 // affiliated orgs when a minister with ConsultancyAffinity is governing.
@@ -109,6 +107,12 @@ const (
 	baselineYearlyMt = 590.0
 	// baseWeeklyMt is the implied weekly emission rate before any policy reductions.
 	baseWeeklyMt = baselineYearlyMt / 52.0
+
+	// initialGovtPopularity seeds the hidden GovernmentPopularity at game start.
+	initialGovtPopularity = 52.0
+
+	// initialFossilDependency seeds FossilDependency at game start (~70% for 2010).
+	initialFossilDependency = 70.0
 
 	// initialElectionDueWeek places the first scheduled election at ~May 2015.
 	// Game starts January 2010; 5 years = 260 weeks.
@@ -188,6 +192,9 @@ const angryTickyDamageCabinetSplash = -3.0
 // RelationshipScore is clamped to [0,100] so the threshold must be >= 0.
 const wimpyTickyRelThreshold = 5.0
 
+// greatSneezeStartYear is the calendar year the Great Sneeze activates.
+const greatSneezeStartYear = 2019
+
 // greatSneezeEndYear is the calendar year the Great Sneeze deactivates.
 const greatSneezeEndYear = 2021
 
@@ -259,7 +266,7 @@ type WorldState struct {
 
 	// Economy
 	Economy        economy.EconomyState
-	LastTaxRevenue economy.TaxRevenue       // updated quarterly
+	LastTaxRevenue economy.TaxRevenue      // updated quarterly
 	LastBudget     economy.BudgetAllocation // updated quarterly
 
 	// Reputation
@@ -283,15 +290,15 @@ type WorldState struct {
 	PendingShockResponses []event.PendingShockResponse
 
 	// Ticky pressure mechanic: tracks recurring pressure events from TD Tennison.
-	TickyCountdown                   int  // weeks until next pressure event; only decrements when Ticky is in cabinet
-	PendingTickyPressure             bool // true when Ticky has applied pressure and player has not yet responded
+	TickyCountdown               int  // weeks until next pressure event; only decrements when Ticky is in cabinet
+	PendingTickyPressure         bool // true when Ticky has applied pressure and player has not yet responded
 	TickyPressureAcceptedThisQuarter bool // true if player accepted or negotiated this quarter; reset at quarter-end
 
 	// Extended Ticky mechanics.
-	PendingRiskyTicky  bool // Risky Ticky endorsement prompt awaiting player response
-	PendingTrickyTicky bool // Tricky Ticky Murican contract offer awaiting player response
-	AngryTickyActive   bool // Angry Ticky is in effect; policy approval malus applied
-	AngryTickyWimpy    bool // Wimpy Ticky triggered; malus has been lifted
+	PendingRiskyTicky   bool // Risky Ticky endorsement prompt awaiting player response
+	PendingTrickyTicky  bool // Tricky Ticky Murican contract offer awaiting player response
+	AngryTickyActive    bool // Angry Ticky is in effect; policy approval malus applied
+	AngryTickyWimpy     bool // Wimpy Ticky triggered; malus has been lifted
 
 	// Decaying energy market shocks.
 	ActiveDecayingShocks []ActiveDecayingShock
@@ -1035,11 +1042,11 @@ func phaseEconomyTick(w WorldState) WorldState {
 
 	w.Economy = economy.TickEconomy(
 		w.Economy,
-		w.ClimateState.Severity*0.2, // climate damage: up to 0.2 at peak severity
+		w.ClimateState.Severity*0.2,  // climate damage: up to 0.2 at peak severity
 		fpDrag,
-		0.0,                      // shock severity: events already applied directly
-		0.0,                      // policy bonus: wired up in simulation tuning pass
-		w.FossilDependency/500.0, // fossil drag: ~0-0.2 range
+		0.0,                           // shock severity: events already applied directly
+		0.0,                           // policy bonus: wired up in simulation tuning pass
+		w.FossilDependency/500.0,      // fossil drag: ~0-0.2 range
 	)
 
 	// LCR tick: capture delta for downstream popularity chains.
@@ -1269,8 +1276,8 @@ func applyCommissionReport(w WorldState, a Action) WorldState {
 		comm := evidence.CreateCommission(
 			orgDef,
 			config.InsightType(a.Detail),
-			a.Detail, // scope
-			a.Detail, // topicKey (same as scope for now)
+			a.Detail,     // scope
+			a.Detail,     // topicKey (same as scope for now)
 			w.Week,
 			w.RNG,
 		)
@@ -2100,6 +2107,16 @@ func techFractionForPolicy(def config.PolicyCardDef, tech technology.TechTracker
 	return mathutil.Clamp(tech.Maturity(def.TechUnlockGate)/100.0, 0, 1)
 }
 
+func unlockedStakeholders(stakeholders []stakeholder.Stakeholder) []stakeholder.Stakeholder {
+	out := make([]stakeholder.Stakeholder, 0)
+	for _, s := range stakeholders {
+		if s.IsUnlocked {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // cabinetStakeholders returns only the stakeholders currently assigned to the
 // governing cabinet (via CabinetByRole). Used for policy approval evaluation so
 // that opposition-party ministers do not participate in the approval pipeline.
@@ -2304,7 +2321,6 @@ func sectorInstallerCapacity(regions []region.Region, regionDefs []config.Region
 //   - RoleChancellor    -> DeptBuildings, DeptIndustry
 //   - RoleEnergy        -> DeptPower, DeptTransport
 //   - RoleForeignSecretary -> no domestic dept (neutral retained)
-//
 // roleToDepts maps a ministerial Role to the domestic department IDs it
 // influences for budget allocation. RoleForeignSecretary has no domestic
 // departments and returns nil.

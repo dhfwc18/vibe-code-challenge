@@ -156,9 +156,7 @@ func TestContractMapTab_TilesNonEmpty(t *testing.T) {
 // TestContractMapTab_TileFieldsInRange verifies that the three per-tile floats
 // read by the UI are within [0, 100] on a fresh world.
 // Ref: contract "FuelPoverty | float64 | 0-100", "InsulationLevel | float64 | 0-100",
-//
-//	"LocalPoliticalOpinion | float64 | 0-100; 50 = neutral".
-//
+//      "LocalPoliticalOpinion | float64 | 0-100; 50 = neutral".
 // NOTE: the contract names the field "LocalPoliticalOpinion" but the actual
 // region.Tile struct field is "PoliticalOpinion". The contract should be
 // corrected; this test uses the real field name.
@@ -241,7 +239,7 @@ func TestContractAction_ShockResponse_AllOptions_ClearShock(t *testing.T) {
 // DECLINE and NEGOTIATE both clear PendingTickyPressure.
 // ACCEPT is already covered by TestTickyPressure_AcceptDeal_UnlocksOrgAndBoostsRelationship
 // in integration_test.go; this test closes the gap for the two non-accept options.
-// Ref: contract "player.ActionTypeRespondTickyPressure | ” | 'ACCEPT', 'DECLINE', or 'NEGOTIATE'".
+// Ref: contract "player.ActionTypeRespondTickyPressure | '' | 'ACCEPT', 'DECLINE', or 'NEGOTIATE'".
 func TestContractAction_TickyPressure_DeclineAndNegotiate_ClearFlag(t *testing.T) {
 	options := []string{"DECLINE", "NEGOTIATE"}
 	for _, detail := range options {
@@ -270,7 +268,7 @@ func TestContractAction_TickyPressure_DeclineAndNegotiate_ClearFlag(t *testing.T
 // TestContractAction_FireStaff_RemovesHiredStaff verifies the full hire-then-fire
 // round-trip via AdvanceWeek. The UI does not yet expose a Fire button, but
 // ActionTypeFireStaff is in the contract and must work correctly for future tabs.
-// Ref: contract "player.ActionTypeFireStaff | staff member ID | ”".
+// Ref: contract "player.ActionTypeFireStaff | staff member ID | ''".
 func TestContractAction_FireStaff_RemovesHiredStaff(t *testing.T) {
 	w := loadWorld(t)
 
@@ -296,7 +294,7 @@ func TestContractAction_FireStaff_RemovesHiredStaff(t *testing.T) {
 // ActionTypeSubmitPolicy the card's State transitions to UNDER_REVIEW in the
 // same WorldState snapshot the UI reads. If the state change were deferred,
 // the policy column would show the card in the wrong column for one frame.
-// Ref: contract "ActionTypeSubmitPolicy | policy card ID | ”".
+// Ref: contract "ActionTypeSubmitPolicy | policy card ID | ''".
 func TestContractAction_SubmitPolicy_StateVisibleToUI(t *testing.T) {
 	w := loadWorld(t)
 	w, _ = AdvanceWeek(w, nil) // ensure AP pool is set and tech maturities are seeded

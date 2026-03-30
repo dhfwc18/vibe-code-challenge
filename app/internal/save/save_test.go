@@ -96,7 +96,7 @@ func TestRead_NonExistentFile_ReturnsError(t *testing.T) {
 func TestRead_CorruptJSON_ReturnsError(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "corrupt.sav")
-	require.NoError(t, os.WriteFile(path, []byte("{not valid json"), 0o600))
+	require.NoError(t, os.WriteFile(path, []byte("{not valid json"), 0600))
 	_, err := Read(path)
 	assert.Error(t, err)
 }
@@ -107,7 +107,7 @@ func TestRead_WrongVersion_ReturnsErrIncompatibleVersion(t *testing.T) {
 
 	// Write a save with a different schema version.
 	data := []byte(`{"version":999,"master_seed":42,"game_week":0,"game_year":2010,"player_name":"Old"}`)
-	require.NoError(t, os.WriteFile(path, data, 0o600))
+	require.NoError(t, os.WriteFile(path, data, 0600))
 
 	_, err := Read(path)
 	require.Error(t, err)

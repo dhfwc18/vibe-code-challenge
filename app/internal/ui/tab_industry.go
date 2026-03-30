@@ -158,3 +158,4 @@ func companyStatusColour(s industry.CompanyStatus) color.RGBA {
 		return ColourPartyNeutral
 	}
 }
+

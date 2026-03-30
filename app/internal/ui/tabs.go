@@ -7,21 +7,26 @@ import (
 )
 
 const (
+	// tabBarWidth is kept as 0; the left sidebar has been removed.
+	// Tabs now render as a horizontal panel selector bar at the bottom of the screen.
+	tabBarWidth = 0
 	// panelBarH is the height of the bottom panel selector bar.
 	panelBarH = 40
+	// tabBarTop is kept for backward compatibility with HUD height references.
+	tabBarTop = hudHeight
 )
 
 // tabNames lists the panel buttons in display order.
 // Index 1 ("Map") is the "map-only" state with no overlay panel visible.
 // Parliament view is embedded inside the Map tab's right panel.
 var tabNames = []string{
-	"Overview", // 0
-	"Map",      // 1 -- clicking this hides all overlays
-	"Policy",   // 2
-	"Energy",   // 3
-	"Industry", // 4
-	"Evidence", // 5
-	"Budget",   // 6
+	"Overview",  // 0
+	"Map",       // 1 -- clicking this hides all overlays
+	"Policy",    // 2
+	"Energy",    // 3
+	"Industry",  // 4
+	"Evidence",  // 5
+	"Budget",    // 6
 }
 
 // TabBar renders and handles input for the bottom panel selector bar.

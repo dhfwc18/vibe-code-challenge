@@ -15,12 +15,27 @@ const hudHeight = 48
 
 // HUD renders the top bar of the game screen.
 type HUD struct {
-	lastEventName string
+	advanceWeekSignal bool
+	lastEventName     string
 }
 
 // newHUD creates a new HUD.
 func newHUD() *HUD {
 	return &HUD{}
+}
+
+// signalAdvanceWeek marks that the "Advance Week" button was pressed this frame.
+func (h *HUD) signalAdvanceWeek() {
+	h.advanceWeekSignal = true
+}
+
+// consumeAdvanceWeek returns true if "Advance Week" was pressed, then resets.
+func (h *HUD) consumeAdvanceWeek() bool {
+	if h.advanceWeekSignal {
+		h.advanceWeekSignal = false
+		return true
+	}
+	return false
 }
 
 // setLastEvent stores the most recent event name for the notification strip.
@@ -29,10 +44,8 @@ func (h *HUD) setLastEvent(name string) {
 }
 
 // hudItemW is the fixed width budget per HUD slot (proportional layout).
-const (
-	hudBtnW = 148
-	hudBtnH = 28
-)
+const hudBtnW = 148
+const hudBtnH = 28
 
 // Draw renders the HUD top bar onto screen.
 func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.Face, effectiveAP int, feedbackMsg string) {
@@ -71,10 +84,8 @@ func (h *HUD) Draw(screen *ebiten.Image, world simulation.WorldState, face font.
 	if mn < 1 || mn > 12 {
 		mn = 1
 	}
-	monthStr := [12]string{
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-	}[mn-1]
+	monthStr := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}[mn-1]
 	timeStr := fmt.Sprintf("%s %d  Wk %d  Q%d", monthStr, world.Year, world.Week, world.Quarter)
 	drawLabel(screen, 8, textY, timeStr, ColourTextPrimary, face)
 

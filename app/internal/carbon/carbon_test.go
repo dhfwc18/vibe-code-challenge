@@ -41,7 +41,7 @@ func TestAccumulateWeekly_ZeroEmissions_NoChange(t *testing.T) {
 
 func TestAccumulateWeekly_DoesNotMutateInput(t *testing.T) {
 	state := CarbonBudgetState{RunningAnnualTotal: 50.0}
-	_ = AccumulateWeekly(state, 10.0)
+	AccumulateWeekly(state, 10.0)
 	assert.Equal(t, 50.0, state.RunningAnnualTotal)
 }
 

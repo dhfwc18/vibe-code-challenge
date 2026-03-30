@@ -10,9 +10,9 @@ type Party string
 
 const (
 	PartyLeft     Party = "common_wealth"      // The Common Wealth
-	PartyRight    Party = "union_party"        // The Union Party
-	PartyFarLeft  Party = "renewal"            // Renewal
-	PartyFarRight Party = "taitan_restoration" // Taitan Restoration
+	PartyRight    Party = "union_party"         // The Union Party
+	PartyFarLeft  Party = "renewal"             // Renewal
+	PartyFarRight Party = "taitan_restoration"  // Taitan Restoration
 )
 
 // PartyNames maps each Party ID to its display name shown in the UI.
@@ -100,16 +100,16 @@ const (
 type TechCategory string
 
 const (
-	TechCatOffshoreWind TechCategory = "OFFSHORE_WIND"
-	TechCatOnshore      TechCategory = "ONSHORE_SOLAR"
-	TechCatHeatPumps    TechCategory = "HEAT_PUMPS"
-	TechCatEVs          TechCategory = "EVS"
-	TechCatHydrogen     TechCategory = "HYDROGEN"
-	TechCatCCUS         TechCategory = "CCUS"
-	TechCatGrid         TechCategory = "GRID_RETAIL"
-	TechCatLegacy       TechCategory = "LEGACY_TRANSITION"
-	TechCatInstallers   TechCategory = "INSTALLERS"
-	TechCatNuclear      TechCategory = "NUCLEAR"
+	TechCatOffshoreWind  TechCategory = "OFFSHORE_WIND"
+	TechCatOnshore       TechCategory = "ONSHORE_SOLAR"
+	TechCatHeatPumps     TechCategory = "HEAT_PUMPS"
+	TechCatEVs           TechCategory = "EVS"
+	TechCatHydrogen      TechCategory = "HYDROGEN"
+	TechCatCCUS          TechCategory = "CCUS"
+	TechCatGrid          TechCategory = "GRID_RETAIL"
+	TechCatLegacy        TechCategory = "LEGACY_TRANSITION"
+	TechCatInstallers    TechCategory = "INSTALLERS"
+	TechCatNuclear       TechCategory = "NUCLEAR"
 )
 
 // CompanySize describes the scale of an LCT company at game start.
@@ -234,11 +234,11 @@ type StakeholderSeed struct {
 	Name                string
 	Nickname            string
 	Biography           string
-	IdeologyScore       float64  // -100 (far-left) to +100 (far-right)
-	NetZeroSympathy     float64  // 0 (hostile) to 100 (champion)
-	RiskTolerance       float64  // 0 (cautious) to 100 (reckless)
-	PopulismScore       float64  // 0 (technocratic) to 100 (populist)
-	DiplomaticSkill     float64  // 0-100; used only for Foreign Secretary role
+	IdeologyScore       float64 // -100 (far-left) to +100 (far-right)
+	NetZeroSympathy     float64 // 0 (hostile) to 100 (champion)
+	RiskTolerance       float64 // 0 (cautious) to 100 (reckless)
+	PopulismScore       float64 // 0 (technocratic) to 100 (populist)
+	DiplomaticSkill     float64 // 0-100; used only for Foreign Secretary role
 	ConsultancyAffinity []string // org IDs; drives passive relationship bonus
 	ConsultancyAversion bool     // true = hostile to private consultancy spend; commissioning while governing costs minister relationship
 	Signals             []string // 2-3 observable personality signals shown on appointment
@@ -247,10 +247,10 @@ type StakeholderSeed struct {
 
 // OrgDefinition is the immutable definition of an advisory organisation.
 type OrgDefinition struct {
-	ID      string
-	Name    string
-	OrgType OrgType
-	Origin  OrgOrigin
+	ID                     string
+	Name                   string
+	OrgType                OrgType
+	Origin                 OrgOrigin
 	// MuricanAccessTier controls when a Murican-origin org becomes accessible.
 	// Ignored for non-Murican orgs (always accessible).
 	//   0 = available from game start
@@ -261,10 +261,10 @@ type OrgDefinition struct {
 	DeliveryDist           TriangularDist // weeks
 	Quality                QualityRange
 	BiasType               BiasType
-	BiasDirection          float64       // -1 to +1; used only when BiasType=IDEOLOGICAL
-	ClientBiasWeight       float64       // 0-1; used only when BiasType=CLIENT_CONFIRMATION
-	PopularityRisk         float64       // 0-1; weekly hit to GovernmentPopularity when active
-	BaseFailureProbability float64       // 0-1; probability commission fails entirely
+	BiasDirection          float64      // -1 to +1; used only when BiasType=IDEOLOGICAL
+	ClientBiasWeight       float64      // 0-1; used only when BiasType=CLIENT_CONFIRMATION
+	PopularityRisk         float64      // 0-1; weekly hit to GovernmentPopularity when active
+	BaseFailureProbability float64      // 0-1; probability commission fails entirely
 	Specialisms            []InsightType // outside specialism = quality -20
 }
 
@@ -313,7 +313,7 @@ type TileDef struct {
 	ID                      string
 	RegionID                string
 	Name                    string
-	InitialInsulationLevel  float64 // 0-100
+	InitialInsulationLevel  float64     // 0-100
 	InitialHeatingType      HeatingType
 	InitialLocalIncome      float64 // 0-100 (50 = median Taitan household income)
 	InitialPoliticalOpinion float64 // 0-100 (50 = neutral)
@@ -340,20 +340,20 @@ type WeeklyEffectDef struct {
 
 // PolicyCardDef is the immutable definition of a policy card.
 type PolicyCardDef struct {
-	ID                    string
-	Name                  string
-	Sector                PolicySector
-	Description           string
-	APCost                int
-	BudgetCostToSubmit    float64    // GBP millions one-off cost to submit
-	TechUnlockGate        Technology // zero value = no gate required
-	TechUnlockThreshold   float64    // minimum TechMaturity to unlock card
-	ApprovalSteps         []ApprovalRequirement
-	WeeklyEffect          WeeklyEffectDef
-	LCRDeltaPerWeek       float64                // weekly change to LowCarbonReputation when active
-	PopularityRiskPerWeek float64                // weekly GovernmentPopularity delta when active
-	Significance          PolicySignificance     // political weight: MINOR, MODERATE, or MAJOR
-	RDBonus               map[Technology]float64 // weekly tech maturity acceleration per tech when ACTIVE; nil = no R&D effect
+	ID                  string
+	Name                string
+	Sector              PolicySector
+	Description         string
+	APCost              int
+	BudgetCostToSubmit  float64 // GBP millions one-off cost to submit
+	TechUnlockGate      Technology // zero value = no gate required
+	TechUnlockThreshold float64    // minimum TechMaturity to unlock card
+	ApprovalSteps       []ApprovalRequirement
+	WeeklyEffect        WeeklyEffectDef
+	LCRDeltaPerWeek       float64            // weekly change to LowCarbonReputation when active
+	PopularityRiskPerWeek float64            // weekly GovernmentPopularity delta when active
+	Significance          PolicySignificance // political weight: MINOR, MODERATE, or MAJOR
+	RDBonus map[Technology]float64 // weekly tech maturity acceleration per tech when ACTIVE; nil = no R&D effect
 }
 
 // EventEffect describes the quantitative impact of a global event when it fires.
@@ -382,11 +382,11 @@ type EventEffect struct {
 	CarbonEmissionsDeltaMt   float64 // additional MtCO2e this week (positive = more emissions)
 
 	// Region-targeted effects (filter selects which regions are affected)
-	RegionFilter           string  // see filter rules above
-	InstallerCapacityDelta float64 // installs-per-week delta applied to matched regions
-	SkillsNetworkDelta     float64 // 0-100 scale delta applied to matched regions
-	TileFuelPovertyDelta   float64 // applied to every tile in matched regions
-	TileInsulationDamage   float64 // positive = insulation degraded (subtracted from InsulationLevel)
+	RegionFilter             string  // see filter rules above
+	InstallerCapacityDelta   float64 // installs-per-week delta applied to matched regions
+	SkillsNetworkDelta       float64 // 0-100 scale delta applied to matched regions
+	TileFuelPovertyDelta     float64 // applied to every tile in matched regions
+	TileInsulationDamage     float64 // positive = insulation degraded (subtracted from InsulationLevel)
 
 	// Stakeholder-targeted effects (filter selects which ministers are affected)
 	StakeholderFilter        string  // see filter rules above
@@ -394,9 +394,9 @@ type EventEffect struct {
 	StakeholderPressureDelta int     // +1/-1 to pressure counter on matched stakeholders
 
 	// Company-targeted effects (filter selects which active LCT companies are affected)
-	CompanyFilter        string  // see filter rules above
-	CompanyWorkRateDelta float64 // 0-100 scale delta applied to matched companies
-	CompanyQualityDelta  float64 // 0-100 scale delta applied to matched companies
+	CompanyFilter            string  // see filter rules above
+	CompanyWorkRateDelta     float64 // 0-100 scale delta applied to matched companies
+	CompanyQualityDelta      float64 // 0-100 scale delta applied to matched companies
 }
 
 // DecayingShockConfig defines an ongoing market effect that diminishes over time.
@@ -415,15 +415,15 @@ type DecayingShockConfig struct {
 type EventDef struct {
 	ID                  string
 	Name                string
-	Headline            string // short newspaper-style headline shown in event notifications
+	Headline            string        // short newspaper-style headline shown in event notifications
 	EventType           EventType
 	Severity            EventSeverity
-	BaseProbability     float64 // probability per week of this event firing; 0 = not probabilistic
-	ClimateMultiplier   float64 // multiplied against BaseProbability when climate is ELEVATED+
-	FossilMultiplier    float64 // multiplied against BaseProbability when FossilDependency > 60
-	TriggerAtYear       int     // if > 0, fires once automatically at the start of this game year
+	BaseProbability     float64       // probability per week of this event firing; 0 = not probabilistic
+	ClimateMultiplier   float64       // multiplied against BaseProbability when climate is ELEVATED+
+	FossilMultiplier    float64       // multiplied against BaseProbability when FossilDependency > 60
+	TriggerAtYear       int           // if > 0, fires once automatically at the start of this game year
 	BaseEffects         EventEffect
 	DecayingShock       DecayingShockConfig // zero value = no ongoing decaying effect
-	Narrative           string              // full text shown in the player-visible event log
-	OffersShockResponse bool                // if true, queues a ShockResponseCard for the player
+	Narrative           string        // full text shown in the player-visible event log
+	OffersShockResponse bool          // if true, queues a ShockResponseCard for the player
 }

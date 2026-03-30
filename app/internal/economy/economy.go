@@ -138,3 +138,4 @@ func copyLobbyEffects(src map[string]float64) map[string]float64 {
 	}
 	return dst
 }
+

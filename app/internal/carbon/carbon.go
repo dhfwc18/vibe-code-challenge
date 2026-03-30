@@ -7,10 +7,10 @@ import "github.com/vibe-code-challenge/twenty-fifty/internal/config"
 type ClimateLevel int
 
 const (
-	ClimateLevelStable    ClimateLevel = iota // < ThresholdElevated
-	ClimateLevelElevated                      // ThresholdElevated <= stock < ThresholdCritical
-	ClimateLevelCritical                      // ThresholdCritical  <= stock < ThresholdEmergency
-	ClimateLevelEmergency                     // stock >= ThresholdEmergency
+	ClimateLevelStable   ClimateLevel = iota // < ThresholdElevated
+	ClimateLevelElevated                     // ThresholdElevated <= stock < ThresholdCritical
+	ClimateLevelCritical                     // ThresholdCritical  <= stock < ThresholdEmergency
+	ClimateLevelEmergency                    // stock >= ThresholdEmergency
 )
 
 // Climate level thresholds in MtCO2e cumulative above the 2010 baseline.
@@ -29,7 +29,7 @@ type CarbonBudgetState struct {
 	OvershootAccumulator float64 // total MtCO2e over CCC annual limits (never decreases)
 	CurrentBudgetLimit   float64 // annual limit for the current year from the CCC table
 	Trajectory           float64 // projected annual total at current weekly pace; set by simulation
-	// each tick via ProjectTrajectory(state, weeksElapsedThisYear)
+	                             // each tick via ProjectTrajectory(state, weeksElapsedThisYear)
 }
 
 // BudgetCheckResult is the outcome of a year-end carbon budget check.

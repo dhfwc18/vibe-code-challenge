@@ -153,3 +153,4 @@ func ShockResponseOutcome(card ShockResponseCard, option ShockResponseOption, rn
 	}
 	return result
 }
+

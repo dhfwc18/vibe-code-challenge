@@ -130,9 +130,9 @@ func TestTickPrices_ZeroDelta_PricesUnchangedExceptCouplingCheck(t *testing.T) {
 
 func TestTickPrices_EnforcesGridCouplingFloor(t *testing.T) {
 	m := NewMarket()
-	m.RenewableGridShare = 10.0 // low renewables; coupling active
+	m.RenewableGridShare = 10.0   // low renewables; coupling active
 	m.GasPrice = 50.0
-	m.ElectricityPrice = 1.0 // artificially low
+	m.ElectricityPrice = 1.0      // artificially low
 	updated := TickPrices(m, 0, 0, 0, 0)
 	floor := GridCouplingFloor(50.0, 10.0)
 	assert.GreaterOrEqual(t, updated.ElectricityPrice, floor)
@@ -140,9 +140,9 @@ func TestTickPrices_EnforcesGridCouplingFloor(t *testing.T) {
 
 func TestTickPrices_AboveCouplingThreshold_FloorDoesNotApply(t *testing.T) {
 	m := NewMarket()
-	m.RenewableGridShare = 60.0 // above threshold
+	m.RenewableGridShare = 60.0  // above threshold
 	m.GasPrice = 100.0
-	m.ElectricityPrice = 5.0 // very low but above threshold uncoupled
+	m.ElectricityPrice = 5.0     // very low but above threshold uncoupled
 	updated := TickPrices(m, 0, 0, 0, 0)
 	assert.InDelta(t, 5.0, updated.ElectricityPrice, 0.01,
 		"above coupling threshold, low electricity price should not be raised")

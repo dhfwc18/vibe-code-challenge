@@ -131,7 +131,7 @@ func drawTabEvidence(
 // drawCommissionModal draws the commission modal overlay.
 func drawCommissionModal(
 	screen *ebiten.Image,
-	_ simulation.WorldState,
+	world simulation.WorldState,
 	state *evidenceTabState,
 	pendingActions *[]simulation.Action,
 	face font.Face,

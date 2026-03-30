@@ -253,9 +253,7 @@ func TestConsultancyAversion_ActiveCommission_ReducesRelationship(t *testing.T) 
 // Counter-intuitive: the player uses a shock response expecting help, but at low
 // LCR the response has a meaningful backfire risk. The task description suggested
 // BackfireProbability(15, 50) > 0.5, but the formula is:
-//
-//	0.35 * (1-lcr/100) * (1-rep/100)
-//
+//   0.35 * (1-lcr/100) * (1-rep/100)
 // which has a maximum of 0.35 (when both lcr and rep are 0). The real counter-
 // intuitive mechanic is that backfire risk SCALES with low LCR: higher LCR gives
 // lower backfire risk, creating a positive feedback loop for maintaining LCR.

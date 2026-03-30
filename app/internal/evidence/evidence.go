@@ -18,7 +18,7 @@ type Commission struct {
 	ID               string
 	OrgID            string
 	InsightType      config.InsightType
-	Scope            string // free-text scope string visible in the UI
+	Scope            string  // free-text scope string visible in the UI
 	CommissionedWeek int
 	DeliveryWeek     int     // week number when delivery occurs
 	BudgetCost       float64 // GBP thousands, fixed at commission time
@@ -45,7 +45,7 @@ type OrgState struct {
 	OrgID             string
 	RelationshipScore float64 // 0-100; starts at 50; improves with repeat use
 	CommissionCount   int
-	CoolingOffUntil   int // week number after a failed commission; org unavailable until then
+	CoolingOffUntil   int  // week number after a failed commission; org unavailable until then
 	// MuricanUnlocked is set to true for tier-0 Murican orgs at game start, and
 	// set to true for tier-1 Murican orgs when a qualifying event fires.
 	// It has no effect on non-Murican orgs (they are always accessible).

@@ -278,8 +278,8 @@ func TestTickSpecialMechanic_ElectoralFatigue_AlwaysIncrements(t *testing.T) {
 
 func TestTickSpecialMechanic_NoMechanic_StateUnchanged(t *testing.T) {
 	s := Stakeholder{
-		SpecialMechanic:       config.MechanicNone,
-		TickyPressureCounter:  3,
+		SpecialMechanic:      config.MechanicNone,
+		TickyPressureCounter: 3,
 		ElectoralFatigueCount: 7,
 	}
 	s2 := TickSpecialMechanic(s, carbon.ClimateLevelEmergency, nil)

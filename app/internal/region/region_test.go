@@ -14,10 +14,8 @@ import (
 
 func TestSeedRegions_PopulatesFromDefs(t *testing.T) {
 	defs := []config.RegionDef{
-		{
-			ID: "r1", Name: "Region One", TileIDs: []string{"t1", "t2"},
-			InitialSkillsNetwork: 40, InitialInstallerCapacity: 10, InitialSupplyChain: 35,
-		},
+		{ID: "r1", Name: "Region One", TileIDs: []string{"t1", "t2"},
+			InitialSkillsNetwork: 40, InitialInstallerCapacity: 10, InitialSupplyChain: 35},
 	}
 	regions := SeedRegions(defs)
 	assert.Equal(t, 1, len(regions))
@@ -45,12 +43,10 @@ func TestSeedRegions_TileIDsAreCopied(t *testing.T) {
 
 func TestSeedTiles_PopulatesFromDefs(t *testing.T) {
 	defs := []config.TileDef{
-		{
-			ID: "t1", RegionID: "r1", Name: "Tile One",
+		{ID: "t1", RegionID: "r1", Name: "Tile One",
 			InitialInsulationLevel: 30, InitialHeatingType: config.HeatingGas,
 			InitialLocalIncome: 50, InitialPoliticalOpinion: 55,
-			InitialHeatingCapacity: 50, InitialInstallerQuality: 40,
-		},
+			InitialHeatingCapacity: 50, InitialInstallerQuality: 40},
 	}
 	tiles := SeedTiles(defs)
 	assert.Equal(t, 1, len(tiles))
@@ -222,18 +218,12 @@ func TestComputeFuelPoverty_HigherSeasonalMultiplier_IncreasesPoverty(t *testing
 func TestComputeFuelPoverty_AlwaysInBounds(t *testing.T) {
 	cases := []FuelPovertyInput{
 		referenceInput,
-		{
-			GasPrice: 0, ElectricityPrice: 0, OilPrice: 0,
-			HeatingType: config.HeatingGas, LocalIncome: 1, SeasonalMultiplier: 1.0,
-		},
-		{
-			GasPrice: 999, ElectricityPrice: 999, OilPrice: 999,
-			HeatingType: config.HeatingOil, LocalIncome: 1, SeasonalMultiplier: 2.0,
-		},
-		{
-			HeatingType: config.HeatingHeatPump, TechMaturityHeatPumps: 100,
-			ElectricityPrice: 200, LocalIncome: 1, SeasonalMultiplier: 1.0,
-		},
+		{GasPrice: 0, ElectricityPrice: 0, OilPrice: 0,
+			HeatingType: config.HeatingGas, LocalIncome: 1, SeasonalMultiplier: 1.0},
+		{GasPrice: 999, ElectricityPrice: 999, OilPrice: 999,
+			HeatingType: config.HeatingOil, LocalIncome: 1, SeasonalMultiplier: 2.0},
+		{HeatingType: config.HeatingHeatPump, TechMaturityHeatPumps: 100,
+			ElectricityPrice: 200, LocalIncome: 1, SeasonalMultiplier: 1.0},
 	}
 	for _, in := range cases {
 		result := ComputeFuelPoverty(in)
